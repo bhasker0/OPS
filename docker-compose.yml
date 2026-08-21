@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  ops-mongo:
+    image: mongo:7-jammy
+    container_name: ops-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - ops_mongo_data:/data/db
+    networks:
+      - etms-network
+
+  ops-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ops-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - DATABASE_URL=postgresql://postgres:postgres@etms-postgres:5432/ops_db?schema=public
+      - MONGO_URI=mongodb://ops-mongo:27017/ops_audit_db
+    depends_on:
+      - ops-mongo
+    networks:
+      - etms-network
+
+  ops-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ops-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - ops-backend
+    networks:
+      - etms-network
+
+networks:
+  etms-network:
+    name: etms_etms-network
+    external: true
+
+volumes:
+  ops_mongo_data:
+    driver: local

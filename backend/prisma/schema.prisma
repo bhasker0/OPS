@@ -1,0 +1,93 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Company {
+  id                 String        @id
+  name               String
+  code               String        @unique
+  status             String        @default("ACTIVE")
+  isSeed             Boolean       @default(false)
+  logoUrl            String?
+  contactPerson      String?
+  mobile             String?
+  email              String?
+  gstin              String?
+  address            String?
+  roundOffFormat     String?       @default("NEAREST_RUPEE")
+  digitsAfterDecimal Int           @default(2)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  roles              Role[]
+  users              User[]
+  parameters         Parameter[]
+  transactions       Transaction[]
+}
+
+model Role {
+  id              String   @id @default(uuid())
+  name            String
+  companyId       String
+  isSystemDefined Boolean  @default(false)
+  permissions     String   @default("[\"*\"]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  users   User[]
+
+  @@index([companyId])
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password      String   @default("password123")
+  companyId     String?
+  roleId        String?
+  isInternalOps Boolean  @default(false)
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  role    Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([roleId])
+}
+
+model Parameter {
+  id          String   @id @default(uuid())
+  companyId   String
+  key         String
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, key])
+  @@index([companyId])
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  companyId   String
+  amount      Float
+  currency    String   @default("INR")
+  status      String   @default("SUCCESS")
+  description String?
+  createdAt   DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
