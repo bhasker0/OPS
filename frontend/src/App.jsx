@@ -30,6 +30,8 @@ import {
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import CompanyManagement from './components/CompanyManagement';
 import CompanyOnboardingWizard from './components/CompanyOnboardingWizard';
+import UserManagement from './components/UserManagement';
+import RoleManagement from './components/RoleManagement';
 
 const API_BASE = 'http://localhost:5000/api';
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
@@ -52,6 +54,7 @@ export default function App() {
   const [globalStats, setGlobalStats] = useState(null);
   const [companies, setCompanies] = useState([]);
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [companyTransactions, setCompanyTransactions] = useState([]);
 
@@ -93,6 +96,7 @@ export default function App() {
       fetchGlobalStats();
       fetchCompanies();
       fetchUsers();
+      fetchRoles();
       fetchAuditLogs();
     }
   }, [isLoggedIn]);
@@ -127,6 +131,16 @@ export default function App() {
       if (data.success) setUsers(data.data);
     } catch (err) {
       console.error('Error fetching users:', err);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/roles`);
+      const data = await res.json();
+      if (data.success) setRoles(data.data);
+    } catch (err) {
+      console.error('Error fetching roles:', err);
     }
   };
 
@@ -399,6 +413,9 @@ export default function App() {
               <button className={`nav-item ${activeTab === 'all_users' ? 'active' : ''}`} onClick={() => setActiveTab('all_users')}>
                 <Users size={16} /> Users ({users.length})
               </button>
+              <button className={`nav-item ${activeTab === 'roles' ? 'active' : ''}`} onClick={() => { fetchRoles(); setActiveTab('roles'); }}>
+                <Lock size={16} /> RBAC Roles ({roles.length})
+              </button>
               <button className={`nav-item ${activeTab === 'global_audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(); setActiveTab('global_audit'); }}>
                 <FileText size={16} /> Audit Trail
               </button>
@@ -571,42 +588,40 @@ export default function App() {
 
         {/* USERS DIRECTORY TAB */}
         {activeTab === 'all_users' && !operatingCompany && (
-          <div className="card table-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h3>SaaS Platform Users</h3>
-              <button className="btn btn-primary" onClick={() => setShowUserModal(true)}>
-                <Plus size={14} /> Create User
-              </button>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Type</th>
-                  <th>Company</th>
-                  <th>Role</th>
-                  <th>Support Edit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id}>
-                    <td><strong>{u.name}</strong></td>
-                    <td>{u.email}</td>
-                    <td>{u.isInternalOps ? <span className="badge badge-ops">OPS Admin</span> : <span className="badge">User</span>}</td>
-                    <td>{u.company ? u.company.name : 'OPS System'}</td>
-                    <td>{u.role ? u.role.name : 'Super Admin'}</td>
-                    <td>
-                      <button className="btn btn-secondary" style={{ padding: '0.15rem 0.45rem', fontSize: '0.72rem' }} onClick={() => { setSelectedUserToEdit(u); setEditUserData({ name: u.name, email: u.email, status: u.status || 'ACTIVE' }); setShowEditUserModal(true); }}>
-                        <Edit2 size={11} /> Edit Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <UserManagement
+            users={users}
+            companies={companies}
+            roles={roles}
+            apiBase={API_BASE}
+            onUserCreated={(newUser) => {
+              setMessage({ type: 'success', text: `User '${newUser.name}' created successfully.` });
+              fetchUsers();
+              fetchGlobalStats();
+              fetchAuditLogs();
+            }}
+            onUserUpdated={(updatedUser) => {
+              setMessage({ type: 'success', text: `User '${updatedUser.name}' updated successfully.` });
+              fetchUsers();
+              fetchAuditLogs();
+            }}
+            onRefresh={() => {
+              fetchUsers();
+              fetchCompanies();
+              fetchRoles();
+            }}
+          />
+        )}
+
+        {/* ROLES DIRECTORY TAB */}
+        {activeTab === 'roles' && !operatingCompany && (
+          <RoleManagement
+            companies={companies}
+            apiBase={API_BASE}
+            onRefresh={() => {
+              fetchRoles();
+              fetchAuditLogs();
+            }}
+          />
         )}
 
         {/* AUDIT LOGS TAB */}
