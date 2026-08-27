@@ -1,65 +1,188 @@
 const express = require('express');
 const prisma = require('../db');
-const { logAuditEvent } = require('../services/auditLogger');
+const { logAuditEvent, computeDiff } = require('../services/auditLogger');
+const { dispatchOpsSync } = require('../services/opsSyncClient');
 
 const router = express.Router();
+const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
 
-// GET /api/users - List users
+// Standard email format validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function isValidEmail(email) {
+  if (!email) return false;
+  return EMAIL_REGEX.test(email.trim().toLowerCase());
+}
+
+function parsePermissions(permField) {
+  if (Array.isArray(permField)) return permField;
+  if (typeof permField === 'string') {
+    try {
+      const parsed = JSON.parse(permField);
+      if (Array.isArray(parsed)) return parsed;
+      return [permField];
+    } catch {
+      return [permField];
+    }
+  }
+  return [];
+}
+
+// User field selector excluding password
+const userSelectFields = {
+  id: true,
+  name: true,
+  email: true,
+  companyId: true,
+  roleId: true,
+  status: true,
+  isInternalOps: true,
+  createdAt: true,
+  updatedAt: true,
+  company: {
+    select: { id: true, name: true, code: true },
+  },
+  role: {
+    select: { id: true, name: true, isSystemDefined: true, permissions: true },
+  },
+};
+
+// GET /api/users - List users with search, filters & pagination (excluding passwords)
 router.get('/', async (req, res) => {
   try {
-    const { companyId, isInternalOps } = req.query;
+    const { companyId, isInternalOps, status, search, page = 1, limit = 50 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
 
     const where = {};
     if (companyId) where.companyId = companyId;
+    if (status) where.status = status.toUpperCase();
     if (isInternalOps !== undefined) where.isInternalOps = isInternalOps === 'true';
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
-    const users = await prisma.user.findMany({
-      where,
-      include: {
-        company: {
-          select: { id: true, name: true, code: true },
-        },
-        role: {
-          select: { id: true, name: true, isSystemDefined: true },
-        },
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: userSelectFields,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    const formattedUsers = users.map((u) => ({
+      ...u,
+      role: u.role ? { ...u.role, permissions: parsePermissions(u.role.permissions) } : null,
+    }));
+
+    res.json({
+      success: true,
+      data: formattedUsers,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / take),
       },
-      orderBy: { createdAt: 'desc' },
     });
-
-    res.json({ success: true, data: users });
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// POST /api/users - Create new user
+// GET /api/users/:id - Get detailed profile of a single user
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: userSelectFields,
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...user,
+        role: user.role ? { ...user.role, permissions: parsePermissions(user.role.permissions) } : null,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/users - Create new user with cross-tenant role validation & ETMS sync
 router.post('/', async (req, res) => {
   try {
     const { name, email, password, companyId, roleId, isInternalOps } = req.body;
 
     if (!name || !email) {
-      return res.status(400).json({ success: false, message: 'Name and Email are required' });
+      return res.status(400).json({ success: false, message: 'Name and Email are required.' });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!isValidEmail(cleanEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid email address format '${email}'.`,
+      });
+    }
+
+    // Check unique email constraint
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (existing) {
-      return res.status(400).json({ success: false, message: 'Email address already exists' });
+      return res.status(400).json({ success: false, message: `Email address '${cleanEmail}' is already registered.` });
+    }
+
+    // Verify company if provided
+    let targetCompanyId = companyId || null;
+    if (targetCompanyId) {
+      const comp = await prisma.company.findUnique({ where: { id: targetCompanyId } });
+      if (!comp) {
+        return res.status(404).json({ success: false, message: 'Specified company does not exist.' });
+      }
+    }
+
+    // Verify role and cross-tenant role isolation guard
+    let targetRoleId = roleId || null;
+    if (targetRoleId) {
+      const role = await prisma.role.findUnique({ where: { id: targetRoleId } });
+      if (!role) {
+        return res.status(404).json({ success: false, message: 'Specified role does not exist.' });
+      }
+
+      // Cross-Tenant Role Isolation: Role must belong to the user's company or be a seed role
+      if (targetCompanyId && role.companyId !== targetCompanyId && role.companyId !== SEED_COMPANY_ID) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cross-tenant role assignment violation: Role does not belong to the user\'s company.',
+        });
+      }
     }
 
     const user = await prisma.user.create({
       data: {
         name: name.trim(),
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         password: password || 'password123',
-        companyId: companyId || null,
-        roleId: roleId || null,
+        companyId: targetCompanyId,
+        roleId: targetRoleId,
         isInternalOps: Boolean(isInternalOps),
+        status: 'ACTIVE',
       },
-      include: {
-        company: { select: { id: true, name: true } },
-        role: { select: { id: true, name: true, isSystemDefined: true } },
-      },
+      select: userSelectFields,
     });
 
     // 🍃 LOG AUDIT EVENT TO MONGODB
@@ -72,63 +195,179 @@ router.post('/', async (req, res) => {
         name: user.name,
         email: user.email,
         isInternalOps: user.isInternalOps,
+        roleId: user.roleId,
       },
     });
 
-    res.status(201).json({ success: true, data: user });
+    // 🔄 SYNC USER TO ETMS
+    dispatchOpsSync('user', user).catch(err => console.error('Sync failed:', err));
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: {
+        ...user,
+        role: user.role ? { ...user.role, permissions: parsePermissions(user.role.permissions) } : null,
+      },
+    });
   } catch (error) {
     console.error('Error creating user:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// PUT /api/users/:id - Support Operation: Update user information/status/role
+// PUT /api/users/:id - Update user details with audit mutation diff & ETMS sync
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, status, roleId } = req.body;
+    const { name, email, status, roleId, isInternalOps, password } = req.body;
 
-    const existingUser = await prisma.user.findUnique({ where: { id } });
+    const existingUser = await prisma.user.findUnique({
+      where: { id },
+      include: { role: true },
+    });
 
     if (!existingUser) {
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    let cleanEmail = existingUser.email;
+    if (email && email.trim().toLowerCase() !== existingUser.email) {
+      cleanEmail = email.trim().toLowerCase();
+      if (!isValidEmail(cleanEmail)) {
+        return res.status(400).json({ success: false, message: `Invalid email address format '${email}'.` });
+      }
+
+      const duplicate = await prisma.user.findUnique({ where: { email: cleanEmail } });
+      if (duplicate && duplicate.id !== id) {
+        return res.status(400).json({ success: false, message: `Email '${cleanEmail}' is already in use.` });
+      }
+    }
+
+    // Role validation & cross-tenant check if updating roleId
+    let targetRoleId = existingUser.roleId;
+    if (roleId !== undefined) {
+      if (roleId === null) {
+        targetRoleId = null;
+      } else {
+        const newRole = await prisma.role.findUnique({ where: { id: roleId } });
+        if (!newRole) {
+          return res.status(404).json({ success: false, message: 'Specified role does not exist.' });
+        }
+        if (existingUser.companyId && newRole.companyId !== existingUser.companyId && newRole.companyId !== SEED_COMPANY_ID) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cross-tenant role assignment violation: Role does not belong to the user\'s company.',
+          });
+        }
+        targetRoleId = roleId;
+      }
     }
 
     const updatedUser = await prisma.user.update({
       where: { id },
       data: {
         name: name !== undefined ? name.trim() : existingUser.name,
-        email: email !== undefined ? email.trim().toLowerCase() : existingUser.email,
-        status: status !== undefined ? status : existingUser.status,
-        roleId: roleId !== undefined ? roleId : existingUser.roleId,
+        email: cleanEmail,
+        status: status !== undefined ? status.toUpperCase() : existingUser.status,
+        roleId: targetRoleId,
+        isInternalOps: isInternalOps !== undefined ? Boolean(isInternalOps) : existingUser.isInternalOps,
+        ...(password && { password }),
       },
-      include: {
-        company: { select: { id: true, name: true } },
-        role: { select: { id: true, name: true, isSystemDefined: true } },
-      },
+      select: userSelectFields,
     });
+
+    const diff = computeDiff(
+      { name: existingUser.name, email: existingUser.email, status: existingUser.status, roleId: existingUser.roleId },
+      { name: updatedUser.name, email: updatedUser.email, status: updatedUser.status, roleId: updatedUser.roleId }
+    );
 
     // 🍃 LOG AUDIT EVENT TO MONGODB
     await logAuditEvent({
       module: 'USER',
-      action: 'SUPPORT_UPDATE_USER',
+      action: 'UPDATE_USER',
       entityId: updatedUser.id,
       companyId: updatedUser.companyId,
-      details: {
-        old: { name: existingUser.name, email: existingUser.email, status: existingUser.status },
-        new: { name: updatedUser.name, email: updatedUser.email, status: updatedUser.status },
-        reason: 'Customer Support Request Modification',
-      },
+      details: { old: existingUser.email, new: updatedUser.email },
+      diff,
     });
 
-    res.json({ success: true, message: 'User updated successfully via OPS support panel.', data: updatedUser });
+    // 🔄 SYNC TO ETMS
+    dispatchOpsSync('user', updatedUser).catch(err => console.error('Sync failed:', err));
+
+    res.json({
+      success: true,
+      message: 'User updated successfully',
+      data: {
+        ...updatedUser,
+        role: updatedUser.role ? { ...updatedUser.role, permissions: parsePermissions(updatedUser.role.permissions) } : null,
+      },
+    });
   } catch (error) {
     console.error('Error updating user:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// DELETE /api/users/:id - Delete user with audit trail
+// PATCH /api/users/:id/status - Toggle user status (ACTIVE, SUSPENDED, INACTIVE)
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ['ACTIVE', 'SUSPENDED', 'INACTIVE'];
+    if (!status || !validStatuses.includes(status.toUpperCase())) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status '${status}'. Must be one of: ${validStatuses.join(', ')}`,
+      });
+    }
+
+    const targetStatus = status.toUpperCase();
+
+    const existingUser = await prisma.user.findUnique({ where: { id } });
+    if (!existingUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Guard Master Super Admin from being suspended or deactivated
+    if (existingUser.email === 'admin@ops.saas' && targetStatus !== 'ACTIVE') {
+      return res.status(400).json({
+        success: false,
+        message: 'Master Super Admin account cannot be deactivated or suspended.',
+      });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { status: targetStatus },
+      select: userSelectFields,
+    });
+
+    await logAuditEvent({
+      module: 'USER',
+      action: 'UPDATE_USER_STATUS',
+      entityId: id,
+      companyId: existingUser.companyId,
+      details: { previousStatus: existingUser.status, newStatus: targetStatus },
+      diff: { status: { from: existingUser.status, to: targetStatus } },
+    });
+
+    // 🔄 Sync status update to ETMS
+    dispatchOpsSync('user', updatedUser).catch(err => console.error('Status sync failed:', err));
+
+    res.json({
+      success: true,
+      message: `User status changed to ${targetStatus}`,
+      data: updatedUser,
+    });
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE /api/users/:id - Delete user with Master Super Admin protection
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -136,6 +375,14 @@ router.delete('/:id', async (req, res) => {
     const existingUser = await prisma.user.findUnique({ where: { id } });
     if (!existingUser) {
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Super Admin Deletion Guard
+    if (existingUser.email === 'admin@ops.saas') {
+      return res.status(400).json({
+        success: false,
+        message: 'Master Super Admin (admin@ops.saas) cannot be deleted.',
+      });
     }
 
     await prisma.user.delete({ where: { id } });
