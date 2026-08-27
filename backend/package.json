@@ -5,6 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "test": "node test_ops_qa.js",
     "seed": "node prisma/seed.js",
     "db:push": "npx prisma db push"
   },

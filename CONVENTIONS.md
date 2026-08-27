@@ -1,4 +1,4 @@
-# AGENTS.md
+# CONVENTIONS.md
 
 
 <skills_system priority="1">
@@ -11,7 +11,7 @@ When users ask you to perform tasks, check if any of the available skills
 below can help complete the task more effectively.
 
 How to use skills:
-- Invoke: Bash("skilz read <skill-name> --agent universal")
+- Invoke: Bash("skilz read <skill-name> --agent aider")
 - The skill content will load with detailed instructions
 - Base directory provided in output for resolving bundled resources
 

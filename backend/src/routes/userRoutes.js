@@ -128,4 +128,31 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/users/:id - Delete user with audit trail
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existingUser = await prisma.user.findUnique({ where: { id } });
+    if (!existingUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    await prisma.user.delete({ where: { id } });
+
+    await logAuditEvent({
+      module: 'USER',
+      action: 'DELETE_USER',
+      entityId: id,
+      companyId: existingUser.companyId,
+      details: { name: existingUser.name, email: existingUser.email },
+    });
+
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;

@@ -650,11 +650,23 @@ export default function App() {
         {/* AUDIT LOGS TAB */}
         {(activeTab === 'global_audit' || (operatingCompany && companySubTab === 'audit')) && (
           <div className="card table-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h3>MongoDB Audit Trail Logs</h3>
-              <button className="btn btn-secondary" onClick={() => fetchAuditLogs(operatingCompany?.id)}>
-                <RefreshCw size={13} /> Refresh Logs
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 style={{ margin: 0 }}>MongoDB Audit Trail Logs</h3>
+                <small style={{ color: 'var(--text-muted)' }}>Real-time compliance & security event history</small>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="Filter logs by actor, action..."
+                  style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontSize: '0.78rem', width: '180px' }}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <button className="btn btn-secondary" onClick={() => fetchAuditLogs(operatingCompany?.id)}>
+                  <RefreshCw size={13} /> Refresh Logs
+                </button>
+              </div>
             </div>
             <table>
               <thead>

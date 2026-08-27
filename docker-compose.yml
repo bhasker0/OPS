@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   ops-mongo:
-    image: mongo:7-jammy
+    image: docker.io/library/mongo:7-jammy
     container_name: ops-mongo
     restart: unless-stopped
     ports:

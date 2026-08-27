@@ -41,6 +41,7 @@ model Role {
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   users   User[]
 
+  @@unique([companyId, name])
   @@index([companyId])
 }
 

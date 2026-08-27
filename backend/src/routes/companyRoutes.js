@@ -2,6 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const prisma = require('../db');
 const { logAuditEvent } = require('../services/auditLogger');
+const { dispatchOpsSync } = require('../services/opsSyncClient');
 
 const router = express.Router();
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
@@ -210,7 +211,8 @@ router.post('/', async (req, res) => {
         systemRole: result.systemRole.name,
         clonedParametersCount: result.parametersCount,
       },
-    });
+    // 🔄 SYNC TO ETMS BACKEND
+    dispatchOpsSync('company', result.company).catch(err => console.error('Sync failed:', err));
 
     res.status(201).json({
       success: true,
@@ -219,6 +221,113 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating company:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// PUT /api/companies/:id - Update company details
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, logoUrl, contactPerson, mobile, email, gstin, address, roundOffFormat, digitsAfterDecimal } = req.body;
+
+    const oldCompany = await prisma.company.findUnique({ where: { id } });
+    if (!oldCompany) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    const updated = await prisma.company.update({
+      where: { id },
+      data: {
+        ...(name && { name: name.trim() }),
+        ...(logoUrl !== undefined && { logoUrl }),
+        ...(contactPerson !== undefined && { contactPerson }),
+        ...(mobile !== undefined && { mobile }),
+        ...(email !== undefined && { email }),
+        ...(gstin !== undefined && { gstin: gstin ? gstin.trim().toUpperCase() : null }),
+        ...(address !== undefined && { address }),
+        ...(roundOffFormat && { roundOffFormat }),
+        ...(digitsAfterDecimal !== undefined && { digitsAfterDecimal: parseInt(digitsAfterDecimal) }),
+      },
+    });
+
+    await logAuditEvent({
+      module: 'COMPANY',
+      action: 'UPDATE_COMPANY',
+      entityId: id,
+      companyId: id,
+      details: { old: oldCompany, updated },
+    });
+
+    res.json({ success: true, message: 'Company updated successfully', data: updated });
+  } catch (error) {
+    console.error('Error updating company:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// PATCH /api/companies/:id/status - Toggle company status (ACTIVE, SUSPENDED, ARCHIVED)
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['ACTIVE', 'SUSPENDED', 'ARCHIVED'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status. Must be ACTIVE, SUSPENDED, or ARCHIVED' });
+    }
+
+    const oldCompany = await prisma.company.findUnique({ where: { id } });
+    if (!oldCompany) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    const updated = await prisma.company.update({
+      where: { id },
+      data: { status },
+    });
+
+    await logAuditEvent({
+      module: 'COMPANY',
+      action: 'UPDATE_COMPANY_STATUS',
+      entityId: id,
+      companyId: id,
+      details: { previousStatus: oldCompany.status, newStatus: status },
+    });
+
+    res.json({ success: true, message: `Company status changed to ${status}`, data: updated });
+  } catch (error) {
+    console.error('Error updating company status:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE /api/companies/:id - Soft-delete or remove company
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (id === SEED_COMPANY_ID) {
+      return res.status(400).json({ success: false, message: 'Master Seed Company cannot be deleted.' });
+    }
+
+    const company = await prisma.company.findUnique({ where: { id } });
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    await prisma.company.delete({ where: { id } });
+
+    await logAuditEvent({
+      module: 'COMPANY',
+      action: 'DELETE_COMPANY',
+      entityId: id,
+      companyId: id,
+      details: { name: company.name, code: company.code },
+    });
+
+    res.json({ success: true, message: 'Company deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting company:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
