@@ -27,6 +27,7 @@ import {
   MapPin,
   Search
 } from 'lucide-react';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 
 const API_BASE = 'http://localhost:5000/api';
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
@@ -467,38 +468,16 @@ export default function App() {
 
         {/* GLOBAL DASHBOARD */}
         {activeTab === 'global_dashboard' && !operatingCompany && (
-          <div>
-            <div className="page-header">
-              <div>
-                <h1 className="page-title">Executive SaaS Platform Overview</h1>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>High-density light interface designed for all-day support observation.</p>
-              </div>
-              <button className="btn btn-primary" onClick={() => setShowCompanyModal(true)}>
-                <Plus size={15} /> Register Company
-              </button>
-            </div>
-
-            {/* LIGHT STAT CARDS */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div className="card" style={{ padding: '0.75rem 1rem' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>Companies</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#4f46e5' }}>{globalStats?.totalCompanies || companies.length}</div>
-              </div>
-              <div className="card" style={{ padding: '0.75rem 1rem' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>SaaS Users</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10b981' }}>{globalStats?.totalUsers || users.length}</div>
-              </div>
-              <div className="card" style={{ padding: '0.75rem 1rem' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>Transactions</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f59e0b' }}>{globalStats?.totalTransactions || 0}</div>
-              </div>
-              <div className="card" style={{ padding: '0.75rem 1rem' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>Revenue Volume</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#6d28d9' }}>
-                  ₹{(globalStats?.totalVolume || 0).toLocaleString()}
-                </div>
-              </div>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <AnalyticsDashboard
+              apiBase={API_BASE}
+              onRegisterCompany={() => setShowCompanyModal(true)}
+              onNavigateTab={(tab) => {
+                if (tab === 'global_audit') fetchAuditLogs();
+                setActiveTab(tab);
+              }}
+              onSelectCompany={(comp) => startOperatingAsCompany(comp)}
+            />
 
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>

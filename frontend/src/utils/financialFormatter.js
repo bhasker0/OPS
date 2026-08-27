@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Frontend Financial Formatting & Currency Precision Utility
  * Compliant with Indian Financial Accounting Standards (en-IN)
  */
