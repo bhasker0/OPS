@@ -27,6 +27,7 @@ app.use(express.json());
 // API Routes
 app.use('/api/companies', companyRoutes);
 app.use('/api/companies', parameterRoutes);
+app.use('/api', parameterRoutes);
 app.use('/api/companies', transactionRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/roles', roleRoutes);

@@ -190,12 +190,11 @@ async function main() {
   ];
 
   for (const compData of tenantCompanies) {
-    // 1. Upsert Company
+    // 1. Upsert Company by unique code
     const company = await prisma.company.upsert({
-      where: { id: compData.id },
+      where: { code: compData.code },
       update: {
         name: compData.name,
-        code: compData.code,
         contactPerson: compData.contactPerson,
         mobile: compData.mobile,
         email: compData.email,
