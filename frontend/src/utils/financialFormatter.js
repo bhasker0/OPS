@@ -1,49 +1,41 @@
 /**
- * Financial Formatting & Currency Precision Utility
+ * Frontend Financial Formatting & Currency Precision Utility
  * Compliant with Indian Financial Accounting Standards (en-IN)
- * Handles Indian Lakhs/Crores grouping, Precision Decimal Math, Rounding Rules, and Words Conversion.
  */
 
-// Safe Decimal Arithmetic to eliminate JS IEEE 754 floating point quirks (0.1 + 0.2 != 0.3)
-function safeRound(num, decimals = 2) {
+export function safeRound(num, decimals = 2) {
   const n = Number(num);
   if (isNaN(n)) return 0;
   const factor = Math.pow(10, decimals);
   return Math.round((n + Number.EPSILON) * factor) / factor;
 }
 
-function safeDecimalAdd(a, b, decimals = 4) {
+export function safeDecimalAdd(a, b, decimals = 4) {
   const numA = Number(a) || 0;
   const numB = Number(b) || 0;
   return safeRound(numA + numB, decimals);
 }
 
-function safeDecimalSubtract(a, b, decimals = 4) {
+export function safeDecimalSubtract(a, b, decimals = 4) {
   const numA = Number(a) || 0;
   const numB = Number(b) || 0;
   return safeRound(numA - numB, decimals);
 }
 
-function safeDecimalMultiply(a, b, decimals = 4) {
+export function safeDecimalMultiply(a, b, decimals = 4) {
   const numA = Number(a) || 0;
   const numB = Number(b) || 0;
   return safeRound(numA * numB, decimals);
 }
 
-function safeDecimalDivide(a, b, decimals = 4) {
+export function safeDecimalDivide(a, b, decimals = 4) {
   const numA = Number(a) || 0;
   const numB = Number(b) || 0;
   if (numB === 0) return 0;
   return safeRound(numA / numB, decimals);
 }
 
-/**
- * Apply rounding mode rules
- * @param {number|string} amount
- * @param {string} roundOffFormat 'NEAREST_RUPEE' | 'TWO_DECIMALS' | 'TRUNCATE' | 'HALF_UP' | 'CEILING' | 'FLOOR' | 'NONE'
- * @param {number} digitsAfterDecimal
- */
-function applyRoundOff(amount, roundOffFormat = 'TWO_DECIMALS', digitsAfterDecimal = 2) {
+export function applyRoundOff(amount, roundOffFormat = 'TWO_DECIMALS', digitsAfterDecimal = 2) {
   const num = parseFloat(amount);
   if (isNaN(num)) return 0;
 
@@ -74,11 +66,7 @@ function applyRoundOff(amount, roundOffFormat = 'TWO_DECIMALS', digitsAfterDecim
   }
 }
 
-/**
- * Format numeric value in Indian Currency (en-IN)
- * e.g. 154200.5 => "?1,54,200.50"
- */
-function formatIndianCurrency(amount, digits = 2, options = {}) {
+export function formatIndianCurrency(amount, digits = 2, options = {}) {
   const { symbol = '?', includeSymbol = true, fallback = '?0.00' } = options;
 
   if (amount === null || amount === undefined || isNaN(parseFloat(amount))) {
@@ -102,25 +90,7 @@ function formatIndianCurrency(amount, digits = 2, options = {}) {
   return `${prefix}${sym}${formatted}`;
 }
 
-/**
- * Legacy compatibility alias for existing code
- */
-function formatFinancialAmount(amount, roundOffFormat = 'NEAREST_RUPEE', digitsAfterDecimal = 2) {
-  return applyRoundOff(amount, roundOffFormat, digitsAfterDecimal);
-}
-
-function formatCurrencyString(amount, currency = 'INR', roundOffFormat = 'NEAREST_RUPEE', digitsAfterDecimal = 2) {
-  const formattedVal = applyRoundOff(amount, roundOffFormat, digitsAfterDecimal);
-  if (currency === 'INR') {
-    return formatIndianCurrency(formattedVal, digitsAfterDecimal);
-  }
-  return `${currency} ${formattedVal.toLocaleString()}`;
-}
-
-/**
- * Parse Indian formatted string (e.g. "? 1,54,200.50" or "1,54,200") to numeric float
- */
-function parseIndianNumber(str) {
+export function parseIndianNumber(str) {
   if (typeof str === 'number') return str;
   if (!str) return 0;
   const clean = String(str)
@@ -130,10 +100,6 @@ function parseIndianNumber(str) {
   return isNaN(parsed) ? 0 : parsed;
 }
 
-/**
- * Convert numerical Rupee amount to Indian Accounting Words
- * e.g. 154200.50 => "One Lakh Fifty-Four Thousand Two Hundred Rupees and Fifty Paise Only"
- */
 const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
   'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
 const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
@@ -152,7 +118,7 @@ function convertUnderThousand(num) {
   return str.trim();
 }
 
-function amountToIndianWords(amount) {
+export function amountToIndianWords(amount) {
   const num = parseFloat(amount);
   if (isNaN(num)) return 'Zero Rupees Only';
   if (num === 0) return 'Zero Rupees Only';
@@ -201,17 +167,3 @@ function amountToIndianWords(amount) {
   result += ' Only';
   return result.replace(/\s+/g, ' ').trim();
 }
-
-module.exports = {
-  safeRound,
-  safeDecimalAdd,
-  safeDecimalSubtract,
-  safeDecimalMultiply,
-  safeDecimalDivide,
-  applyRoundOff,
-  formatIndianCurrency,
-  formatFinancialAmount,
-  formatCurrencyString,
-  parseIndianNumber,
-  amountToIndianWords,
-};
