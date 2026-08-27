@@ -122,31 +122,7 @@ async function logAuditEvent({
   }
 }
 
-/**
- * Calculate field-level diff between pre-update and post-update entity states
- */
-function computeDiff(oldObj = {}, newObj = {}) {
-  if (!oldObj || !newObj) return null;
-  const diff = {};
-  const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
-
-  allKeys.forEach((key) => {
-    // Ignore timestamp and internal metadata fields
-    if (['updatedAt', 'createdAt', 'password'].includes(key)) return;
-
-    const oldVal = oldObj[key];
-    const newVal = newObj[key];
-
-    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-      diff[key] = {
-        from: oldVal !== undefined ? oldVal : null,
-        to: newVal !== undefined ? newVal : null,
-      };
-    }
-  });
-
-  return Object.keys(diff).length > 0 ? diff : null;
-}
+const { calculateDelta, computeDiff } = require('../utils/auditDiff');
 
 /**
  * Fetch Audit Logs with multi-filter query
@@ -192,6 +168,7 @@ module.exports = {
   initMongo,
   logAuditEvent,
   getAuditLogs,
+  calculateDelta,
   computeDiff,
   extractAuditMetadata,
   auditMiddleware,
