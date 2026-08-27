@@ -62,11 +62,28 @@ npm install
 npm run dev
 ```
 
-### 2. Running with Docker Compose
+### 2. Multi-Container Orchestration (Docker Compose)
 
+The OPS platform uses Docker Compose to orchestrate PostgreSQL 16 (Relational Store), MongoDB 7 (Audit Document Store), the Express Backend API, and the React Vite Frontend SPA in an isolated bridge network (`ops-network`).
+
+#### Architecture & Topology:
+- **`ops-postgres`**: PostgreSQL 16 Alpine on port `5432` with named volume `ops_postgres_data` and automatic `pg_isready` health check.
+- **`ops-mongo`**: MongoDB 7 Jammy on port `27017` with named volume `ops_mongo_data` and `mongosh` admin ping health check.
+- **`ops-backend`**: Node.js 20 Express + Prisma API on port `5000`, strictly awaiting database health checks.
+- **`ops-frontend`**: Nginx-served React 18 SPA on port `5173`.
+
+#### Start Services:
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
-- Frontend UI: `http://localhost:5173`
-- Backend API: `http://localhost:5000`
-- MongoDB: `localhost:27017`
+
+#### Run Orchestration QA Test Suite:
+```bash
+node test_orchestration_qa.js
+```
+
+#### Teardown Services:
+```bash
+docker compose down
+```
+*(To remove persistent database volumes as well, use `docker compose down -v`)*

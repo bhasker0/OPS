@@ -211,6 +211,8 @@ router.post('/', async (req, res) => {
         systemRole: result.systemRole.name,
         clonedParametersCount: result.parametersCount,
       },
+    });
+
     // 🔄 SYNC TO ETMS BACKEND
     dispatchOpsSync('company', result.company).catch(err => console.error('Sync failed:', err));
 
