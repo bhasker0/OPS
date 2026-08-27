@@ -1,62 +1,13 @@
 const mongoose = require('mongoose');
-
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ops_audit_db';
+const { connectMongo, getIsConnected } = require('../config/mongo');
+const AuditLog = require('../models/AuditLog');
 
 // In-memory fallback log buffer in case MongoDB server is offline
 const inMemoryAuditLogs = [];
 
-// Mongoose Schema for MongoDB Audit Logs with indexes
-const AuditLogSchema = new mongoose.Schema(
-  {
-    module: { type: String, required: true, index: true }, // COMPANY, USER, ROLE, PARAMETER, SEED, TRANSACTION
-    action: { type: String, required: true, index: true }, // CREATE_COMPANY, UPDATE_PARAMETER, ROLE_LOCK_BLOCKED, etc.
-    entityId: { type: String, index: true },
-    companyId: { type: String, index: true },
-    performedBy: { type: String, default: 'admin@ops.saas' },
-    ipAddress: { type: String, default: '127.0.0.1' },
-    details: { type: mongoose.Schema.Types.Mixed },
-    diff: { type: mongoose.Schema.Types.Mixed }, // Pre vs Post mutation delta
-    createdAt: { type: Date, default: Date.now, index: true },
-  },
-  { collection: 'audit_logs' }
-);
-
-// Compound index for efficient multi-filter audit log retrieval
-AuditLogSchema.index({ companyId: 1, createdAt: -1 });
-AuditLogSchema.index({ module: 1, createdAt: -1 });
-
-let AuditLogModel = null;
-let isConnected = false;
-
-// Connection lifecycle event listeners
-mongoose.connection.on('connected', () => {
-  isConnected = true;
-  console.log('🍃 MongoDB connected for Audit Logging.');
-});
-
-mongoose.connection.on('error', (err) => {
-  isConnected = false;
-  console.warn('⚠️ MongoDB connection error:', err.message);
-});
-
-mongoose.connection.on('disconnected', () => {
-  isConnected = false;
-  console.warn('⚠️ MongoDB disconnected. Using in-memory audit trail buffer.');
-});
-
 // Initialize MongoDB connection
 async function initMongo() {
-  try {
-    mongoose.set('strictQuery', false);
-    await mongoose.connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 2000,
-    });
-    AuditLogModel = mongoose.models.AuditLog || mongoose.model('AuditLog', AuditLogSchema);
-    isConnected = true;
-  } catch (err) {
-    console.warn('⚠️ MongoDB connection warning (Using high-reliability Audit Log storage):', err.message);
-    isConnected = false;
-  }
+  return await connectMongo();
 }
 
 // Write Audit Log entry
@@ -75,9 +26,9 @@ async function logAuditEvent({ module, action, entityId = null, companyId = null
   inMemoryAuditLogs.unshift(logEntry);
   if (inMemoryAuditLogs.length > 500) inMemoryAuditLogs.pop();
 
-  if (isConnected && AuditLogModel) {
+  if (getIsConnected()) {
     try {
-      await AuditLogModel.create(logEntry);
+      await AuditLog.create(logEntry);
     } catch (err) {
       console.error('Failed to write audit log to MongoDB:', err.message);
     }
@@ -110,7 +61,7 @@ function computeDiff(oldObj = {}, newObj = {}) {
 
 // Fetch Audit Logs
 async function getAuditLogs(filter = {}) {
-  if (isConnected && AuditLogModel) {
+  if (getIsConnected()) {
     try {
       const query = {};
       if (filter.module) query.module = filter.module;
@@ -124,7 +75,7 @@ async function getAuditLogs(filter = {}) {
         if (filter.endDate) query.createdAt.$lte = new Date(filter.endDate);
       }
 
-      return await AuditLogModel.find(query).sort({ createdAt: -1 }).limit(200);
+      return await AuditLog.find(query).sort({ createdAt: -1 }).limit(200);
     } catch (err) {
       console.error('Error fetching audit logs from MongoDB:', err.message);
     }

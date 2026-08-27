@@ -91,7 +91,31 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+const { closeMongoConnection } = require('./config/mongo');
+
 // Start Express server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 SaaS OPS Super Admin Backend running at http://localhost:${PORT}`);
 });
+
+// Graceful Shutdown
+async function gracefulShutdown(signal) {
+  console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+  server.close(async () => {
+    console.log('HTTP server closed.');
+    await closeMongoConnection();
+    await prisma.$disconnect();
+    console.log('Database connections closed.');
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    console.error('Forcefully terminating process after timeout.');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+module.exports = { app, server };
