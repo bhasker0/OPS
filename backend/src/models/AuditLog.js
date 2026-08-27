@@ -7,7 +7,7 @@ const AuditLogSchema = new mongoose.Schema(
       type: String,
       required: true,
       index: true,
-      enum: ['COMPANY', 'USER', 'ROLE', 'PARAMETER', 'SEED', 'TRANSACTION', 'SUBSCRIPTION', 'SYSTEM'],
+      enum: ['COMPANY', 'USER', 'ROLE', 'PARAMETER', 'SEED', 'TRANSACTION', 'SUBSCRIPTION', 'SYSTEM', 'AUTH'],
     },
     action: {
       type: String,
@@ -22,6 +22,10 @@ const AuditLogSchema = new mongoose.Schema(
       type: String,
       index: true,
     },
+    actorId: {
+      type: String,
+      index: true,
+    },
     performedBy: {
       type: String,
       default: 'admin@ops.saas',
@@ -30,6 +34,16 @@ const AuditLogSchema = new mongoose.Schema(
     ipAddress: {
       type: String,
       default: '127.0.0.1',
+    },
+    userAgent: {
+      type: String,
+      default: 'OPS-Backend-Agent',
+    },
+    status: {
+      type: String,
+      enum: ['SUCCESS', 'FAILURE', 'WARNING'],
+      default: 'SUCCESS',
+      index: true,
     },
     details: {
       type: mongoose.Schema.Types.Mixed,
@@ -53,6 +67,7 @@ const AuditLogSchema = new mongoose.Schema(
 AuditLogSchema.index({ companyId: 1, createdAt: -1 });
 AuditLogSchema.index({ module: 1, createdAt: -1 });
 AuditLogSchema.index({ companyId: 1, module: 1, createdAt: -1 });
+AuditLogSchema.index({ actorId: 1, createdAt: -1 });
 
 const AuditLog = mongoose.models.AuditLog || mongoose.model('AuditLog', AuditLogSchema);
 
