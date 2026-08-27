@@ -32,6 +32,7 @@ import CompanyManagement from './components/CompanyManagement';
 import CompanyOnboardingWizard from './components/CompanyOnboardingWizard';
 import UserManagement from './components/UserManagement';
 import RoleManagement from './components/RoleManagement';
+import AuditLogViewer from './components/AuditLogViewer';
 
 const API_BASE = 'http://localhost:5000/api';
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
@@ -626,54 +627,14 @@ export default function App() {
 
         {/* AUDIT LOGS TAB */}
         {(activeTab === 'global_audit' || (operatingCompany && companySubTab === 'audit')) && (
-          <div className="card table-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <div>
-                <h3 style={{ margin: 0 }}>MongoDB Audit Trail Logs</h3>
-                <small style={{ color: 'var(--text-muted)' }}>Real-time compliance & security event history</small>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  placeholder="Filter logs by actor, action..."
-                  style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontSize: '0.78rem', width: '180px' }}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <button className="btn btn-secondary" onClick={() => fetchAuditLogs(operatingCompany?.id)}>
-                  <RefreshCw size={13} /> Refresh Logs
-                </button>
-              </div>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>Module</th>
-                  <th>Action</th>
-                  <th>Operator</th>
-                  <th>Entity / Company</th>
-                  <th>Payload</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditLogs.map((log, idx) => (
-                  <tr key={log._id || idx}>
-                    <td><small>{new Date(log.createdAt).toLocaleString()}</small></td>
-                    <td><span className="badge badge-ops">{log.module}</span></td>
-                    <td><strong style={{ color: log.action.includes('BLOCKED') ? 'var(--danger)' : 'inherit' }}>{log.action}</strong></td>
-                    <td>{log.performedBy}</td>
-                    <td><small>{log.companyId || log.entityId || 'N/A'}</small></td>
-                    <td>
-                      <button className="btn btn-secondary" style={{ padding: '0.15rem 0.4rem', fontSize: '0.7rem' }} onClick={() => setSelectedAuditLog(log)}>
-                        Inspect JSON
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AuditLogViewer
+            companies={companies}
+            apiBase={API_BASE}
+            companyId={operatingCompany ? operatingCompany.id : null}
+            onRefresh={() => {
+              fetchGlobalStats();
+            }}
+          />
         )}
 
         {/* COMPANY OPERATIONAL MODE SUB-TABS */}
