@@ -63,10 +63,13 @@ const AuditLogSchema = new mongoose.Schema(
   { collection: 'audit_logs' }
 );
 
-// Compound indexes for multi-filter fast querying
+// Compound indexes for multi-filter fast querying (<50ms execution)
 AuditLogSchema.index({ companyId: 1, createdAt: -1 });
 AuditLogSchema.index({ module: 1, createdAt: -1 });
+AuditLogSchema.index({ module: 1, action: 1 });
 AuditLogSchema.index({ companyId: 1, module: 1, createdAt: -1 });
+AuditLogSchema.index({ companyId: 1, action: 1, createdAt: -1 });
+AuditLogSchema.index({ entityId: 1, createdAt: -1 });
 AuditLogSchema.index({ actorId: 1, createdAt: -1 });
 
 const AuditLog = mongoose.models.AuditLog || mongoose.model('AuditLog', AuditLogSchema);
