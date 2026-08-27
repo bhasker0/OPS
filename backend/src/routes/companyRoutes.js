@@ -1,28 +1,67 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const prisma = require('../db');
-const { logAuditEvent } = require('../services/auditLogger');
+const { logAuditEvent, computeDiff } = require('../services/auditLogger');
 const { dispatchOpsSync } = require('../services/opsSyncClient');
 
 const router = express.Router();
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
 
-// GET /api/companies - List all registered companies
+// 15-Character Indian GSTIN standard format validator
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+function isValidGSTIN(gstin) {
+  if (!gstin) return true;
+  return GSTIN_REGEX.test(gstin.trim().toUpperCase());
+}
+
+// GET /api/companies - List all registered companies with search & filtering
 router.get('/', async (req, res) => {
   try {
-    const companies = await prisma.company.findMany({
-      include: {
-        roles: {
-          where: { isSystemDefined: true },
-        },
-        _count: {
-          select: { parameters: true, users: true, transactions: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const { search, status, page = 1, limit = 50 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
 
-    res.json({ success: true, data: companies });
+    const where = {};
+    if (status) {
+      where.status = status.toUpperCase();
+    }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
+        { gstin: { contains: search, mode: 'insensitive' } },
+        { contactPerson: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [companies, total] = await Promise.all([
+      prisma.company.findMany({
+        where,
+        include: {
+          roles: {
+            where: { isSystemDefined: true },
+          },
+          _count: {
+            select: { parameters: true, users: true, transactions: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.company.count({ where }),
+    ]);
+
+    res.json({
+      success: true,
+      data: companies,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / take),
+      },
+    });
   } catch (error) {
     console.error('Error fetching companies:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -68,7 +107,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/companies - Register a new company with Indian Compliance & Utility Formats
+// POST /api/companies - Register a new company with Atomic Onboarding Transaction
 router.post('/', async (req, res) => {
   try {
     const {
@@ -95,6 +134,14 @@ router.post('/', async (req, res) => {
 
     const cleanCode = code.trim().toUpperCase();
 
+    // Validate Indian GSTIN compliance format
+    if (gstin && !isValidGSTIN(gstin)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid Indian GSTIN format '${gstin}'. Expected 15-character format (e.g., 24AAAAA0000A1Z5).`,
+      });
+    }
+
     // Check code uniqueness
     const existing = await prisma.company.findUnique({
       where: { code: cleanCode },
@@ -106,10 +153,10 @@ router.post('/', async (req, res) => {
 
     const newCompanyId = uuidv4();
 
-    // Perform atomic transaction:
-    // 1. Create Company with Indian Business fields
+    // Atomic All-or-Nothing Transaction:
+    // 1. Create Company entity
     // 2. Create System Defined Role for Company
-    // 3. Populate custom parameters & clone seed parameters
+    // 3. Clone & populate operational seed parameters
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create Company
       const company = await tx.company.create({
@@ -233,6 +280,13 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { name, logoUrl, contactPerson, mobile, email, gstin, address, roundOffFormat, digitsAfterDecimal } = req.body;
 
+    if (gstin && !isValidGSTIN(gstin)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid Indian GSTIN format '${gstin}'. Expected 15-character format (e.g., 24AAAAA0000A1Z5).`,
+      });
+    }
+
     const oldCompany = await prisma.company.findUnique({ where: { id } });
     if (!oldCompany) {
       return res.status(404).json({ success: false, message: 'Company not found' });
@@ -253,13 +307,19 @@ router.put('/:id', async (req, res) => {
       },
     });
 
+    const mutationDiff = computeDiff(oldCompany, updated);
+
     await logAuditEvent({
       module: 'COMPANY',
       action: 'UPDATE_COMPANY',
       entityId: id,
       companyId: id,
       details: { old: oldCompany, updated },
+      diff: mutationDiff,
     });
+
+    // 🔄 Sync updated info
+    dispatchOpsSync('company', updated).catch(err => console.error('Sync failed:', err));
 
     res.json({ success: true, message: 'Company updated successfully', data: updated });
   } catch (error) {
@@ -268,15 +328,21 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// PATCH /api/companies/:id/status - Toggle company status (ACTIVE, SUSPENDED, ARCHIVED)
+// PATCH /api/companies/:id/status - Toggle company status (ACTIVE, SUSPENDED, DELINQUENT, INACTIVE, ARCHIVED)
 router.patch('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['ACTIVE', 'SUSPENDED', 'ARCHIVED'].includes(status)) {
-      return res.status(400).json({ success: false, message: 'Invalid status. Must be ACTIVE, SUSPENDED, or ARCHIVED' });
+    const validStatuses = ['ACTIVE', 'SUSPENDED', 'DELINQUENT', 'INACTIVE', 'ARCHIVED'];
+    if (!status || !validStatuses.includes(status.toUpperCase())) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status '${status}'. Must be one of: ${validStatuses.join(', ')}`,
+      });
     }
+
+    const targetStatus = status.toUpperCase();
 
     const oldCompany = await prisma.company.findUnique({ where: { id } });
     if (!oldCompany) {
@@ -285,7 +351,7 @@ router.patch('/:id/status', async (req, res) => {
 
     const updated = await prisma.company.update({
       where: { id },
-      data: { status },
+      data: { status: targetStatus },
     });
 
     await logAuditEvent({
@@ -293,10 +359,14 @@ router.patch('/:id/status', async (req, res) => {
       action: 'UPDATE_COMPANY_STATUS',
       entityId: id,
       companyId: id,
-      details: { previousStatus: oldCompany.status, newStatus: status },
+      details: { previousStatus: oldCompany.status, newStatus: targetStatus },
+      diff: { status: { from: oldCompany.status, to: targetStatus } },
     });
 
-    res.json({ success: true, message: `Company status changed to ${status}`, data: updated });
+    // 🔄 Sync subscription status to ETMS
+    dispatchOpsSync('subscription-status', { company_id: id, status: targetStatus }).catch(err => console.error('Status sync failed:', err));
+
+    res.json({ success: true, message: `Company status changed to ${targetStatus}`, data: updated });
   } catch (error) {
     console.error('Error updating company status:', error);
     res.status(500).json({ success: false, message: error.message });
