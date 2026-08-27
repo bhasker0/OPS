@@ -28,6 +28,8 @@ import {
   Search
 } from 'lucide-react';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
+import CompanyManagement from './components/CompanyManagement';
+import CompanyOnboardingWizard from './components/CompanyOnboardingWizard';
 
 const API_BASE = 'http://localhost:5000/api';
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
@@ -550,40 +552,21 @@ export default function App() {
 
         {/* COMPANIES DIRECTORY TAB */}
         {activeTab === 'companies' && !operatingCompany && (
-          <div className="card table-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h3>Companies Directory</h3>
-              <button className="btn btn-primary" onClick={() => setShowCompanyModal(true)}>
-                <Plus size={14} /> Register Company
-              </button>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Code</th>
-                  <th>GSTIN</th>
-                  <th>Contact Person</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {companies.map((c) => (
-                  <tr key={c.id}>
-                    <td><strong>{c.name}</strong></td>
-                    <td><code>{c.code}</code></td>
-                    <td><code>{c.gstin || 'N/A'}</code></td>
-                    <td>{c.contactPerson || 'N/A'}</td>
-                    <td>
-                      <button className="btn btn-primary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => startOperatingAsCompany(c)}>
-                        <Headphones size={13} /> Operate as Company
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <CompanyManagement
+            companies={companies}
+            apiBase={API_BASE}
+            onCompanyCreated={(newComp) => {
+              setMessage({ type: 'success', text: `Tenant '${newComp.name}' provisioned successfully.` });
+              fetchCompanies();
+              fetchGlobalStats();
+              fetchAuditLogs();
+            }}
+            onOperateCompany={(c) => startOperatingAsCompany(c)}
+            onRefresh={() => {
+              fetchCompanies();
+              fetchGlobalStats();
+            }}
+          />
         )}
 
         {/* USERS DIRECTORY TAB */}
@@ -811,73 +794,36 @@ export default function App() {
         )}
       </div>
 
-      {/* MODAL: REGISTER INDIAN COMPANY */}
-      {showCompanyModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: '580px' }}>
-            <h2 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Register Indian Company</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: '0.75rem' }}>
-              Compliance & utility parameter settings for Indian businesses.
-            </p>
-
-            <form onSubmit={handleCreateCompany}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                <div className="form-group">
-                  <label>Company Name *</label>
-                  <input type="text" required placeholder="Acme India Pvt Ltd" className="form-control" value={newCompany.name} onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>Company Code *</label>
-                  <input type="text" required placeholder="ACMEIN" className="form-control" value={newCompany.code} onChange={(e) => setNewCompany({ ...newCompany, code: e.target.value.toUpperCase() })} />
-                </div>
-                <div className="form-group">
-                  <label>GST Number (GSTIN)</label>
-                  <input type="text" placeholder="27AAPCU1234M1ZV" className="form-control" value={newCompany.gstin} onChange={(e) => setNewCompany({ ...newCompany, gstin: e.target.value.toUpperCase() })} />
-                </div>
-                <div className="form-group">
-                  <label>Contact Person</label>
-                  <input type="text" placeholder="Rajesh Sharma" className="form-control" value={newCompany.contactPerson} onChange={(e) => setNewCompany({ ...newCompany, contactPerson: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>Mobile Phone</label>
-                  <input type="tel" placeholder="+91 98765 43210" className="form-control" value={newCompany.mobile} onChange={(e) => setNewCompany({ ...newCompany, mobile: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>Billing Email</label>
-                  <input type="email" placeholder="billing@acme.in" className="form-control" value={newCompany.email} onChange={(e) => setNewCompany({ ...newCompany, email: e.target.value })} />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Billing Address</label>
-                <textarea rows="2" placeholder="101 Tech Park, BKC, Mumbai, MH 400051" className="form-control" value={newCompany.address} onChange={(e) => setNewCompany({ ...newCompany, address: e.target.value })} />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                <div className="form-group">
-                  <label>Date Format</label>
-                  <select className="form-control" value={newCompany.dateFormat} onChange={(e) => setNewCompany({ ...newCompany, dateFormat: e.target.value })}>
-                    <option value="DD/MM/YYYY">DD/MM/YYYY (Indian Standard)</option>
-                    <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Currency</label>
-                  <select className="form-control" value={newCompany.currency} onChange={(e) => setNewCompany({ ...newCompany, currency: e.target.value, currencySymbol: e.target.value === 'INR' ? '₹' : '$' })}>
-                    <option value="INR">INR (₹ Rupee)</option>
-                    <option value="USD">USD ($ Dollar)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowCompanyModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Registering...' : 'Register Company'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* MODAL: ONBOARDING WIZARD */}
+      <CompanyOnboardingWizard
+        isOpen={showCompanyModal}
+        onClose={() => setShowCompanyModal(false)}
+        onSubmit={async (formData) => {
+          setLoading(true);
+          try {
+            const res = await fetch(`${API_BASE}/companies`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(formData),
+            });
+            const data = await res.json();
+            if (data.success) {
+              setMessage({ type: 'success', text: `Tenant '${data.data.name}' successfully provisioned.` });
+              setShowCompanyModal(false);
+              fetchCompanies();
+              fetchGlobalStats();
+              fetchAuditLogs();
+            } else {
+              setMessage({ type: 'error', text: data.message || 'Failed to create company' });
+            }
+          } catch (err) {
+            setMessage({ type: 'error', text: 'Error communicating with backend' });
+          } finally {
+            setLoading(false);
+          }
+        }}
+        loading={loading}
+      />
 
       {/* MODAL: CREATE USER */}
       {showUserModal && (
