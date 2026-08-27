@@ -1,16 +1,190 @@
 const express = require('express');
 const prisma = require('../db');
-const { logAuditEvent } = require('../services/auditLogger');
+const { logAuditEvent, computeDiff } = require('../services/auditLogger');
 
 const router = express.Router();
+
+// Finite State Machine (FSM) allowed transition map
+const ALLOWED_TRANSITIONS = {
+  PENDING: ['SUCCESS', 'FAILED'],
+  SUCCESS: ['REFUNDED'],
+  FAILED: [],
+  REFUNDED: [],
+};
+
+const VALID_STATUSES = ['PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'];
+
+function validateStateTransition(currentStatus, targetStatus) {
+  if (!VALID_STATUSES.includes(targetStatus)) {
+    return { valid: false, message: `Invalid transaction status '${targetStatus}'. Must be one of: ${VALID_STATUSES.join(', ')}` };
+  }
+  if (currentStatus === targetStatus) {
+    return { valid: true, redundant: true };
+  }
+  const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
+  if (!allowed.includes(targetStatus)) {
+    return {
+      valid: false,
+      message: `Invalid state transition: Cannot transition transaction from '${currentStatus}' to '${targetStatus}'. Allowed transitions from '${currentStatus}': [${allowed.join(', ') || 'None (Terminal state)'}].`,
+    };
+  }
+  return { valid: true };
+}
+
+// ---------------------------------------------------------
+// Global Ledger Routes (Mounted at /api/transactions)
+// ---------------------------------------------------------
+
+// GET /api/transactions - Global Ledger across all companies with aggregation
+router.get('/', async (req, res) => {
+  try {
+    const { companyId, status, search, page = 1, limit = 50 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+
+    const where = {};
+    if (companyId) where.companyId = companyId;
+    if (status) where.status = status.toUpperCase();
+    if (search) {
+      where.OR = [
+        { description: { contains: search, mode: 'insensitive' } },
+        { company: { name: { contains: search, mode: 'insensitive' } } },
+        { company: { code: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [transactions, total, aggregate] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        include: {
+          company: {
+            select: { id: true, name: true, code: true, gstin: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.transaction.count({ where }),
+      prisma.transaction.aggregate({
+        where,
+        _sum: { amount: true },
+        _avg: { amount: true },
+        _count: { id: true },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data: transactions,
+      summary: {
+        totalVolume: aggregate._sum.amount || 0,
+        averageAmount: aggregate._avg.amount || 0,
+        totalCount: aggregate._count.id || 0,
+      },
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / take),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching global transactions:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET /api/transactions/:id - Single transaction view
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+      include: {
+        company: {
+          select: { id: true, name: true, code: true, gstin: true, mobile: true },
+        },
+      },
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+
+    res.json({ success: true, data: transaction });
+  } catch (error) {
+    console.error('Error fetching transaction:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// PATCH /api/transactions/:id/status - Direct update transaction status with FSM guard
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'Status is required.' });
+    }
+
+    const targetStatus = status.toUpperCase();
+
+    const existingTx = await prisma.transaction.findUnique({ where: { id } });
+    if (!existingTx) {
+      return res.status(404).json({ success: false, message: 'Transaction not found.' });
+    }
+
+    const transitionCheck = validateStateTransition(existingTx.status, targetStatus);
+    if (!transitionCheck.valid) {
+      return res.status(400).json({ success: false, message: transitionCheck.message });
+    }
+
+    const updatedTx = await prisma.transaction.update({
+      where: { id },
+      data: { status: targetStatus },
+    });
+
+    // 🍃 LOG AUDIT EVENT TO MONGODB
+    await logAuditEvent({
+      module: 'TRANSACTION',
+      action: 'UPDATE_TRANSACTION_STATUS',
+      entityId: id,
+      companyId: existingTx.companyId,
+      details: { previousStatus: existingTx.status, newStatus: targetStatus, amount: existingTx.amount },
+      diff: { status: { from: existingTx.status, to: targetStatus } },
+    });
+
+    res.json({
+      success: true,
+      message: `Transaction status transitioned to ${targetStatus}`,
+      data: updatedTx,
+    });
+  } catch (error) {
+    console.error('Error updating transaction status:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ---------------------------------------------------------
+// Company-Scoped Ledger Routes (Mounted at /api/companies)
+// ---------------------------------------------------------
 
 // GET /api/companies/:companyId/transactions - List transactions for a company
 router.get('/:companyId/transactions', async (req, res) => {
   try {
     const { companyId } = req.params;
+    const { status, search } = req.query;
+
+    const where = { companyId };
+    if (status) where.status = status.toUpperCase();
+    if (search) {
+      where.description = { contains: search, mode: 'insensitive' };
+    }
 
     const transactions = await prisma.transaction.findMany({
-      where: { companyId },
+      where,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -21,23 +195,40 @@ router.get('/:companyId/transactions', async (req, res) => {
   }
 });
 
-// POST /api/companies/:companyId/transactions - Create transaction
+// POST /api/companies/:companyId/transactions - Record new financial ledger entry
 router.post('/:companyId/transactions', async (req, res) => {
   try {
     const { companyId } = req.params;
-    const { amount, currency, status, description } = req.body;
+    const { amount, currency, status, description, referenceId } = req.body;
 
-    if (!amount) {
-      return res.status(400).json({ success: false, message: 'Amount is required' });
+    if (amount === undefined || amount === null || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid positive numerical amount is required for financial ledger entries.',
+      });
+    }
+
+    // Verify company exists
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found.' });
+    }
+
+    const initStatus = status ? status.toUpperCase() : 'PENDING';
+    if (!VALID_STATUSES.includes(initStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid initial transaction status '${status}'. Must be one of: ${VALID_STATUSES.join(', ')}`,
+      });
     }
 
     const transaction = await prisma.transaction.create({
       data: {
         companyId,
         amount: parseFloat(amount),
-        currency: currency || 'INR',
-        status: status || 'SUCCESS',
-        description: description || 'Support Processed Payment',
+        currency: currency ? currency.toUpperCase() : 'INR',
+        status: initStatus,
+        description: description ? description.trim() : 'SaaS Service Charge',
       },
     });
 
@@ -47,46 +238,67 @@ router.post('/:companyId/transactions', async (req, res) => {
       action: 'RECORD_TRANSACTION',
       entityId: transaction.id,
       companyId,
-      details: { amount: transaction.amount, currency: transaction.currency, description: transaction.description },
+      details: {
+        amount: transaction.amount,
+        currency: transaction.currency,
+        status: transaction.status,
+        description: transaction.description,
+      },
     });
 
-    res.status(201).json({ success: true, data: transaction });
+    res.status(201).json({
+      success: true,
+      message: 'Transaction recorded successfully in ledger',
+      data: transaction,
+    });
   } catch (error) {
     console.error('Error creating transaction:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// PATCH /api/companies/:companyId/transactions/:id/status - Update transaction status transition
+// PATCH /api/companies/:companyId/transactions/:id/status - Update transaction status with FSM guard
 router.patch('/:companyId/transactions/:id/status', async (req, res) => {
   try {
     const { companyId, id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ['PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ success: false, message: `Invalid transaction status. Must be one of: ${validStatuses.join(', ')}` });
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'Status is required.' });
     }
+
+    const targetStatus = status.toUpperCase();
 
     const existingTx = await prisma.transaction.findFirst({ where: { id, companyId } });
     if (!existingTx) {
       return res.status(404).json({ success: false, message: 'Transaction not found for this company.' });
     }
 
+    const transitionCheck = validateStateTransition(existingTx.status, targetStatus);
+    if (!transitionCheck.valid) {
+      return res.status(400).json({ success: false, message: transitionCheck.message });
+    }
+
     const updatedTx = await prisma.transaction.update({
       where: { id },
-      data: { status },
+      data: { status: targetStatus },
     });
 
+    // 🍃 LOG AUDIT EVENT TO MONGODB
     await logAuditEvent({
       module: 'TRANSACTION',
       action: 'UPDATE_TRANSACTION_STATUS',
       entityId: id,
       companyId,
-      details: { previousStatus: existingTx.status, newStatus: status, amount: existingTx.amount },
+      details: { previousStatus: existingTx.status, newStatus: targetStatus, amount: existingTx.amount },
+      diff: { status: { from: existingTx.status, to: targetStatus } },
     });
 
-    res.json({ success: true, message: `Transaction status transitioned to ${status}`, data: updatedTx });
+    res.json({
+      success: true,
+      message: `Transaction status transitioned to ${targetStatus}`,
+      data: updatedTx,
+    });
   } catch (error) {
     console.error('Error updating transaction status:', error);
     res.status(500).json({ success: false, message: error.message });

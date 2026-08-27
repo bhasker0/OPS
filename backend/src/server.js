@@ -28,6 +28,7 @@ app.use(express.json());
 app.use('/api/companies', companyRoutes);
 app.use('/api/companies', parameterRoutes);
 app.use('/api/companies', transactionRoutes);
+app.use('/api/transactions', transactionRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/audit-logs', auditRoutes);
