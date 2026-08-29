@@ -27,6 +27,9 @@ import {
 import ConfirmModal from './ConfirmModal';
 import CreateInvoiceModal from './CreateInvoiceModal';
 import InvoicePdfViewerModal from './InvoicePdfViewerModal';
+import TableActionMenu from './TableActionMenu';
+import TableDensityControl from './TableDensityControl';
+import KpiStrip from './KpiStrip';
 import { useToast } from '../context/ToastContext';
 
 const AVAILABLE_FEATURES = [
@@ -62,6 +65,12 @@ export default function SubscriptionManagement({
   const [invoiceCompanyFilter, setInvoiceCompanyFilter] = useState('ALL');
   const [confirmDeleteInvoice, setConfirmDeleteInvoice] = useState(null);
   const [invoiceActionLoading, setInvoiceActionLoading] = useState(false);
+  const [tableDensity, setTableDensity] = useState(() => localStorage.getItem('ops_inv_density') || 'compact');
+
+  const handleDensityChange = (d) => {
+    setTableDensity(d);
+    localStorage.setItem('ops_inv_density', d);
+  };
 
   // Modals state
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -670,54 +679,49 @@ export default function SubscriptionManagement({
       {/* TAB 3: INVOICES & BILLING LEDGER (SAC 9983) */}
       {activeTab === 'invoices' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* KPI Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
-            <div className="card" style={{ padding: '0.9rem', borderLeft: '4px solid #4f46e5' }}>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Total Invoiced Volume</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginTop: '0.2rem' }}>
-                ₹{(invoiceStats?.totalBilled || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.15rem' }}>
-                Across {invoiceStats?.totalInvoices || invoices.length} Issued Tax Invoices
-              </div>
-            </div>
-
-            <div className="card" style={{ padding: '0.9rem', borderLeft: '4px solid #059669' }}>
-              <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>Total Collected Revenue</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#059669', marginTop: '0.2rem' }}>
-                ₹{(invoiceStats?.totalCollected || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#047857', marginTop: '0.15rem' }}>
-                {invoiceStats?.counts?.paid || 0} Invoices Fully Settled
-              </div>
-            </div>
-
-            <div className="card" style={{ padding: '0.9rem', borderLeft: '4px solid #d97706' }}>
-              <div style={{ fontSize: '0.75rem', color: '#d97706', fontWeight: 600 }}>Pending & Outstanding</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#d97706', marginTop: '0.2rem' }}>
-                ₹{(invoiceStats?.pendingAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '0.15rem' }}>
-                {invoiceStats?.counts?.pending || 0} Pending ({invoiceStats?.counts?.overdue || 0} Overdue)
-              </div>
-            </div>
-
-            <div className="card" style={{ padding: '0.9rem', borderLeft: '4px solid #7c3aed' }}>
-              <div style={{ fontSize: '0.75rem', color: '#7c3aed', fontWeight: 600 }}>GST Tax Pool (SAC 9983)</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#7c3aed', marginTop: '0.2rem' }}>
-                ₹{(invoiceStats?.totalTaxCollected || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#6d28d9', marginTop: '0.15rem' }}>
-                CGST: ₹{invoiceStats?.taxBreakdown?.cgst || 0} | SGST: ₹{invoiceStats?.taxBreakdown?.sgst || 0} | IGST: ₹{invoiceStats?.taxBreakdown?.igst || 0}
-              </div>
-            </div>
-          </div>
+          {/* COMPACT KPI STRIP (SCRUM-96) */}
+          <KpiStrip
+            items={[
+              {
+                label: 'Total Invoiced Volume',
+                value: `₹${(invoiceStats?.totalBilled || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+                subtext: `${invoiceStats?.totalInvoices || invoices.length} Issued Tax Invoices`,
+                icon: <FileText size={20} />,
+                accentColor: 'var(--primary)',
+                sparklinePath: 'M0 16 Q 12 6, 24 12 T 48 2'
+              },
+              {
+                label: 'Total Collected Revenue',
+                value: `₹${(invoiceStats?.totalCollected || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+                subtext: `${invoiceStats?.counts?.paid || 0} Invoices Fully Settled`,
+                icon: <CheckCircle2 size={20} />,
+                accentColor: 'var(--success)',
+                sparklinePath: 'M0 18 Q 12 10, 24 6 T 48 2'
+              },
+              {
+                label: 'Pending & Outstanding',
+                value: `₹${(invoiceStats?.pendingAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+                subtext: `${invoiceStats?.counts?.pending || 0} Pending (${invoiceStats?.counts?.overdue || 0} Overdue)`,
+                icon: <Clock size={20} />,
+                accentColor: 'var(--warning)',
+                sparklinePath: 'M0 8 Q 12 14, 24 10 T 48 6'
+              },
+              {
+                label: 'GST Tax Pool (SAC 9983)',
+                value: `₹${(invoiceStats?.totalTaxCollected || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+                subtext: `CGST: ₹${invoiceStats?.taxBreakdown?.cgst || 0} | SGST: ₹${invoiceStats?.taxBreakdown?.sgst || 0}`,
+                icon: <Layers size={20} />,
+                accentColor: '#7c3aed',
+                sparklinePath: 'M0 12 Q 12 6, 24 10 T 48 4'
+              }
+            ]}
+          />
 
           {/* Filter Bar */}
           <div className="card" style={{ padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
               <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
-                <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
                   placeholder="Search by invoice #, company name, code..."
@@ -741,14 +745,17 @@ export default function SubscriptionManagement({
               </select>
             </div>
 
-            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
-              Showing Invoices ({invoices.length})
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <TableDensityControl density={tableDensity} onDensityChange={handleDensityChange} />
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Showing Invoices ({invoices.length})
+              </span>
+            </div>
           </div>
 
           {/* Invoices Table */}
           <div className="card table-container" style={{ padding: 0 }}>
-            <table>
+            <table className={`table-${tableDensity}`}>
               <thead>
                 <tr>
                   <th>Invoice #</th>
@@ -758,7 +765,7 @@ export default function SubscriptionManagement({
                   <th>GST Tax Split (SAC 9983)</th>
                   <th>Total Amount</th>
                   <th>Status</th>
-                  <th>Actions</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -777,26 +784,47 @@ export default function SubscriptionManagement({
                     const isPaid = inv.status === 'PAID';
                     const isIntra = (inv.company?.gstin || '').startsWith('24');
 
+                    const invoiceActions = [
+                      {
+                        label: 'View & Print A4 PDF',
+                        icon: <Printer size={13} />,
+                        onClick: () => setSelectedInvoiceForPdf(inv)
+                      },
+                      {
+                        label: 'Mark as Fully Paid',
+                        icon: <Check size={13} color="var(--success)" />,
+                        hidden: isPaid,
+                        onClick: () => handleMarkInvoicePaid(inv)
+                      },
+                      {
+                        label: 'Delete Invoice',
+                        icon: <Trash2 size={13} />,
+                        hidden: isPaid,
+                        danger: true,
+                        onClick: () => setConfirmDeleteInvoice(inv)
+                      }
+                    ];
+
                     return (
                       <tr key={inv.id}>
                         <td>
-                          <div style={{ fontWeight: 800, color: '#4f46e5', fontSize: '0.82rem' }}>
+                          <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.82rem' }}>
                             {inv.invoiceNumber}
                           </div>
-                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                             Issued: {new Date(inv.createdAt).toLocaleDateString('en-IN')}
                           </div>
                         </td>
 
                         <td>
-                          <div style={{ fontWeight: 700, fontSize: '0.82rem' }}>{inv.company?.name}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>{inv.company?.name}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                             Code: <code className="mono">{inv.company?.code}</code> {inv.company?.gstin ? `• GSTIN: ${inv.company.gstin}` : ''}
                           </div>
                         </td>
 
                         <td>
-                          <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
+                          <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
                             {inv.plan?.name || 'SaaS Plan'}
                           </span>
                         </td>
@@ -807,27 +835,27 @@ export default function SubscriptionManagement({
 
                         <td>
                           {isIntra ? (
-                            <div style={{ fontSize: '0.72rem', color: '#475569' }}>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                               <div>CGST (9%): ₹{inv.cgstAmount?.toFixed(2)}</div>
                               <div>SGST (9%): ₹{inv.sgstAmount?.toFixed(2)}</div>
                             </div>
                           ) : (
-                            <div style={{ fontSize: '0.72rem', color: '#475569' }}>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                               <div>IGST (18%): ₹{inv.igstAmount?.toFixed(2)}</div>
                             </div>
                           )}
                         </td>
 
-                        <td style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>
+                        <td style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.85rem' }}>
                           ₹{inv.totalAmount?.toFixed(2)}
                         </td>
 
                         <td>
                           <span
                             style={{
-                              background: isPaid ? '#ecfdf5' : '#fffbeb',
-                              color: isPaid ? '#059669' : '#d97706',
-                              border: `1px solid ${isPaid ? '#a7f3d0' : '#fef3c7'}`,
+                              background: isPaid ? 'var(--success-light)' : 'var(--warning-light)',
+                              color: isPaid ? 'var(--success)' : 'var(--warning)',
+                              border: `1px solid ${isPaid ? 'var(--success)' : 'var(--warning)'}`,
                               padding: '0.15rem 0.45rem',
                               borderRadius: '10px',
                               fontSize: '0.7rem',
@@ -837,44 +865,22 @@ export default function SubscriptionManagement({
                               gap: '0.25rem',
                             }}
                           >
-                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: isPaid ? '#10b981' : '#f59e0b' }} />
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: isPaid ? 'var(--success)' : 'var(--warning)' }} />
                             {inv.status}
                           </span>
                         </td>
 
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
                             <button
-                              className="btn btn-primary"
-                              style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.15rem 0.45rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
                               onClick={() => setSelectedInvoiceForPdf(inv)}
                               title="View & Print A4 Tax Invoice PDF"
                             >
-                              <Printer size={12} /> A4 Invoice
+                              <Printer size={11} /> PDF
                             </button>
-
-                            {!isPaid && (
-                              <button
-                                className="btn btn-secondary"
-                                style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                                onClick={() => handleMarkInvoicePaid(inv)}
-                                title="Mark Invoice as Paid"
-                                disabled={invoiceActionLoading}
-                              >
-                                <Check size={12} /> Mark Paid
-                              </button>
-                            )}
-
-                            {!isPaid && (
-                              <button
-                                className="btn btn-secondary"
-                                style={{ padding: '0.2rem 0.4rem', fontSize: '0.72rem', color: '#dc2626' }}
-                                onClick={() => setConfirmDeleteInvoice(inv)}
-                                title="Delete Unpaid Invoice"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
+                            <TableActionMenu actions={invoiceActions} />
                           </div>
                         </td>
                       </tr>

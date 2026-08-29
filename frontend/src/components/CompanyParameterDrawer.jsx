@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   X,
   Settings,
@@ -10,10 +10,57 @@ import {
   Lock,
   Layers,
   Save,
-  Globe
+  Globe,
+  ChevronDown,
+  ChevronRight,
+  Scissors,
+  DollarSign,
+  Activity
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
+
+const PARAMETER_CATEGORIES = [
+  {
+    id: 'textile_production',
+    title: '🧵 Textile & Production Rules',
+    description: 'SAC rates, stitching tolerances, decimals, and machine caps',
+    icon: <Scissors size={15} />,
+    keys: [
+      'sac_code',
+      'default_rate_per_1000',
+      'shrinkage_tolerance_percent',
+      'max_machines_allowed',
+      'roundOffFormat',
+      'digitsAfterDecimal'
+    ]
+  },
+  {
+    id: 'karigar_accounting',
+    title: '💰 Karigar & Job-Work Accounting',
+    description: 'Wage deduction, TDS, advance limits, and challan prefixes',
+    icon: <DollarSign size={15} />,
+    keys: [
+      'karigar_tds_deduction_percent',
+      'jobwork_challan_prefix',
+      'max_karigar_advance_limit',
+      'dead_stock_threshold_meters'
+    ]
+  },
+  {
+    id: 'integration_governance',
+    title: '⚡ Integration & Governance',
+    description: 'Outbound sync webhooks, retry thresholds, and audit retention',
+    icon: <Activity size={15} />,
+    keys: [
+      'outbound_sync_enabled',
+      'sync_retry_max_attempts',
+      'auto_archive_days',
+      'audit_retention_days',
+      'rate_limit_per_minute'
+    ]
+  }
+];
 
 export default function CompanyParameterDrawer({
   isOpen,
@@ -30,6 +77,11 @@ export default function CompanyParameterDrawer({
   const [editingValues, setEditingValues] = useState({});
   const [confirmResetKey, setConfirmResetKey] = useState(null);
   const [resetLoading, setResetLoading] = useState(false);
+  const [openAccordions, setOpenAccordions] = useState({
+    textile_production: true,
+    karigar_accounting: true,
+    integration_governance: true
+  });
 
   useEffect(() => {
     if (isOpen && company?.id) {
@@ -60,15 +112,9 @@ export default function CompanyParameterDrawer({
 
   if (!isOpen || !company) return null;
 
-  const filteredParams = parameters.filter((p) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      p.key.toLowerCase().includes(q) ||
-      (p.description && p.description.toLowerCase().includes(q)) ||
-      String(p.value).toLowerCase().includes(q)
-    );
-  });
+  const toggleAccordion = (catId) => {
+    setOpenAccordions((prev) => ({ ...prev, [catId]: !prev[catId] }));
+  };
 
   const handleSaveParam = async (key, value) => {
     setSavingKey(key);
@@ -119,14 +165,86 @@ export default function CompanyParameterDrawer({
     }
   };
 
+  const renderParameterInput = (p) => {
+    const isOverride = p.companyId && p.companyId !== '00000000-0000-0000-0000-000000000000';
+    const isDirty = editingValues[p.key] !== undefined && String(editingValues[p.key]) !== String(p.value);
+
+    // Boolean switch
+    if (p.dataType === 'BOOLEAN' || p.value === 'true' || p.value === 'false') {
+      const isChecked = editingValues[p.key] === 'true' || editingValues[p.key] === true;
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={(e) => {
+                const newVal = e.target.checked ? 'true' : 'false';
+                setEditingValues((prev) => ({ ...prev, [p.key]: newVal }));
+                handleSaveParam(p.key, newVal);
+              }}
+            />
+            {isChecked ? 'Enabled' : 'Disabled'}
+          </label>
+        </div>
+      );
+    }
+
+    // Enum dropdown (roundOffFormat)
+    if (p.key === 'roundOffFormat') {
+      return (
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <select
+            className="form-control"
+            value={editingValues[p.key] ?? p.value}
+            onChange={(e) => {
+              const val = e.target.value;
+              setEditingValues((prev) => ({ ...prev, [p.key]: val }));
+              handleSaveParam(p.key, val);
+            }}
+            style={{ fontSize: '0.78rem', padding: '0.35rem 0.5rem', width: '160px' }}
+          >
+            <option value="NEAREST_RUPEE">NEAREST_RUPEE</option>
+            <option value="ROUND_UP">ROUND_UP</option>
+            <option value="ROUND_DOWN">ROUND_DOWN</option>
+            <option value="TRUNCATE">TRUNCATE</option>
+          </select>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <input
+          type={p.dataType === 'NUMBER' ? 'number' : 'text'}
+          className="form-control"
+          style={{ width: '140px', fontSize: '0.78rem', padding: '0.35rem 0.5rem' }}
+          value={editingValues[p.key] ?? p.value}
+          onChange={(e) => setEditingValues((prev) => ({ ...prev, [p.key]: e.target.value }))}
+        />
+        {isDirty && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: '0.3rem 0.55rem', fontSize: '0.72rem' }}
+            disabled={savingKey === p.key}
+            onClick={() => handleSaveParam(p.key, editingValues[p.key])}
+          >
+            <Save size={12} /> {savingKey === p.key ? '...' : 'Save'}
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="modal-backdrop" style={{ zIndex: 1200, justifyContent: 'flex-end', padding: 0 }}>
       <div
         style={{
           width: '100%',
-          maxWidth: '540px',
+          maxWidth: '560px',
           height: '100vh',
-          background: '#ffffff',
+          background: 'var(--bg-surface)',
           boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
           display: 'flex',
           flexDirection: 'column',
@@ -134,157 +252,157 @@ export default function CompanyParameterDrawer({
         }}
       >
         {/* HEADER */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4f46e5', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
-              <Sliders size={14} /> Parameter Store Drawer
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
+              <Sliders size={14} /> Parameter Settings Drawer
             </div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0.15rem 0 0 0' }}>
-              {company.name} <code style={{ fontSize: '0.85rem', color: '#4f46e5' }}>{company.code}</code>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.15rem 0 0 0' }}>
+              {company.name} <code style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>{company.code}</code>
             </h2>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
             <X size={20} />
           </button>
         </div>
 
-        {/* SEARCH & STATS BAR */}
-        <div style={{ padding: '0.75rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={14} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+        {/* SEARCH BAR */}
+        <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-canvas)' }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              placeholder="Search parameters or feature keys..."
+              placeholder="Live filter across all 18 parameter keys..."
               className="form-control"
-              style={{ paddingLeft: '2rem', fontSize: '0.78rem' }}
+              style={{ paddingLeft: '2.2rem', fontSize: '0.78rem', width: '100%' }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
-            {filteredParams.length} parameters
-          </span>
         </div>
 
-        {/* PARAMETERS LIST */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', fontSize: '0.82rem' }}>
-              Loading company parameter store...
-            </div>
-          ) : filteredParams.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', fontSize: '0.82rem' }}>
-              No matching parameters found.
-            </div>
-          ) : (
-            filteredParams.map((p) => {
-              const isFeature = p.key.startsWith('feature_');
-              const isOverride = p.isCustomOverride || (p.companyId && p.companyId !== '00000000-0000-0000-0000-000000000000');
-              const currentVal = editingValues[p.key] !== undefined ? editingValues[p.key] : p.value;
-
+        {/* ACCORDION CONTENT */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {PARAMETER_CATEGORIES.map((cat) => {
+            const catParams = parameters.filter((p) => {
+              const matchesCat = cat.keys.includes(p.key);
+              if (!matchesCat) return false;
+              if (!search) return true;
+              const q = search.toLowerCase();
               return (
-                <div
-                  key={p.key}
+                p.key.toLowerCase().includes(q) ||
+                (p.description && p.description.toLowerCase().includes(q)) ||
+                String(p.value).toLowerCase().includes(q)
+              );
+            });
+
+            if (search && catParams.length === 0) return null;
+
+            const isAccordionOpen = search ? true : openAccordions[cat.id];
+
+            return (
+              <div key={cat.id} style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', background: 'var(--bg-surface)' }}>
+                <button
+                  type="button"
+                  onClick={() => toggleAccordion(cat.id)}
                   style={{
-                    padding: '0.85rem 1rem',
-                    borderRadius: '8px',
-                    border: `1px solid ${isOverride ? '#c7d2fe' : '#e2e8f0'}`,
-                    background: isOverride ? '#f5f7ff' : '#ffffff',
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.4rem'
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    background: 'var(--border-subtle)',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <code style={{ fontSize: '0.82rem', fontWeight: 700, color: isFeature ? '#4f46e5' : '#0f172a' }}>
-                        {p.key}
-                      </code>
-                      {isOverride ? (
-                        <span style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '0.68rem', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 600 }}>
-                          Custom Override
-                        </span>
-                      ) : (
-                        <span style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.68rem', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
-                          Inherited Seed
-                        </span>
-                      )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ color: 'var(--primary)' }}>{cat.icon}</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>{cat.title}</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{cat.description}</div>
                     </div>
-
-                    {isOverride && (
-                      <button
-                        onClick={() => setConfirmResetKey(p.key)}
-                        title="Revert to inherited seed default"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
-                      >
-                        <RotateCcw size={11} /> Reset
-                      </button>
-                    )}
                   </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span className="badge badge-system" style={{ fontSize: '0.65rem' }}>{catParams.length} rules</span>
+                    {isAccordionOpen ? <ChevronDown size={16} color="var(--text-muted)" /> : <ChevronRight size={16} color="var(--text-muted)" />}
+                  </div>
+                </button>
 
-                  {p.description && (
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      {p.description}
-                    </div>
-                  )}
-
-                  {/* CONTROLS */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                    {isFeature ? (
-                      <button
-                        className={`btn ${currentVal === 'true' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}
-                        disabled={savingKey === p.key}
-                        onClick={() => handleSaveParam(p.key, currentVal === 'true' ? 'false' : 'true')}
-                      >
-                        {currentVal === 'true' ? 'Enabled (true)' : 'Disabled (false)'}
-                      </button>
-                    ) : (
-                      <div style={{ display: 'flex', gap: '0.35rem', width: '100%' }}>
-                        <input
-                          type="text"
-                          className="form-control"
-                          style={{ fontSize: '0.78rem', padding: '0.25rem 0.5rem' }}
-                          value={currentVal}
-                          onChange={(e) => setEditingValues({ ...editingValues, [p.key]: e.target.value })}
-                        />
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-                          disabled={savingKey === p.key || currentVal === p.value}
-                          onClick={() => handleSaveParam(p.key, currentVal)}
+                {isAccordionOpen && (
+                  <div style={{ padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {catParams.map((p) => {
+                      const isOverride = p.companyId && p.companyId !== '00000000-0000-0000-0000-000000000000';
+                      return (
+                        <div
+                          key={p.key}
+                          style={{
+                            padding: '0.6rem 0.75rem',
+                            border: '1px solid var(--border)',
+                            borderRadius: '6px',
+                            background: isOverride ? 'var(--primary-light)' : 'var(--bg-surface)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}
                         >
-                          <Save size={12} /> Save
-                        </button>
-                      </div>
-                    )}
+                          <div style={{ flex: 1, paddingRight: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)' }}>{p.key}</span>
+                              <span className={isOverride ? 'badge badge-active' : 'badge badge-seed'} style={{ fontSize: '0.65rem' }}>
+                                {isOverride ? 'Tenant Override' : 'Inherited Master'}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                              {p.description || 'Standard textile manufacturing parameter'}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            {renderParameterInput(p)}
+                            {isOverride && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ padding: '0.3rem 0.45rem', fontSize: '0.7rem' }}
+                                title="Reset override back to 000 Master Seed"
+                                onClick={() => setConfirmResetKey(p.key)}
+                              >
+                                <RotateCcw size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              );
-            })
-          )}
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* FOOTER */}
-        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
-          <button className="btn btn-secondary" onClick={onClose} style={{ fontSize: '0.8rem' }}>
+        <div style={{ padding: '0.85rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--bg-canvas)', display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="btn btn-secondary" onClick={onClose}>
             Close Drawer
           </button>
         </div>
-      </div>
 
-      {/* CONFIRMATION DIALOG MODAL (SCRUM-78) */}
-      <ConfirmModal
-        isOpen={!!confirmResetKey}
-        title="Reset Parameter to Default"
-        message={`Are you sure you want to revert parameter '${confirmResetKey}' to its default 000 Seed value? Any custom tenant overrides will be removed.`}
-        confirmText="Reset to Seed"
-        cancelText="Cancel"
-        variant="warning"
-        loading={resetLoading}
-        onConfirm={handleConfirmReset}
-        onCancel={() => setConfirmResetKey(null)}
-      />
+        {/* CONFIRM RESET MODAL */}
+        <ConfirmModal
+          isOpen={Boolean(confirmResetKey)}
+          title={`Reset Parameter: ${confirmResetKey}`}
+          message={`Are you sure you want to delete the tenant custom override for '${confirmResetKey}' and restore the master seed default value?`}
+          confirmText="Reset to Master Seed"
+          cancelText="Keep Override"
+          variant="warning"
+          loading={resetLoading}
+          onConfirm={handleConfirmReset}
+          onCancel={() => setConfirmResetKey(null)}
+        />
+      </div>
     </div>
   );
 }

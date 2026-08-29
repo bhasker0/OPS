@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Plus,
@@ -18,6 +18,8 @@ import {
   ExternalLink
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
+import TableActionMenu from './TableActionMenu';
+import TableDensityControl from './TableDensityControl';
 import { useToast } from '../context/ToastContext';
 
 export default function UserManagement({
@@ -34,6 +36,12 @@ export default function UserManagement({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCompanyId, setSelectedCompanyId] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [tableDensity, setTableDensity] = useState(() => localStorage.getItem('ops_user_density') || 'compact');
+
+  const handleDensityChange = (d) => {
+    setTableDensity(d);
+    localStorage.setItem('ops_user_density', d);
+  };
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -504,14 +512,17 @@ export default function UserManagement({
           </div>
         </div>
 
-        <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
-          Showing {filteredUsers.length} of {users.length} Users
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <TableDensityControl density={tableDensity} onDensityChange={handleDensityChange} />
+          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+            Showing {filteredUsers.length} of {users.length} Users
+          </span>
+        </div>
       </div>
 
       {/* USERS TABLE */}
       <div className="card table-container" style={{ padding: 0 }}>
-        <table>
+        <table className={`table-${tableDensity}`}>
           <thead>
             <tr>
               <th>User Name & Email</th>
@@ -519,22 +530,73 @@ export default function UserManagement({
               <th>Account Type</th>
               <th>RBAC Role</th>
               <th>Status</th>
-              <th>Support Actions</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.map((u) => {
               const isActive = (u.status || 'ACTIVE') === 'ACTIVE';
 
+              const rowActions = [
+                {
+                  label: 'Launch ETMS Portal ↗',
+                  icon: <ExternalLink size={13} color="#059669" />,
+                  hidden: u.isInternalOps || !isActive,
+                  onClick: () => handleLaunchEtms(u)
+                },
+                {
+                  label: 'Impersonate as User',
+                  icon: <UserCheck size={13} color="#4f46e5" />,
+                  hidden: u.isInternalOps || !isActive,
+                  onClick: () => setImpersonateTargetUser(u)
+                },
+                {
+                  label: 'Edit User Details',
+                  icon: <Edit2 size={13} />,
+                  onClick: () => {
+                    setSelectedUser(u);
+                    setEditUser({
+                      name: u.name,
+                      email: u.email,
+                      mobile: u.mobile || '',
+                      status: u.status || 'ACTIVE',
+                      companyId: u.companyId || '',
+                      roleId: u.roleId || '',
+                      isInternalOps: u.isInternalOps || false
+                    });
+                    setShowEditModal(true);
+                  }
+                },
+                {
+                  label: 'Reset Password',
+                  icon: <Key size={13} color="#d97706" />,
+                  onClick: () => {
+                    setSelectedUser(u);
+                    setShowPasswordModal(true);
+                  }
+                },
+                {
+                  label: isActive ? 'Suspend User' : 'Activate User',
+                  icon: <RefreshCw size={13} />,
+                  onClick: () => handleStatusTogglePrompt(u)
+                },
+                {
+                  label: 'Killswitch (Revoke Sessions)',
+                  icon: <LogOut size={13} />,
+                  danger: true,
+                  onClick: () => setKillswitchUser(u)
+                }
+              ];
+
               return (
                 <tr key={u.id}>
                   <td>
                     <div>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{u.name}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.1rem' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{u.name}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.1rem' }}>
                         <span>{u.email}</span>
                         {u.mobile && (
-                          <span style={{ color: '#4338ca', fontWeight: 700, background: '#eef2ff', padding: '0.05rem 0.35rem', borderRadius: '3px' }}>
+                          <span style={{ color: 'var(--primary)', fontWeight: 700, background: 'var(--primary-light)', padding: '0.05rem 0.35rem', borderRadius: '3px' }}>
                             📱 {u.mobile}
                           </span>
                         )}
@@ -545,8 +607,8 @@ export default function UserManagement({
                   <td>
                     {u.company ? (
                       <div>
-                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{u.company.name}</div>
-                        <code style={{ fontSize: '0.7rem', color: '#4f46e5' }}>{u.company.code}</code>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{u.company.name}</div>
+                        <code style={{ fontSize: '0.7rem', color: 'var(--primary)' }}>{u.company.code}</code>
                       </div>
                     ) : (
                       <span style={{ color: '#6d28d9', fontSize: '0.75rem', fontWeight: 600 }}>🌐 OPS Global Admin</span>
@@ -571,11 +633,11 @@ export default function UserManagement({
 
                   <td>
                     {u.role ? (
-                      <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
+                      <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
                         {u.role.name}
                       </span>
                     ) : (
-                      <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>Default Access</span>
+                      <span style={{ color: 'var(--text-tertiary)', fontSize: '0.72rem' }}>Default Access</span>
                     )}
                   </td>
 
@@ -583,9 +645,9 @@ export default function UserManagement({
                     <button
                       onClick={() => handleStatusTogglePrompt(u)}
                       style={{
-                        background: isActive ? '#ecfdf5' : '#fef2f2',
-                        color: isActive ? '#059669' : '#dc2626',
-                        border: `1px solid ${isActive ? '#a7f3d0' : '#fecaca'}`,
+                        background: isActive ? 'var(--success-light)' : 'var(--danger-light)',
+                        color: isActive ? 'var(--success)' : 'var(--danger)',
+                        border: `1px solid ${isActive ? 'var(--success)' : 'var(--danger)'}`,
                         padding: '0.15rem 0.45rem',
                         borderRadius: '10px',
                         fontSize: '0.7rem',
@@ -597,85 +659,34 @@ export default function UserManagement({
                       }}
                       title={`Click to toggle status to ${isActive ? 'SUSPENDED' : 'ACTIVE'}`}
                     >
-                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: isActive ? '#10b981' : '#ef4444' }} />
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: isActive ? 'var(--success)' : 'var(--danger)' }} />
                       {u.status || 'ACTIVE'}
                     </button>
                   </td>
 
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                        onClick={() => {
-                          setSelectedUser(u);
-                          setEditUser({
-                            name: u.name,
-                            email: u.email,
-                            mobile: u.mobile || '',
-                            status: u.status || 'ACTIVE',
-                            companyId: u.companyId || '',
-                            roleId: u.roleId || '',
-                            isInternalOps: u.isInternalOps || false
-                          });
-                          setShowEditModal(true);
-                        }}
-                      >
-                        <Edit2 size={12} /> Edit
-                      </button>
-
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                        onClick={() => {
-                          setSelectedUser(u);
-                          setShowPasswordModal(true);
-                        }}
-                        title="Reset User Password"
-                      >
-                        <Key size={12} style={{ color: '#d97706' }} /> Reset Password
-                      </button>
-
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                        onClick={() => setKillswitchUser(u)}
-                        title="Revoke All Active Sessions for User (Killswitch)"
-                      >
-                        <LogOut size={12} /> Killswitch
-                      </button>
-
-                      {!u.isInternalOps && u.status === 'ACTIVE' && (
-                        <>
-                          <button
-                            className="btn btn-secondary"
-                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', color: '#4f46e5', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                            onClick={() => setImpersonateTargetUser(u)}
-                            title={`Impersonate ${u.name} in OPS Support Mode`}
-                          >
-                            <UserCheck size={12} /> Impersonate
-                          </button>
-
-                          <button
-                            className="btn btn-secondary"
-                            style={{
-                              padding: '0.2rem 0.45rem',
-                              fontSize: '0.72rem',
-                              color: '#059669',
-                              borderColor: '#a7f3d0',
-                              background: '#ecfdf5',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.25rem',
-                              fontWeight: 600
-                            }}
-                            onClick={() => handleLaunchEtms(u)}
-                            title={`Open ETMS Factory Portal directly as ${u.name} (${u.mobile || 'No Mobile'})`}
-                          >
-                            <ExternalLink size={12} /> Launch ETMS ↗
-                          </button>
-                        </>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                      {!u.isInternalOps && isActive && (
+                        <button
+                          className="btn btn-secondary"
+                          style={{
+                            padding: '0.15rem 0.45rem',
+                            fontSize: '0.72rem',
+                            color: '#059669',
+                            borderColor: '#a7f3d0',
+                            background: 'var(--bg-surface)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.2rem',
+                            fontWeight: 600
+                          }}
+                          onClick={() => handleLaunchEtms(u)}
+                          title={`Open ETMS Factory Portal directly as ${u.name} (${u.mobile || 'No Mobile'})`}
+                        >
+                          <ExternalLink size={11} /> Launch ETMS
+                        </button>
                       )}
+                      <TableActionMenu actions={rowActions} />
                     </div>
                   </td>
                 </tr>

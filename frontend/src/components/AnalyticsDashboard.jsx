@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building,
   TrendingUp,
@@ -19,6 +19,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { formatIndianCurrency } from '../utils/financialFormatter';
+import KpiStrip from './KpiStrip';
 
 export default function AnalyticsDashboard({
   apiBase = 'http://localhost:5000/api',
@@ -153,91 +154,52 @@ export default function AnalyticsDashboard({
         </div>
       ) : (
         <>
-          {/* 4 PRIMARY KPI METRIC CARDS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-            {/* Card 1: Active Tenants */}
-            <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid #4f46e5', position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  Active Tenants
-                </span>
-                <div style={{ background: '#eef2ff', color: '#4f46e5', padding: '0.35rem', borderRadius: '6px' }}>
-                  <Building size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e1b4b', margin: '0.3rem 0 0.1rem 0' }}>
-                {stats?.activeCompanies ?? 0}
-                <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#64748b', marginLeft: '0.35rem' }}>
-                  / {stats?.totalCompanies ?? 0} total
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: '#059669', marginTop: '0.3rem' }}>
-                <ArrowUpRight size={13} />
-                <span style={{ fontWeight: 600 }}>+12% MoM</span>
-                <span style={{ color: '#64748b' }}>• {stats?.suspendedCompanies ?? 0} suspended</span>
-              </div>
-            </div>
-
-            {/* Card 2: Revenue & Ledger Volume */}
-            <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid #10b981', position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  Total Ledger Volume
-                </span>
-                <div style={{ background: '#ecfdf5', color: '#10b981', padding: '0.35rem', borderRadius: '6px' }}>
-                  <TrendingUp size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#064e3b', margin: '0.3rem 0 0.1rem 0' }}>
-                {stats?.totalVolumeFormatted || formatIndianCurrency(stats?.totalVolume || 0)}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: '#059669', marginTop: '0.3rem' }}>
-                <span style={{ background: '#d1fae5', color: '#065f46', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>
-                  24h: {stats?.volume24hFormatted || formatIndianCurrency(stats?.volume24h || 0)}
-                </span>
-                <span style={{ color: '#64748b' }}>• {stats?.totalTransactions ?? 0} total tx</span>
-              </div>
-            </div>
-
-            {/* Card 3: Platform Health & Uptime */}
-            <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid #0284c7', position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  System Health & Uptime
-                </span>
-                <div style={{ background: '#f0f9ff', color: '#0284c7', padding: '0.35rem', borderRadius: '6px' }}>
-                  <Activity size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0c4a6e', margin: '0.3rem 0 0.1rem 0' }}>
-                {stats?.systemHealth?.uptimePercent ?? 99.99}%
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', marginTop: '0.3rem' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#059669', fontWeight: 600 }}>
-                  <CheckCircle2 size={12} /> Postgres & Mongo Active
-                </span>
-              </div>
-            </div>
-
-            {/* Card 4: Active Users & Operators */}
-            <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid #8b5cf6', position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  SaaS User Accounts
-                </span>
-                <div style={{ background: '#f5f3ff', color: '#8b5cf6', padding: '0.35rem', borderRadius: '6px' }}>
-                  <Users size={18} />
-                </div>
-              </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#4c1d95', margin: '0.3rem 0 0.1rem 0' }}>
-                {stats?.totalUsers ?? 0}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem' }}>
-                <span style={{ fontWeight: 600, color: '#6d28d9' }}>{stats?.internalOpsUsers ?? 0} Super Admins</span>
-                <span>• {stats?.tenantUsers ?? (stats?.totalUsers || 0)} Tenant Operators</span>
-              </div>
-            </div>
-          </div>
+          {/* COMPACT RESPONSIVE KPI METRIC STRIP (SCRUM-96) */}
+          <KpiStrip
+            items={[
+              {
+                label: 'Active Tenants',
+                value: `${stats?.activeCompanies ?? 0} / ${stats?.totalCompanies ?? 0}`,
+                subtext: `${stats?.suspendedCompanies ?? 0} suspended • +12% MoM`,
+                icon: <Building size={20} />,
+                accentColor: 'var(--primary)',
+                filterKey: 'companies',
+                sparklinePath: 'M0 16 Q 12 4, 24 10 T 48 2',
+                tooltip: 'Click to view Registered Companies'
+              },
+              {
+                label: 'Total Ledger Volume',
+                value: stats?.totalVolumeFormatted || formatIndianCurrency(stats?.totalVolume || 0),
+                subtext: `24h: ${stats?.volume24hFormatted || formatIndianCurrency(stats?.volume24h || 0)}`,
+                icon: <TrendingUp size={20} />,
+                accentColor: 'var(--success)',
+                filterKey: 'subscriptions',
+                sparklinePath: 'M0 18 Q 12 12, 24 6 T 48 2',
+                tooltip: 'Click to view Subscriptions & Billing'
+              },
+              {
+                label: 'System Uptime & Health',
+                value: `${stats?.systemHealth?.uptimePercent ?? 99.99}%`,
+                subtext: 'PostgreSQL & MongoDB Active',
+                icon: <Activity size={20} />,
+                accentColor: '#0284c7',
+                filterKey: 'system_health',
+                sparklinePath: 'M0 10 Q 12 10, 24 10 T 48 10',
+                tooltip: 'Click to view Telemetry & Sync DLQ'
+              },
+              {
+                label: 'Registered Platform Users',
+                value: String(stats?.totalUsers ?? 0),
+                subtext: `${stats?.superAdminsCount ?? 0} Super Admins`,
+                icon: <Users size={20} />,
+                accentColor: '#d97706',
+                filterKey: 'all_users',
+                sparklinePath: 'M0 14 Q 12 8, 24 12 T 48 4',
+                tooltip: 'Click to view User Directory'
+              }
+            ]}
+            onFilterSelect={(tabKey) => onNavigateTab && onNavigateTab(tabKey)}
+          />
 
           {/* QUICK OPERATIONAL ACTION SHORTCUTS */}
           <div className="card" style={{ padding: '1rem 1.25rem' }}>

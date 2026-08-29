@@ -16,6 +16,8 @@ import {
   CreditCard,
   LogOut,
   ChevronRight,
+  ChevronLeft,
+  ChevronDown,
   UserCheck,
   Edit2,
   Headphones,
@@ -27,7 +29,10 @@ import {
   MapPin,
   Search,
   Activity,
-  ExternalLink
+  ExternalLink,
+  Menu,
+  Sliders,
+  Layers
 } from 'lucide-react';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import CompanyManagement from './components/CompanyManagement';
@@ -40,6 +45,8 @@ import SubscriptionManagement from './components/SubscriptionManagement';
 import SystemHealthMonitor from './components/SystemHealthMonitor';
 import SecuritySettingsModal from './components/SecuritySettingsModal';
 import TenantReconciliationModal from './components/TenantReconciliationModal';
+import ThemeToggle from './components/ThemeToggle';
+import KpiStrip from './components/KpiStrip';
 import { useToast } from './context/ToastContext';
 
 const API_BASE = 'http://localhost:5000/api';
@@ -47,6 +54,19 @@ const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
 
 export default function App() {
   const toast = useToast();
+
+  // Collapsible Sidebar state (SCRUM-93)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('ops_sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('ops_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   // Real JWT Auth state (SCRUM-84)
   const [isLoggedIn, setIsLoggedIn] = useState(true);
@@ -165,12 +185,20 @@ export default function App() {
     }
   }, [isLoggedIn]);
 
-  // Global Shortcut Ctrl+K / Cmd+K (SCRUM-79)
+  // Global Shortcuts: Ctrl+K (Command Palette) and Ctrl+B (Toggle Sidebar)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setShowCommandPalette((prev) => !prev);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setIsSidebarCollapsed((prev) => {
+          const next = !prev;
+          localStorage.setItem('ops_sidebar_collapsed', String(next));
+          return next;
+        });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -666,26 +694,40 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* LIGHT SIDEBAR FOR ALL-DAY SUPPORT COMFORT */}
-      <div className="sidebar">
-        <div className="sidebar-title">
-          <Shield size={20} />
-          OPS Super Admin
+      {/* RESPONSIVE COLLAPSIBLE SIDEBAR (SCRUM-93) */}
+      <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-title">
+            <Shield size={20} />
+            <span>OPS Super Admin</span>
+          </div>
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={toggleSidebar}
+            title={isSidebarCollapsed ? "Expand Sidebar (Ctrl+B)" : "Collapse Sidebar (Ctrl+B)"}
+          >
+            {isSidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          </button>
         </div>
 
         {operatingCompany ? (
-          <div style={{ background: '#eef2ff', padding: '0.5rem 0.65rem', borderRadius: '6px', fontSize: '0.78rem', border: '1px solid #c7d2fe' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: '#3730a3' }}>
-              <Headphones size={14} /> Support Mode
+          <div style={{ background: 'var(--primary-light)', padding: '0.5rem 0.65rem', borderRadius: '6px', fontSize: '0.78rem', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: 'var(--primary)' }}>
+              <Headphones size={14} /> {!isSidebarCollapsed && <span>Support Mode</span>}
             </div>
-            <div style={{ color: '#4338ca', fontSize: '0.75rem', marginTop: '0.1rem', fontWeight: 500 }}>
-              {operatingCompany.name} ({operatingCompany.code})
-            </div>
+            {!isSidebarCollapsed && (
+              <div style={{ color: 'var(--text-main)', fontSize: '0.75rem', marginTop: '0.1rem', fontWeight: 600 }}>
+                {operatingCompany.name} ({operatingCompany.code})
+              </div>
+            )}
           </div>
         ) : (
-          <div style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', border: '1px solid #e2e8f0' }}>
-            🌐 Global Super Admin View
-          </div>
+          !isSidebarCollapsed && (
+            <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+              🌐 Global Super Admin View
+            </div>
+          )
         )}
 
         {/* COMMAND PALETTE QUICK SEARCH BUTTON (SCRUM-79) */}
@@ -695,43 +737,69 @@ export default function App() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.45rem 0.65rem',
+            justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+            padding: isSidebarCollapsed ? '0.5rem 0' : '0.45rem 0.65rem',
             borderRadius: '6px',
             border: '1px solid var(--border)',
-            background: '#f8fafc',
+            background: 'var(--bg-canvas)',
             color: 'var(--text-muted)',
             cursor: 'pointer',
             fontSize: '0.78rem',
             width: '100%',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f1f5f9'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = '#f8fafc'; }}
           title="Open Command Palette (Ctrl+K)"
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Search size={13} color="#94a3b8" /> Quick jump...
+            <Search size={13} color="var(--text-muted)" /> {!isSidebarCollapsed && 'Quick jump...'}
           </span>
-          <kbd style={{
-            fontSize: '0.65rem',
-            background: '#ffffff',
-            border: '1px solid #cbd5e1',
-            borderRadius: '3px',
-            padding: '0.1rem 0.3rem',
-            fontFamily: 'var(--font-mono)',
-            color: '#64748b'
-          }}>Ctrl K</kbd>
+          {!isSidebarCollapsed && (
+            <kbd style={{
+              fontSize: '0.65rem',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: '3px',
+              padding: '0.1rem 0.3rem',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-secondary)'
+            }}>Ctrl K</kbd>
+          )}
         </button>
 
         <div className="nav-menu">
           {!operatingCompany ? (
             <>
-              <button className={`nav-item ${activeTab === 'global_dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('global_dashboard')}>
-                <TrendingUp size={16} /> Dashboard
+              {/* SECTION: PLATFORM GOVERNANCE */}
+              {!isSidebarCollapsed && <div className="nav-section-label">🏛️ Governance</div>}
+              <button className={`nav-item ${activeTab === 'global_dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('global_dashboard')} title="Global Dashboard">
+                <TrendingUp size={16} /> <span>Dashboard</span>
               </button>
-              <button className={`nav-item ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')}>
-                <Building size={16} /> Companies ({companies.length})
+              <button className={`nav-item ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')} title="Registered Companies">
+                <Building size={16} /> <span>Companies</span>
+                <span className="badge badge-system nav-counter-badge">{companies.length}</span>
+              </button>
+              <button className={`nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`} onClick={() => setActiveTab('subscriptions')} title="Subscriptions & Billing">
+                <CreditCard size={16} /> <span>Subscriptions</span>
+              </button>
+
+              {/* SECTION: SECURITY & ACCESS */}
+              {!isSidebarCollapsed && <div className="nav-section-label">🛡️ Security & Access</div>}
+              <button className={`nav-item ${activeTab === 'all_users' ? 'active' : ''}`} onClick={() => setActiveTab('all_users')} title="User Directory">
+                <Users size={16} /> <span>Users</span>
+                <span className="badge badge-seed nav-counter-badge">{users.length}</span>
+              </button>
+              <button className={`nav-item ${activeTab === 'roles' ? 'active' : ''}`} onClick={() => { fetchRoles(); setActiveTab('roles'); }} title="RBAC Roles">
+                <Lock size={16} /> <span>RBAC Roles</span>
+                <span className="badge badge-system nav-counter-badge">{roles.length}</span>
+              </button>
+              <button className={`nav-item ${activeTab === 'global_audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(); setActiveTab('global_audit'); }} title="Audit Trail">
+                <FileText size={16} /> <span>Audit Trail</span>
+              </button>
+
+              {/* SECTION: INFRASTRUCTURE & HEALTH */}
+              {!isSidebarCollapsed && <div className="nav-section-label">⚡ Infrastructure</div>}
+              <button className={`nav-item ${activeTab === 'system_health' ? 'active' : ''}`} onClick={() => setActiveTab('system_health')} title="Telemetry & Sync DLQ">
+                <Activity size={16} /> <span>Telemetry & DLQ</span>
               </button>
               <button
                 className={`nav-item ${activeTab === 'reconcile' ? 'active' : ''}`}
@@ -740,65 +808,47 @@ export default function App() {
                   setShowReconcileModal(true);
                 }}
                 style={{
-                  background: untrackedCount > 0 ? '#fffbeb' : 'transparent',
-                  color: untrackedCount > 0 ? '#b45309' : 'inherit',
+                  background: untrackedCount > 0 ? 'var(--warning-light)' : 'transparent',
+                  color: untrackedCount > 0 ? 'var(--warning)' : 'inherit',
                   fontWeight: untrackedCount > 0 ? 700 : 'normal',
                 }}
                 title="Scan and Reconcile unmanaged ETMS tenants into OPS Master"
               >
-                <Shield size={16} color={untrackedCount > 0 ? '#d97706' : '#4f46e5'} />
+                <Shield size={16} color={untrackedCount > 0 ? 'var(--warning)' : 'var(--primary)'} />
                 <span>Reconcile ETMS</span>
                 {untrackedCount > 0 && (
                   <span
+                    className="nav-counter-badge"
                     style={{
-                      marginLeft: 'auto',
-                      background: '#ef4444',
+                      background: 'var(--danger)',
                       color: '#ffffff',
-                      borderRadius: '10px',
-                      padding: '0.1rem 0.45rem',
-                      fontSize: '0.65rem',
-                      fontWeight: 800,
                     }}
                   >
                     {untrackedCount}
                   </span>
                 )}
               </button>
-              <button className={`nav-item ${activeTab === 'all_users' ? 'active' : ''}`} onClick={() => setActiveTab('all_users')}>
-                <Users size={16} /> Users ({users.length})
-              </button>
-              <button className={`nav-item ${activeTab === 'roles' ? 'active' : ''}`} onClick={() => { fetchRoles(); setActiveTab('roles'); }}>
-                <Lock size={16} /> RBAC Roles ({roles.length})
-              </button>
-              <button className={`nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`} onClick={() => setActiveTab('subscriptions')}>
-                <CreditCard size={16} /> Subscriptions & Quotas
-              </button>
-              <button className={`nav-item ${activeTab === 'system_health' ? 'active' : ''}`} onClick={() => setActiveTab('system_health')}>
-                <Activity size={16} /> Telemetry & Sync DLQ
-              </button>
-              <button className={`nav-item ${activeTab === 'global_audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(); setActiveTab('global_audit'); }}>
-                <FileText size={16} /> Audit Trail
-              </button>
             </>
           ) : (
             <>
-              <button className={`nav-item ${companySubTab === 'overview' ? 'active' : ''}`} onClick={() => setCompanySubTab('overview')}>
-                <TrendingUp size={16} /> Company Overview
+              {!isSidebarCollapsed && <div className="nav-section-label">🎧 Support Workspace</div>}
+              <button className={`nav-item ${companySubTab === 'overview' ? 'active' : ''}`} onClick={() => setCompanySubTab('overview')} title="Company Overview">
+                <TrendingUp size={16} /> <span>Overview</span>
               </button>
-              <button className={`nav-item ${companySubTab === 'users' ? 'active' : ''}`} onClick={() => setCompanySubTab('users')}>
-                <Users size={16} /> Users Support
+              <button className={`nav-item ${companySubTab === 'users' ? 'active' : ''}`} onClick={() => setCompanySubTab('users')} title="Tenant Users">
+                <Users size={16} /> <span>Users</span>
               </button>
-              <button className={`nav-item ${companySubTab === 'features' ? 'active' : ''}`} onClick={() => setCompanySubTab('features')}>
-                <Settings size={16} /> Parameters & Features
+              <button className={`nav-item ${companySubTab === 'features' ? 'active' : ''}`} onClick={() => setCompanySubTab('features')} title="Parameters & Rules">
+                <Settings size={16} /> <span>Parameters</span>
               </button>
-              <button className={`nav-item ${companySubTab === 'roles' ? 'active' : ''}`} onClick={() => setCompanySubTab('roles')}>
-                <Lock size={16} /> System Role Guard
+              <button className={`nav-item ${companySubTab === 'roles' ? 'active' : ''}`} onClick={() => setCompanySubTab('roles')} title="System Roles">
+                <Lock size={16} /> <span>Roles</span>
               </button>
-              <button className={`nav-item ${companySubTab === 'transactions' ? 'active' : ''}`} onClick={() => setCompanySubTab('transactions')}>
-                <CreditCard size={16} /> Billing Transactions
+              <button className={`nav-item ${companySubTab === 'transactions' ? 'active' : ''}`} onClick={() => setCompanySubTab('transactions')} title="Billing Transactions">
+                <CreditCard size={16} /> <span>Transactions</span>
               </button>
-              <button className={`nav-item ${companySubTab === 'audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(operatingCompany.id); setCompanySubTab('audit'); }}>
-                <FileText size={16} /> Audit Trail
+              <button className={`nav-item ${companySubTab === 'audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(operatingCompany.id); setCompanySubTab('audit'); }} title="Tenant Audit">
+                <FileText size={16} /> <span>Audit Trail</span>
               </button>
             </>
           )}
@@ -807,16 +857,16 @@ export default function App() {
         <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           <button
             className="btn btn-secondary"
-            style={{ width: '100%', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+            style={{ width: '100%', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'center', gap: '0.35rem' }}
             onClick={() => setShowSecurityModal(true)}
             title="Manage 2FA and JWT security credentials"
           >
-            <Shield size={13} color="var(--primary)" /> Security & 2FA {currentUser?.twoFactorEnabled && <span className="badge badge-active" style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem' }}>2FA</span>}
+            <Shield size={13} color="var(--primary)" /> {!isSidebarCollapsed && 'Security & 2FA'}
           </button>
 
           {operatingCompany ? (
-            <button className="btn btn-secondary" style={{ width: '100%', fontSize: '0.78rem' }} onClick={exitCompanyOperationalMode}>
-              <ArrowLeft size={14} /> Exit Support Mode
+            <button className="btn btn-secondary" style={{ width: '100%', fontSize: '0.78rem' }} onClick={exitCompanyOperationalMode} title="Exit Support Mode">
+              <ArrowLeft size={14} /> {!isSidebarCollapsed && 'Exit Support'}
             </button>
           ) : (
             <button
@@ -828,8 +878,9 @@ export default function App() {
                 setIsLoggedIn(false);
                 toast.info('Logged out of Super Admin.');
               }}
+              title="Logout Admin"
             >
-              <LogOut size={14} /> Logout Admin
+              <LogOut size={14} /> {!isSidebarCollapsed && 'Logout Admin'}
             </button>
           )}
         </div>
@@ -837,6 +888,60 @@ export default function App() {
 
       {/* MAIN CONTENT AREA */}
       <div className="main-content">
+        {/* TOP INTEGRATED HEADER & BREADCRUMBS BAR (SCRUM-97 & SCRUM-98) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', gap: '1rem' }}>
+          <div className="breadcrumbs" style={{ margin: 0 }}>
+            <span className="breadcrumb-item" onClick={() => { exitCompanyOperationalMode(); setActiveTab('global_dashboard'); }}>
+              Global Control Plane
+            </span>
+            <ChevronRight size={12} />
+            {operatingCompany ? (
+              <>
+                <span className="breadcrumb-item" onClick={() => { setActiveTab('companies'); }}>
+                  Tenants
+                </span>
+                <ChevronRight size={12} />
+                <span className="breadcrumb-item active">
+                  {operatingCompany.name} ({operatingCompany.code})
+                </span>
+                <ChevronRight size={12} />
+                <span className="breadcrumb-item active" style={{ textTransform: 'capitalize' }}>
+                  {companySubTab}
+                </span>
+              </>
+            ) : (
+              <span className="breadcrumb-item active" style={{ textTransform: 'capitalize' }}>
+                {activeTab.replace('_', ' ')}
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            {/* PERSISTENT QUICK-SWITCH TENANT SELECTOR (SCRUM-97) */}
+            <select
+              className="form-control"
+              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', width: '170px' }}
+              value={operatingCompany?.id || ''}
+              onChange={(e) => {
+                const cId = e.target.value;
+                if (!cId) {
+                  exitCompanyOperationalMode();
+                } else {
+                  const targetComp = companies.find((c) => c.id === cId);
+                  if (targetComp) enterCompanyOperationalMode(targetComp);
+                }
+              }}
+            >
+              <option value="">-- Jump to tenant... --</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+              ))}
+            </select>
+
+            {/* THEME TOGGLE (SCRUM-98) */}
+            <ThemeToggle />
+          </div>
+        </div>
         {/* SUPPORT IMPERSONATION ACTIVE BANNER (SCRUM-87) */}
         {impersonationContext && (
           <div
