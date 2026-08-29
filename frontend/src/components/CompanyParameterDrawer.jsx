@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Settings,
@@ -12,6 +12,8 @@ import {
   Save,
   Globe
 } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
+import { useToast } from '../context/ToastContext';
 
 export default function CompanyParameterDrawer({
   isOpen,
@@ -20,11 +22,14 @@ export default function CompanyParameterDrawer({
   apiBase = 'http://localhost:5000/api',
   onParameterUpdated
 }) {
+  const toast = useToast();
   const [parameters, setParameters] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [savingKey, setSavingKey] = useState(null);
   const [editingValues, setEditingValues] = useState({});
+  const [confirmResetKey, setConfirmResetKey] = useState(null);
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && company?.id) {
@@ -47,6 +52,7 @@ export default function CompanyParameterDrawer({
       }
     } catch (err) {
       console.error('Failed to fetch parameters:', err);
+      toast.error('Failed to load parameters from backend.', 'Error');
     } finally {
       setLoading(false);
     }
@@ -74,34 +80,42 @@ export default function CompanyParameterDrawer({
       });
       const data = await res.json();
       if (data.success) {
+        toast.success(`Parameter '${key}' updated to '${value}'.`, 'Parameter Saved');
         fetchParameters();
         if (onParameterUpdated) onParameterUpdated(key, value);
       } else {
-        alert(data.message || 'Failed to update parameter');
+        toast.error(data.message || 'Failed to update parameter', 'Parameter Error');
       }
     } catch (err) {
-      alert('Error saving parameter');
+      toast.error('Error saving parameter to backend.', 'Save Error');
     } finally {
       setSavingKey(null);
     }
   };
 
-  const handleResetToSeed = async (key) => {
-    if (!confirm(`Reset parameter '${key}' to default seed value?`)) return;
-    setSavingKey(key);
+  const handleConfirmReset = async () => {
+    if (!confirmResetKey) return;
+    const key = confirmResetKey;
+    setResetLoading(true);
+
     try {
       const res = await fetch(`${apiBase}/companies/${company.id}/parameters/${key}`, {
         method: 'DELETE',
       });
       const data = await res.json();
       if (data.success) {
+        toast.info(`Parameter '${key}' reset to default 000 Seed value.`, 'Parameter Reset');
         fetchParameters();
         if (onParameterUpdated) onParameterUpdated(key, null);
+      } else {
+        toast.error(data.message || 'Failed to reset parameter', 'Reset Error');
       }
     } catch (err) {
       console.error('Failed to delete override:', err);
+      toast.error('Error resetting parameter.', 'Reset Error');
     } finally {
-      setSavingKey(null);
+      setResetLoading(false);
+      setConfirmResetKey(null);
     }
   };
 
@@ -199,7 +213,7 @@ export default function CompanyParameterDrawer({
 
                     {isOverride && (
                       <button
-                        onClick={() => handleResetToSeed(p.key)}
+                        onClick={() => setConfirmResetKey(p.key)}
                         title="Revert to inherited seed default"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
                       >
@@ -258,6 +272,19 @@ export default function CompanyParameterDrawer({
           </button>
         </div>
       </div>
+
+      {/* CONFIRMATION DIALOG MODAL (SCRUM-78) */}
+      <ConfirmModal
+        isOpen={!!confirmResetKey}
+        title="Reset Parameter to Default"
+        message={`Are you sure you want to revert parameter '${confirmResetKey}' to its default 000 Seed value? Any custom tenant overrides will be removed.`}
+        confirmText="Reset to Seed"
+        cancelText="Cancel"
+        variant="warning"
+        loading={resetLoading}
+        onConfirm={handleConfirmReset}
+        onCancel={() => setConfirmResetKey(null)}
+      />
     </div>
   );
 }

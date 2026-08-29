@@ -19,14 +19,74 @@ model Company {
   email              String?
   gstin              String?
   address            String?
-  roundOffFormat     String?       @default("NEAREST_RUPEE")
-  digitsAfterDecimal Int           @default(2)
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  roundOffFormat     String?           @default("NEAREST_RUPEE")
+  digitsAfterDecimal Int               @default(2)
+  subscriptionPlanId String?
+  planExpiryDate     DateTime?
+  planStatus         String?           @default("ACTIVE")
+  sessionsRevokedAt  DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull)
   roles              Role[]
   users              User[]
   parameters         Parameter[]
   transactions       Transaction[]
+  invoices           SubscriptionInvoice[]
+}
+
+model SubscriptionPlan {
+  id                  String    @id @default(uuid())
+  name                String
+  code                String    @unique
+  description         String?
+  price               Float     @default(0)
+  currency            String    @default("INR")
+  billingInterval     String    @default("MONTHLY")
+  maxMachines         Int       @default(2)
+  maxUsers            Int       @default(5)
+  maxInvoicesPerMonth Int       @default(100)
+  features            String    @default("[\"BASIC_BILLING\", \"KARIGAR_HISAB\"]")
+  isDefault           Boolean   @default(false)
+  isCustom            Boolean   @default(false)
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  companies           Company[]
+  invoices            SubscriptionInvoice[]
+}
+
+model SubscriptionInvoice {
+  id                  String           @id @default(uuid())
+  invoiceNumber       String           @unique
+  companyId           String
+  planId              String
+  baseAmount          Float            @default(0)
+  sacCode             String           @default("998313")
+  gstRate             Float            @default(18.0)
+  cgstAmount          Float            @default(0)
+  sgstAmount          Float            @default(0)
+  igstAmount          Float            @default(0)
+  totalAmount         Float            @default(0)
+  currency            String           @default("INR")
+  status              String           @default("PENDING") // DRAFT, PENDING, PAID, VOID, FAILED
+  billingPeriodStart  DateTime
+  billingPeriodEnd    DateTime
+  dueDate             DateTime
+  paidAt              DateTime?
+  paymentMethod       String?          // RAZORPAY, STRIPE, BANK_TRANSFER, CHEQUE
+  paymentGatewayTxnId String?
+  pdfUrl              String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  company             Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan                SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
+  @@index([status])
+  @@index([invoiceNumber])
 }
 
 model Role {
@@ -46,16 +106,20 @@ model Role {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
-  password      String   @default("password123")
-  companyId     String?
-  roleId        String?
-  isInternalOps Boolean  @default(false)
-  status        String   @default("ACTIVE")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  mobile           String?
+  password         String   @default("password123")
+  companyId        String?
+  roleId           String?
+  isInternalOps    Boolean  @default(false)
+  status           String   @default("ACTIVE")
+  tokenVersion     Int      @default(0)
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   role    Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)

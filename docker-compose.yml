@@ -49,6 +49,7 @@ services:
       - PORT=5000
       - DATABASE_URL=postgresql://postgres:postgres@ops-postgres:5432/ops_db?schema=public
       - MONGO_URI=mongodb://ops-mongo:27017/ops_audit_db
+      - ETMS_BACKEND_URL=http://etms-backend:4000
     depends_on:
       ops-postgres:
         condition: service_healthy
@@ -56,6 +57,7 @@ services:
         condition: service_healthy
     networks:
       - ops-network
+      - etms_etms-network
 
   ops-frontend:
     build:
@@ -74,6 +76,8 @@ networks:
   ops-network:
     driver: bridge
     name: ops-network
+  etms_etms-network:
+    external: true
 
 volumes:
   ops_postgres_data:

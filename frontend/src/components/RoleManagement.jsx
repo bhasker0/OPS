@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Lock,
   Plus,
@@ -15,6 +15,8 @@ import {
   Layers,
   Key
 } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
+import { useToast } from '../context/ToastContext';
 
 const PERMISSION_CATEGORIES = {
   'Company Operations': [
@@ -49,6 +51,7 @@ export default function RoleManagement({
   currentCompanyId = null,
   onRefresh
 }) {
+  const toast = useToast();
   const [roles, setRoles] = useState([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState(currentCompanyId || 'ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,6 +60,8 @@ export default function RoleManagement({
   // Modals
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
+  const [confirmDeleteRole, setConfirmDeleteRole] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [roleForm, setRoleForm] = useState({
     name: '',
     companyId: currentCompanyId || '',
@@ -76,6 +81,7 @@ export default function RoleManagement({
       }
     } catch (err) {
       console.error('Failed to fetch roles:', err);
+      toast.error('Failed to load roles from backend.', 'Error');
     } finally {
       setLoading(false);
     }
@@ -107,7 +113,7 @@ export default function RoleManagement({
 
   const handleOpenEdit = (role) => {
     if (role.isSystemDefined) {
-      alert('⛔ Action Blocked: System-defined roles are locked and cannot be edited.');
+      toast.warning('System-defined roles are locked and cannot be edited.', 'Role Guard (403)');
       return;
     }
     setEditingRole(role);
@@ -135,7 +141,7 @@ export default function RoleManagement({
   const handleRoleSubmit = async (e) => {
     e.preventDefault();
     if (!roleForm.name.trim()) {
-      alert('Role Name is required.');
+      toast.warning('Role Name is required.', 'Validation Error');
       return;
     }
 
@@ -151,35 +157,46 @@ export default function RoleManagement({
       const data = await res.json();
 
       if (data.success) {
+        toast.success(`Role '${roleForm.name}' saved successfully.`, 'Role Saved');
         setShowRoleModal(false);
         fetchRoles();
         if (onRefresh) onRefresh();
       } else {
-        alert(data.message || 'Failed to save role');
+        toast.error(data.message || 'Failed to save role', 'Save Error');
       }
     } catch (err) {
-      alert('Error saving role');
+      toast.error('Error saving role to backend API.', 'Save Error');
     }
   };
 
-  const handleDeleteRole = async (role) => {
+  const handleDeletePrompt = (role) => {
     if (role.isSystemDefined) {
-      alert('⛔ FORBIDDEN (403): System-defined roles cannot be deleted.');
+      toast.error('System-defined roles cannot be deleted.', 'Action Forbidden (403)');
       return;
     }
-    if (!confirm(`Are you sure you want to delete custom role '${role.name}'?`)) return;
+    setConfirmDeleteRole(role);
+  };
+
+  const handleConfirmDeleteRole = async () => {
+    if (!confirmDeleteRole) return;
+    const role = confirmDeleteRole;
+    setDeleteLoading(true);
 
     try {
       const res = await fetch(`${apiBase}/roles/${role.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
+        toast.success(`Role '${role.name}' deleted successfully.`, 'Role Deleted');
         fetchRoles();
         if (onRefresh) onRefresh();
       } else {
-        alert(data.message || 'Failed to delete role');
+        toast.error(data.message || 'Failed to delete role', 'Delete Error');
       }
     } catch (err) {
-      alert('Error deleting role');
+      toast.error('Error deleting role from backend.', 'Delete Error');
+    } finally {
+      setDeleteLoading(false);
+      setConfirmDeleteRole(null);
     }
   };
 
@@ -374,7 +391,7 @@ export default function RoleManagement({
                     cursor: isLocked ? 'not-allowed' : 'pointer'
                   }}
                   disabled={isLocked || (r._count?.users > 0)}
-                  onClick={() => handleDeleteRole(r)}
+                  onClick={() => handleDeletePrompt(r)}
                   title={isLocked ? 'System role cannot be deleted' : r._count?.users > 0 ? 'Cannot delete role with assigned users' : 'Delete custom role'}
                 >
                   <Trash2 size={12} /> Delete
@@ -483,6 +500,19 @@ export default function RoleManagement({
           </div>
         </div>
       )}
+
+      {/* CONFIRMATION DIALOG MODAL (SCRUM-78) */}
+      <ConfirmModal
+        isOpen={!!confirmDeleteRole}
+        title={`Delete Role: ${confirmDeleteRole?.name || 'Custom Role'}`}
+        message={`Are you sure you want to delete custom role '${confirmDeleteRole?.name}'? Users will no longer have these specific privileges.`}
+        confirmText="Delete Role"
+        cancelText="Cancel"
+        variant="danger"
+        loading={deleteLoading}
+        onConfirm={handleConfirmDeleteRole}
+        onCancel={() => setConfirmDeleteRole(null)}
+      />
     </div>
   );
 }

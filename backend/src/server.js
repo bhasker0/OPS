@@ -9,6 +9,11 @@ const parameterRoutes = require('./routes/parameterRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
+const syncRoutes = require('./routes/syncRoutes');
+const authRoutes = require('./routes/authRoutes');
+const invoiceRoutes = require('./routes/invoiceRoutes');
+const billingWebhookRoutes = require('./routes/billingWebhookRoutes');
 const { initMongo, logAuditEvent } = require('./services/auditLogger');
 const prisma = require('./db');
 
@@ -25,6 +30,7 @@ app.use(cors());
 app.use(express.json());
 
 // API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/companies', parameterRoutes);
 app.use('/api', parameterRoutes);
@@ -34,6 +40,10 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/sync', syncRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/billing/webhooks', billingWebhookRoutes);
+app.use('/api', subscriptionRoutes);
 
 // POST /api/seed/parameters - Add or update a master default parameter on 000 Seed company
 app.post('/api/seed/parameters', async (req, res) => {

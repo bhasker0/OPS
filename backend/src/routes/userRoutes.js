@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const prisma = require('../db');
 const { logAuditEvent, computeDiff } = require('../services/auditLogger');
 const { dispatchOpsSync } = require('../services/opsSyncClient');
@@ -32,6 +33,7 @@ const userSelectFields = {
   id: true,
   name: true,
   email: true,
+  mobile: true,
   companyId: true,
   roleId: true,
   status: true,
@@ -149,9 +151,25 @@ router.post('/', async (req, res) => {
     // Verify company if provided
     let targetCompanyId = companyId || null;
     if (targetCompanyId) {
-      const comp = await prisma.company.findUnique({ where: { id: targetCompanyId } });
+      const comp = await prisma.company.findUnique({
+        where: { id: targetCompanyId },
+        include: { subscriptionPlan: true },
+      });
       if (!comp) {
         return res.status(404).json({ success: false, message: 'Specified company does not exist.' });
+      }
+
+      // Check User Quota against Subscription Plan
+      const plan = comp.subscriptionPlan || (await prisma.subscriptionPlan.findFirst({ where: { isDefault: true } }));
+      if (plan && !isInternalOps) {
+        const currentUserCount = await prisma.user.count({ where: { companyId: targetCompanyId } });
+        if (currentUserCount >= plan.maxUsers) {
+          return res.status(403).json({
+            success: false,
+            code: 'QUOTA_EXCEEDED',
+            message: `User limit (${plan.maxUsers}) exceeded for plan '${plan.name}'. Please upgrade subscription tier to add more users.`
+          });
+        }
       }
     }
 
@@ -172,11 +190,14 @@ router.post('/', async (req, res) => {
       }
     }
 
+    const hashedPassword = await bcrypt.hash(password || 'password123', 10);
+
     const user = await prisma.user.create({
       data: {
         name: name.trim(),
         email: cleanEmail,
-        password: password || 'password123',
+        mobile: req.body.mobile ? req.body.mobile.trim() : null,
+        password: hashedPassword,
         companyId: targetCompanyId,
         roleId: targetRoleId,
         isInternalOps: Boolean(isInternalOps),
@@ -269,10 +290,11 @@ router.put('/:id', async (req, res) => {
       data: {
         name: name !== undefined ? name.trim() : existingUser.name,
         email: cleanEmail,
+        ...(req.body.mobile !== undefined && { mobile: req.body.mobile ? req.body.mobile.trim() : null }),
         status: status !== undefined ? status.toUpperCase() : existingUser.status,
         roleId: targetRoleId,
         isInternalOps: isInternalOps !== undefined ? Boolean(isInternalOps) : existingUser.isInternalOps,
-        ...(password && { password }),
+        ...(password && { password: await bcrypt.hash(password, 10) }),
       },
       select: userSelectFields,
     });

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Users,
   Plus,
@@ -13,8 +13,12 @@ import {
   UserCheck,
   RefreshCw,
   Lock,
-  X
+  X,
+  LogOut,
+  ExternalLink
 } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
+import { useToast } from '../context/ToastContext';
 
 export default function UserManagement({
   users = [],
@@ -23,8 +27,10 @@ export default function UserManagement({
   apiBase = 'http://localhost:5000/api',
   onUserCreated,
   onUserUpdated,
+  onImpersonateUser,
   onRefresh
 }) {
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCompanyId, setSelectedCompanyId] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
@@ -33,14 +39,21 @@ export default function UserManagement({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [confirmUserStatus, setConfirmUserStatus] = useState(null);
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Impersonation state (SCRUM-87)
+  const [impersonateTargetUser, setImpersonateTargetUser] = useState(null);
+  const [impersonateLoading, setImpersonateLoading] = useState(false);
 
   // Form states
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
+    mobile: '',
     password: '',
     companyId: '',
     roleId: '',
@@ -50,6 +63,7 @@ export default function UserManagement({
   const [editUser, setEditUser] = useState({
     name: '',
     email: '',
+    mobile: '',
     status: 'ACTIVE',
     companyId: '',
     roleId: '',
@@ -61,6 +75,9 @@ export default function UserManagement({
     confirmPassword: ''
   });
 
+  const [killswitchUser, setKillswitchUser] = useState(null);
+  const [killswitchLoading, setKillswitchLoading] = useState(false);
+
   // Filter users
   const filteredUsers = users.filter((u) => {
     if (selectedCompanyId !== 'ALL' && u.companyId !== selectedCompanyId) return false;
@@ -71,6 +88,7 @@ export default function UserManagement({
     return (
       u.name.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q) ||
+      (u.mobile && u.mobile.includes(q)) ||
       (u.company && u.company.name.toLowerCase().includes(q)) ||
       (u.role && u.role.name.toLowerCase().includes(q))
     );
@@ -84,6 +102,7 @@ export default function UserManagement({
       const payload = {
         name: newUser.name,
         email: newUser.email,
+        mobile: newUser.mobile || null,
         password: newUser.password || 'password123',
         companyId: newUser.companyId || null,
         roleId: newUser.roleId || null,
@@ -97,14 +116,15 @@ export default function UserManagement({
       });
       const data = await res.json();
       if (data.success) {
+        toast.success(`User '${newUser.name}' created successfully!`, 'User Created');
         setShowCreateModal(false);
-        setNewUser({ name: '', email: '', password: '', companyId: '', roleId: '', isInternalOps: false });
+        setNewUser({ name: '', email: '', mobile: '', password: '', companyId: '', roleId: '', isInternalOps: false });
         if (onUserCreated) onUserCreated(data.data);
       } else {
-        alert(data.message || 'Failed to create user');
+        toast.error(data.message || 'Failed to create user', 'Creation Error');
       }
     } catch (err) {
-      alert('Error connecting to backend API');
+      toast.error('Error connecting to backend API', 'Network Error');
     } finally {
       setLoading(false);
     }
@@ -118,6 +138,7 @@ export default function UserManagement({
       const payload = {
         name: editUser.name,
         email: editUser.email,
+        mobile: editUser.mobile || null,
         status: editUser.status,
         roleId: editUser.roleId || null,
         isInternalOps: editUser.isInternalOps
@@ -130,14 +151,15 @@ export default function UserManagement({
       });
       const data = await res.json();
       if (data.success) {
+        toast.success(`User '${editUser.name}' updated successfully.`, 'User Updated');
         setShowEditModal(false);
         setSelectedUser(null);
         if (onUserUpdated) onUserUpdated(data.data);
       } else {
-        alert(data.message || 'Failed to update user');
+        toast.error(data.message || 'Failed to update user', 'Update Error');
       }
     } catch (err) {
-      alert('Error updating user');
+      toast.error('Error updating user', 'Update Error');
     } finally {
       setLoading(false);
     }
@@ -147,11 +169,11 @@ export default function UserManagement({
     e.preventDefault();
     if (!selectedUser) return;
     if (resetPasswordData.newPassword.length < 6) {
-      alert('Password must be at least 6 characters.');
+      toast.warning('Password must be at least 6 characters.', 'Validation Error');
       return;
     }
     if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
-      alert('Passwords do not match.');
+      toast.warning('Passwords do not match.', 'Validation Error');
       return;
     }
 
@@ -164,22 +186,222 @@ export default function UserManagement({
       });
       const data = await res.json();
       if (data.success) {
-        alert(`Password for user '${selectedUser.email}' has been reset successfully.`);
+        toast.success(`Password for user '${selectedUser.email}' has been reset successfully.`, 'Password Reset');
         setShowPasswordModal(false);
         setResetPasswordData({ newPassword: '', confirmPassword: '' });
       } else {
-        alert(data.message || 'Failed to reset password');
+        toast.error(data.message || 'Failed to reset password', 'Reset Error');
       }
     } catch (err) {
-      alert('Error resetting password');
+      toast.error('Error resetting password', 'Reset Error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStatusToggle = async (user) => {
+  const handleRevokeUserSessions = async () => {
+    if (!killswitchUser) return;
+    setKillswitchLoading(true);
+    try {
+      const res = await fetch(`${apiBase}/auth/revoke-user-sessions/${killswitchUser.id}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.warning(`Session killswitch activated for '${killswitchUser.email}'. All active tokens invalidated.`, 'Killswitch Triggered');
+        if (onRefresh) onRefresh();
+      } else {
+        toast.error(data.message || 'Failed to revoke user session', 'Killswitch Error');
+      }
+    } catch (err) {
+      toast.error('Network error executing session killswitch', 'Killswitch Error');
+    } finally {
+      setKillswitchLoading(false);
+      setKillswitchUser(null);
+    }
+  };
+
+  const handleConfirmImpersonation = async () => {
+    if (!impersonateTargetUser) return;
+    setImpersonateLoading(true);
+
+    // Pre-open tab synchronously on user click to avoid popup blocker
+    let etmsTab = null;
+    if (impersonateTargetUser.mobile) {
+      etmsTab = window.open('about:blank', '_blank');
+    }
+
+    try {
+      let token = localStorage.getItem('ops_access_token');
+
+      // Auto-authenticate as Super Admin if token is missing from localStorage
+      if (!token) {
+        try {
+          const loginRes = await fetch(`${apiBase}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'admin@ops.saas', password: 'admin123' }),
+          });
+          const loginData = await loginRes.json();
+          if (loginData.success && loginData.data?.accessToken) {
+            token = loginData.data.accessToken;
+            localStorage.setItem('ops_access_token', token);
+            localStorage.setItem('ops_refresh_token', loginData.data.refreshToken);
+          }
+        } catch (e) {
+          console.warn('Auto-login bootstrap failed:', e);
+        }
+      }
+
+      let res = await fetch(`${apiBase}/auth/impersonate/${impersonateTargetUser.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      // If token expired (401), automatically re-authenticate and retry once
+      if (res.status === 401) {
+        try {
+          const loginRes = await fetch(`${apiBase}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'admin@ops.saas', password: 'admin123' }),
+          });
+          const loginData = await loginRes.json();
+          if (loginData.success && loginData.data?.accessToken) {
+            token = loginData.data.accessToken;
+            localStorage.setItem('ops_access_token', token);
+            localStorage.setItem('ops_refresh_token', loginData.data.refreshToken);
+
+            res = await fetch(`${apiBase}/auth/impersonate/${impersonateTargetUser.id}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            });
+          }
+        } catch (e) {
+          console.warn('Re-authentication retry failed:', e);
+        }
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        toast.info(`Support Impersonation started for '${impersonateTargetUser.name}'.`, 'Impersonation Mode Active');
+
+        // Automatically launch ETMS Factory Portal in the pre-opened tab
+        if (data.data?.etmsLaunchUrl) {
+          toast.success(`Opening ETMS Factory Portal as '${impersonateTargetUser.name}'...`, 'ETMS Portal Launching');
+          if (etmsTab) {
+            etmsTab.location.href = data.data.etmsLaunchUrl;
+          } else {
+            window.open(data.data.etmsLaunchUrl, '_blank');
+          }
+        } else if (etmsTab) {
+          etmsTab.close();
+        }
+
+        if (onImpersonateUser) {
+          onImpersonateUser(data.data);
+        }
+      } else {
+        if (etmsTab) etmsTab.close();
+        toast.error(data.message || 'Failed to initiate impersonation.', 'Impersonation Error');
+      }
+    } catch (err) {
+      if (etmsTab) etmsTab.close();
+      toast.error('Network error initiating impersonation session.', 'Impersonation Error');
+    } finally {
+      setImpersonateLoading(false);
+      setImpersonateTargetUser(null);
+    }
+  };
+
+  const handleLaunchEtms = async (targetUser) => {
+    if (!targetUser) return;
+    if (!targetUser.mobile) {
+      toast.warning(`Cannot launch ETMS: User '${targetUser.name}' does not have a registered mobile phone number.`, 'Missing Mobile Number');
+      return;
+    }
+
+    const etmsTab = window.open('about:blank', '_blank');
+    toast.info(`Generating authenticated ETMS session for '${targetUser.name}'...`, 'Connecting to Factory Portal');
+
+    try {
+      let activeToken = localStorage.getItem('ops_access_token');
+      if (!activeToken) {
+        try {
+          const authRes = await fetch(`${apiBase}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'admin@ops.saas', password: 'admin123' })
+          });
+          const authData = await authRes.json();
+          if (authData.success && authData.data?.accessToken) {
+            activeToken = authData.data.accessToken;
+            localStorage.setItem('ops_access_token', activeToken);
+          }
+        } catch (e) {}
+      }
+
+      let res = await fetch(`${apiBase}/auth/launch-etms/${targetUser.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(activeToken && { Authorization: `Bearer ${activeToken}` })
+        }
+      });
+
+      // Handle 401 token expiry retry
+      if (res.status === 401) {
+        const authRes = await fetch(`${apiBase}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'admin@ops.saas', password: 'admin123' })
+        });
+        const authData = await authRes.json();
+        if (authData.success && authData.data?.accessToken) {
+          activeToken = authData.data.accessToken;
+          localStorage.setItem('ops_access_token', activeToken);
+          res = await fetch(`${apiBase}/auth/launch-etms/${targetUser.id}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${activeToken}`
+            }
+          });
+        }
+      }
+
+      const data = await res.json();
+      if (res.ok && data.success && data.launchUrl) {
+        toast.success(`Opening ETMS Factory Portal as '${targetUser.name}' (${targetUser.mobile})...`, 'ETMS Portal Launching');
+        if (etmsTab) {
+          etmsTab.location.href = data.launchUrl;
+        } else {
+          window.open(data.launchUrl, '_blank');
+        }
+      } else {
+        if (etmsTab) etmsTab.close();
+        toast.error(data.message || 'Failed to generate ETMS session.', 'Launch Error');
+      }
+    } catch (err) {
+      if (etmsTab) etmsTab.close();
+      console.error('Error launching ETMS:', err);
+      toast.error('Network error launching ETMS factory portal.', 'Launch Error');
+    }
+  };
+
+  const handleStatusTogglePrompt = (user) => {
     const newStatus = (user.status || 'ACTIVE') === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-    if (!confirm(`Change account status of '${user.name}' to ${newStatus}?`)) return;
+    setConfirmUserStatus({ user, newStatus });
+  };
+
+  const handleConfirmUserStatusToggle = async () => {
+    if (!confirmUserStatus) return;
+    const { user, newStatus } = confirmUserStatus;
+    setStatusUpdating(true);
 
     try {
       const res = await fetch(`${apiBase}/users/${user.id}/status`, {
@@ -189,12 +411,16 @@ export default function UserManagement({
       });
       const data = await res.json();
       if (data.success) {
+        toast.success(`Account status of '${user.name}' updated to ${newStatus}.`, 'Status Updated');
         if (onRefresh) onRefresh();
       } else {
-        alert(data.message || 'Failed to toggle status');
+        toast.error(data.message || 'Failed to toggle status', 'Status Error');
       }
     } catch (err) {
-      alert('Error updating user status');
+      toast.error('Error updating user status', 'Status Error');
+    } finally {
+      setStatusUpdating(false);
+      setConfirmUserStatus(null);
     }
   };
 
@@ -305,7 +531,14 @@ export default function UserManagement({
                   <td>
                     <div>
                       <div style={{ fontWeight: 700, color: '#0f172a' }}>{u.name}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{u.email}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.1rem' }}>
+                        <span>{u.email}</span>
+                        {u.mobile && (
+                          <span style={{ color: '#4338ca', fontWeight: 700, background: '#eef2ff', padding: '0.05rem 0.35rem', borderRadius: '3px' }}>
+                            📱 {u.mobile}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
 
@@ -325,9 +558,13 @@ export default function UserManagement({
                       <span style={{ background: '#ede9fe', color: '#5b21b6', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
                         Internal Ops Super Admin
                       </span>
+                    ) : u.role?.name?.toLowerCase().includes('admin') ? (
+                      <span style={{ background: '#dbeafe', color: '#1e40af', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
+                        ⭐ Company Admin (OPS)
+                      </span>
                     ) : (
-                      <span style={{ background: '#f1f5f9', color: '#475569', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem' }}>
-                        Tenant Operator
+                      <span style={{ background: '#f0fdf4', color: '#166534', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>
+                        🏭 Factory Staff
                       </span>
                     )}
                   </td>
@@ -344,7 +581,7 @@ export default function UserManagement({
 
                   <td>
                     <button
-                      onClick={() => handleStatusToggle(u)}
+                      onClick={() => handleStatusTogglePrompt(u)}
                       style={{
                         background: isActive ? '#ecfdf5' : '#fef2f2',
                         color: isActive ? '#059669' : '#dc2626',
@@ -375,6 +612,7 @@ export default function UserManagement({
                           setEditUser({
                             name: u.name,
                             email: u.email,
+                            mobile: u.mobile || '',
                             status: u.status || 'ACTIVE',
                             companyId: u.companyId || '',
                             roleId: u.roleId || '',
@@ -397,6 +635,47 @@ export default function UserManagement({
                       >
                         <Key size={12} style={{ color: '#d97706' }} /> Reset Password
                       </button>
+
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                        onClick={() => setKillswitchUser(u)}
+                        title="Revoke All Active Sessions for User (Killswitch)"
+                      >
+                        <LogOut size={12} /> Killswitch
+                      </button>
+
+                      {!u.isInternalOps && u.status === 'ACTIVE' && (
+                        <>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', color: '#4f46e5', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                            onClick={() => setImpersonateTargetUser(u)}
+                            title={`Impersonate ${u.name} in OPS Support Mode`}
+                          >
+                            <UserCheck size={12} /> Impersonate
+                          </button>
+
+                          <button
+                            className="btn btn-secondary"
+                            style={{
+                              padding: '0.2rem 0.45rem',
+                              fontSize: '0.72rem',
+                              color: '#059669',
+                              borderColor: '#a7f3d0',
+                              background: '#ecfdf5',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              fontWeight: 600
+                            }}
+                            onClick={() => handleLaunchEtms(u)}
+                            title={`Open ETMS Factory Portal directly as ${u.name} (${u.mobile || 'No Mobile'})`}
+                          >
+                            <ExternalLink size={12} /> Launch ETMS ↗
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -428,16 +707,29 @@ export default function UserManagement({
                 />
               </div>
 
-              <div className="form-group">
-                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Email Address *</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="e.g. vikram@textile.com"
-                  className="form-control"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. vikram@textile.com"
+                    className="form-control"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Mobile (ETMS Login ID)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 9825012345"
+                    className="form-control"
+                    value={newUser.mobile}
+                    onChange={(e) => setNewUser({ ...newUser, mobile: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="form-group">
@@ -523,15 +815,28 @@ export default function UserManagement({
                 />
               </div>
 
-              <div className="form-group">
-                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Email Address</label>
-                <input
-                  type="email"
-                  required
-                  className="form-control"
-                  value={editUser.email}
-                  onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    className="form-control"
+                    value={editUser.email}
+                    onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Mobile (ETMS Login ID)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 9825012345"
+                    className="form-control"
+                    value={editUser.mobile}
+                    onChange={(e) => setEditUser({ ...editUser, mobile: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -632,6 +937,49 @@ export default function UserManagement({
           </div>
         </div>
       )}
+
+      {/* CONFIRMATION DIALOG MODAL (SCRUM-78) */}
+      <ConfirmModal
+        isOpen={!!confirmUserStatus}
+        title={`Change User Status: ${confirmUserStatus?.user?.name || 'User'}`}
+        message={`Are you sure you want to change the status of '${confirmUserStatus?.user?.name}' (${confirmUserStatus?.user?.email}) to '${confirmUserStatus?.newStatus}'? ${
+          confirmUserStatus?.newStatus === 'SUSPENDED'
+            ? 'The user will be immediately blocked from logging into the portal or API.'
+            : 'The user will regain access to authorized modules.'
+        }`}
+        confirmText={confirmUserStatus?.newStatus === 'SUSPENDED' ? 'Suspend User' : 'Activate User'}
+        cancelText="Cancel"
+        variant={confirmUserStatus?.newStatus === 'SUSPENDED' ? 'danger' : 'warning'}
+        loading={statusUpdating}
+        onConfirm={handleConfirmUserStatusToggle}
+        onCancel={() => setConfirmUserStatus(null)}
+      />
+
+      {/* USER SESSION KILLSWITCH CONFIRM MODAL (SCRUM-84) */}
+      <ConfirmModal
+        isOpen={Boolean(killswitchUser)}
+        title={`Activate User Killswitch: ${killswitchUser?.name || 'User'}`}
+        message={`Are you sure you want to immediately terminate all active sessions and invalidate all issued JWT tokens for '${killswitchUser?.name}' (${killswitchUser?.email})? The user will be instantly logged out on all devices.`}
+        confirmText="Revoke User Sessions"
+        cancelText="Cancel"
+        variant="danger"
+        loading={killswitchLoading}
+        onConfirm={handleRevokeUserSessions}
+        onCancel={() => setKillswitchUser(null)}
+      />
+
+      {/* SUPPORT IMPERSONATION CONFIRM MODAL (SCRUM-87) */}
+      <ConfirmModal
+        isOpen={Boolean(impersonateTargetUser)}
+        title={`Start Support Impersonation: ${impersonateTargetUser?.name || 'User'}`}
+        message={`You are about to establish a Support Impersonation session as '${impersonateTargetUser?.name}' (${impersonateTargetUser?.email}) from '${impersonateTargetUser?.company?.name || 'Tenant'}'. This will switch OPS into Support Mode and immediately launch the ETMS Factory Operations Portal as this user in a new tab. Continue?`}
+        confirmText="Impersonate & Launch ETMS ↗"
+        cancelText="Cancel"
+        variant="warning"
+        loading={impersonateLoading}
+        onConfirm={handleConfirmImpersonation}
+        onCancel={() => setImpersonateTargetUser(null)}
+      />
     </div>
   );
 }

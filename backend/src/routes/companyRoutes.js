@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const prisma = require('../db');
 const { logAuditEvent, computeDiff } = require('../services/auditLogger');
@@ -38,6 +39,7 @@ router.get('/', async (req, res) => {
       prisma.company.findMany({
         where,
         include: {
+          subscriptionPlan: true,
           roles: {
             where: { isSystemDefined: true },
           },
@@ -75,6 +77,7 @@ router.get('/:id', async (req, res) => {
     const company = await prisma.company.findUnique({
       where: { id },
       include: {
+        subscriptionPlan: true,
         roles: true,
         parameters: {
           orderBy: { key: 'asc' },
@@ -158,6 +161,13 @@ router.post('/', async (req, res) => {
     // 2. Create System Defined Role for Company
     // 3. Clone & populate operational seed parameters
     const result = await prisma.$transaction(async (tx) => {
+      // Find default plan if not specified
+      let targetPlanId = req.body.subscriptionPlanId || null;
+      if (!targetPlanId) {
+        const defPlan = await tx.subscriptionPlan.findFirst({ where: { isDefault: true } });
+        if (defPlan) targetPlanId = defPlan.id;
+      }
+
       // 1. Create Company
       const company = await tx.company.create({
         data: {
@@ -172,22 +182,112 @@ router.post('/', async (req, res) => {
           address: address || null,
           roundOffFormat: roundOffFormat || 'NEAREST_RUPEE',
           digitsAfterDecimal: digitsAfterDecimal ? parseInt(digitsAfterDecimal) : 2,
+          subscriptionPlanId: targetPlanId,
+          planStatus: 'ACTIVE',
           status: 'ACTIVE',
           isSeed: false,
         },
       });
 
-      // 2. Create System-Defined Role for this company
-      const systemRole = await tx.role.create({
-        data: {
-          name: `${company.name} System Administrator`,
-          companyId: company.id,
+      // 2. Create Standard Company-Scoped RBAC Roles with Default Permissions
+      const standardCompanyRoles = [
+        {
+          name: 'Company Admin',
           isSystemDefined: true,
-          permissions: JSON.stringify(['READ_ALL', 'WRITE_ALL', 'ADMIN_ACCESS']),
+          permissions: JSON.stringify([
+            'INVOICE_CREATE', 'INVOICE_READ', 'INVOICE_UPDATE', 'INVOICE_DELETE',
+            'SHIFT_LOG', 'SHIFT_LOG_READ', 'MACHINE_MANAGE', 'KARIGAR_MANAGE',
+            'UCHAPAT_MANAGE', 'UCHAPAT_READ', 'CHALLAN_CREATE', 'CHALLAN_READ',
+            'CHALLAN_UPDATE', 'TALLY_EXPORT', 'MUNIM_ACCESS', 'DAYBOOK_VIEW',
+            'HISAB_GENERATE', 'COMPANY_SETTINGS_MANAGE', 'AUDIT_LOG_VIEW',
+            'READ_USERS', 'WRITE_USERS'
+          ]),
         },
-      });
+        {
+          name: 'Manager',
+          isSystemDefined: false,
+          permissions: JSON.stringify([
+            'INVOICE_READ', 'SHIFT_LOG', 'SHIFT_LOG_READ', 'MACHINE_MANAGE',
+            'KARIGAR_MANAGE', 'UCHAPAT_READ', 'CHALLAN_CREATE', 'CHALLAN_READ',
+            'CHALLAN_UPDATE', 'DAYBOOK_VIEW', 'AUDIT_LOG_VIEW'
+          ]),
+        },
+        {
+          name: 'Munim',
+          isSystemDefined: false,
+          permissions: JSON.stringify([
+            'INVOICE_CREATE', 'INVOICE_READ', 'INVOICE_UPDATE', 'UCHAPAT_MANAGE',
+            'UCHAPAT_READ', 'CHALLAN_READ', 'TALLY_EXPORT', 'MUNIM_ACCESS',
+            'DAYBOOK_VIEW', 'HISAB_GENERATE'
+          ]),
+        },
+        {
+          name: 'Supervisor',
+          isSystemDefined: false,
+          permissions: JSON.stringify([
+            'SHIFT_LOG', 'SHIFT_LOG_READ', 'MACHINE_MANAGE', 'KARIGAR_MANAGE',
+            'UCHAPAT_READ', 'CHALLAN_READ'
+          ]),
+        },
+        {
+          name: 'Karigar Operator',
+          isSystemDefined: false,
+          permissions: JSON.stringify([
+            'SHIFT_LOG_READ', 'UCHAPAT_READ'
+          ]),
+        },
+      ];
 
-      // 3. Fetch Seed Company Parameters
+      const createdRoles = [];
+      let companyAdminRole = null;
+      for (const r of standardCompanyRoles) {
+        const roleRecord = await tx.role.create({
+          data: {
+            name: r.name,
+            companyId: company.id,
+            isSystemDefined: r.isSystemDefined,
+            permissions: r.permissions,
+          },
+        });
+        createdRoles.push(roleRecord);
+        if (r.isSystemDefined) companyAdminRole = roleRecord;
+      }
+
+      // 3. Create Default Administrator / Owner User
+      const finalAdminName = (req.body.adminName || contactPerson || `${company.name} Owner`).trim();
+      const finalAdminEmail = (req.body.adminEmail || email || `admin@${cleanCode.toLowerCase()}.com`).trim().toLowerCase();
+      const finalAdminMobile = (req.body.adminMobile || mobile || '9825000000').trim();
+      const rawPassword = req.body.adminPassword || 'Password@123';
+      const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+      let defaultAdminUser = await tx.user.findUnique({ where: { email: finalAdminEmail } });
+      if (!defaultAdminUser) {
+        defaultAdminUser = await tx.user.create({
+          data: {
+            name: finalAdminName,
+            email: finalAdminEmail,
+            mobile: finalAdminMobile,
+            password: hashedPassword,
+            companyId: company.id,
+            roleId: companyAdminRole?.id,
+            status: 'ACTIVE',
+            isInternalOps: false,
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            mobile: true,
+            companyId: true,
+            roleId: true,
+            status: true,
+            isInternalOps: true,
+            createdAt: true,
+          },
+        });
+      }
+
+      // 4. Fetch Seed Company Parameters
       const seedParameters = await tx.parameter.findMany({
         where: { companyId: SEED_COMPANY_ID },
       });
@@ -203,7 +303,7 @@ router.post('/', async (req, res) => {
         digits_after_decimal: String(digitsAfterDecimal || 2),
       };
 
-      // 4. Build cloned parameters list with custom overrides
+      // 5. Build cloned parameters list with custom overrides
       const clonedParameters = seedParameters.map((param) => ({
         companyId: company.id,
         key: param.key,
@@ -234,7 +334,10 @@ router.post('/', async (req, res) => {
 
       return {
         company,
-        systemRole,
+        systemRole: companyAdminRole,
+        roles: createdRoles,
+        defaultAdminUser,
+        defaultAdminPasswordHash: hashedPassword,
         parametersCount: createdParams.length,
         parameters: createdParams,
       };
@@ -255,17 +358,35 @@ router.post('/', async (req, res) => {
         address: result.company.address,
         timezone: timezone || 'Asia/Kolkata',
         currency: currency || 'INR',
-        systemRole: result.systemRole.name,
+        rolesCount: result.roles?.length || 5,
+        defaultAdmin: result.defaultAdminUser ? {
+          id: result.defaultAdminUser.id,
+          name: result.defaultAdminUser.name,
+          email: result.defaultAdminUser.email,
+          mobile: result.defaultAdminUser.mobile,
+        } : null,
         clonedParametersCount: result.parametersCount,
       },
     });
 
     // 🔄 SYNC TO ETMS BACKEND
     dispatchOpsSync('company', result.company).catch(err => console.error('Sync failed:', err));
+    if (result.defaultAdminUser) {
+      dispatchOpsSync('user', {
+        id: result.defaultAdminUser.id,
+        name: result.defaultAdminUser.name,
+        email: result.defaultAdminUser.email,
+        mobile: result.defaultAdminUser.mobile,
+        password_hash: result.defaultAdminPasswordHash,
+        companyId: result.company.id,
+        role: 'COMPANY_ADMIN',
+        isInternalOps: false,
+      }).catch(err => console.error('Admin sync failed:', err));
+    }
 
     res.status(201).json({
       success: true,
-      message: 'Indian Business Company registered successfully with compliance details, system role, and utility parameters.',
+      message: 'Indian Business Company registered successfully with compliance details, 5 company RBAC roles, default Admin user, and utility parameters.',
       data: result,
     });
   } catch (error) {
@@ -400,6 +521,47 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true, message: 'Company deleted successfully' });
   } catch (error) {
     console.error('Error deleting company:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/companies/:id/revoke-sessions - Company-Wide Session Revocation Killswitch (SCRUM-84)
+router.post('/:id/revoke-sessions', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const company = await prisma.company.findUnique({ where: { id } });
+
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found.' });
+    }
+
+    const revokedAt = new Date();
+    const updated = await prisma.company.update({
+      where: { id },
+      data: {
+        sessionsRevokedAt: revokedAt,
+      },
+    });
+
+    await logAuditEvent({
+      module: 'COMPANY',
+      action: 'COMPANY_SESSIONS_REVOKED_KILLSWITCH',
+      entityId: id,
+      companyId: id,
+      performedBy: 'OPS Super Administrator',
+      details: {
+        companyCode: company.code,
+        revokedAt,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `Killswitch Activated: All active sessions for company '${company.name}' (${company.code}) have been immediately terminated.`,
+      sessionsRevokedAt: revokedAt,
+    });
+  } catch (error) {
+    console.error('Error revoking company sessions:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

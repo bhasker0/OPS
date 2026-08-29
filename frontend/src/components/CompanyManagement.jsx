@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Building,
   Plus,
@@ -21,6 +21,9 @@ import {
 } from 'lucide-react';
 import CompanyOnboardingWizard from './CompanyOnboardingWizard';
 import CompanyParameterDrawer from './CompanyParameterDrawer';
+import TenantReconciliationModal from './TenantReconciliationModal';
+import ConfirmModal from './ConfirmModal';
+import { useToast } from '../context/ToastContext';
 
 export default function CompanyManagement({
   companies = [],
@@ -29,6 +32,7 @@ export default function CompanyManagement({
   onOperateCompany,
   onRefresh
 }) {
+  const toast = useToast();
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'grid'
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'SUSPENDED'
@@ -36,6 +40,20 @@ export default function CompanyManagement({
   const [wizardLoading, setWizardLoading] = useState(false);
   const [selectedParamCompany, setSelectedParamCompany] = useState(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  const [killswitchCompany, setKillswitchCompany] = useState(null);
+  const [killswitchLoading, setKillswitchLoading] = useState(false);
+
+  // ETMS Tenant Reconciliation State (SCRUM-103)
+  const [showReconcileModal, setShowReconcileModal] = useState(false);
+  const [untrackedCount, setUntrackedCount] = useState(0);
+
+  // Confirm Modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    company: null,
+    newStatus: null,
+    loading: false,
+  });
 
   // Filter logic
   const filteredCompanies = companies.filter((c) => {
@@ -53,13 +71,24 @@ export default function CompanyManagement({
     );
   });
 
-  const handleStatusToggle = async (company) => {
+  const handleStatusTogglePrompt = (company) => {
     const currentStatus = company.status || 'ACTIVE';
     const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-    const confirmMsg = `Are you sure you want to change status of '${company.name}' from ${currentStatus} to ${newStatus}?`;
-    if (!confirm(confirmMsg)) return;
+    setConfirmModal({
+      isOpen: true,
+      company,
+      newStatus,
+      loading: false,
+    });
+  };
 
+  const handleConfirmStatusToggle = async () => {
+    const { company, newStatus } = confirmModal;
+    if (!company) return;
+
+    setConfirmModal((prev) => ({ ...prev, loading: true }));
     setStatusUpdatingId(company.id);
+
     try {
       const res = await fetch(`${apiBase}/companies/${company.id}/status`, {
         method: 'PATCH',
@@ -68,14 +97,19 @@ export default function CompanyManagement({
       });
       const data = await res.json();
       if (data.success) {
+        toast.success(
+          `Tenant '${company.name}' status updated to ${newStatus}. Logged to Audit Trail.`,
+          'Status Changed'
+        );
         if (onRefresh) onRefresh();
       } else {
-        alert(data.message || 'Failed to update status');
+        toast.error(data.message || 'Failed to update status', 'Status Update Error');
       }
     } catch (err) {
-      alert('Error updating company status');
+      toast.error('Network error while updating company status.', 'Status Update Error');
     } finally {
       setStatusUpdatingId(null);
+      setConfirmModal({ isOpen: false, company: null, newStatus: null, loading: false });
     }
   };
 
@@ -90,16 +124,52 @@ export default function CompanyManagement({
       const data = await res.json();
       if (data.success) {
         setShowWizard(false);
+        toast.success(`Tenant '${data.data.name}' provisioned successfully!`, 'Company Onboarded');
         if (onCompanyCreated) onCompanyCreated(data.data);
       } else {
-        alert(data.message || 'Failed to register company');
+        toast.error(data.message || 'Failed to register company', 'Onboarding Error');
       }
     } catch (err) {
-      alert('Error connecting to backend API');
+      toast.error('Error connecting to backend API during registration.', 'Network Error');
     } finally {
       setWizardLoading(false);
     }
   };
+
+  const handleRevokeCompanySessions = async () => {
+    if (!killswitchCompany) return;
+    setKillswitchLoading(true);
+    try {
+      const res = await fetch(`${apiBase}/companies/${killswitchCompany.id}/revoke-sessions`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.warning(`Killswitch Activated: All active sessions for '${killswitchCompany.name}' terminated.`, 'Sessions Revoked');
+        if (onRefresh) onRefresh();
+      } else {
+        toast.error(data.message || 'Failed to revoke sessions.');
+      }
+    } catch (err) {
+      toast.error('Network error executing killswitch.');
+    } finally {
+      setKillswitchLoading(false);
+      setKillswitchCompany(null);
+    }
+  };
+
+  React.useEffect(() => {
+    const checkUntrackedTenants = async () => {
+      try {
+        const res = await fetch(`${apiBase}/sync/reconcile/discovery`);
+        const data = await res.json();
+        if (data.success) {
+          setUntrackedCount(data.data.untrackedCount || 0);
+        }
+      } catch (e) {
+        // Ignore background check error
+      }
+    };
+    checkUntrackedTenants();
+  }, [companies, apiBase]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -151,6 +221,42 @@ export default function CompanyManagement({
               <LayoutGrid size={15} />
             </button>
           </div>
+
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowReconcileModal(true)}
+            style={{
+              padding: '0.45rem 0.75rem',
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              position: 'relative',
+              borderColor: untrackedCount > 0 ? '#f59e0b' : 'var(--border)',
+              background: untrackedCount > 0 ? '#fffbeb' : '#ffffff',
+              color: untrackedCount > 0 ? '#b45309' : 'inherit',
+              fontWeight: untrackedCount > 0 ? 700 : 500,
+            }}
+            title="Scan and Reconcile untracked ETMS companies into OPS Master"
+          >
+            <Shield size={13} color={untrackedCount > 0 ? '#d97706' : '#4f46e5'} />
+            Reconcile ETMS
+            {untrackedCount > 0 && (
+              <span
+                style={{
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '0.1rem 0.35rem',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  marginLeft: '0.2rem',
+                }}
+              >
+                {untrackedCount}
+              </span>
+            )}
+          </button>
 
           <button
             className="btn btn-secondary"
@@ -248,7 +354,7 @@ export default function CompanyManagement({
 
                     <td>
                       <button
-                        onClick={() => !c.isSeed && handleStatusToggle(c)}
+                        onClick={() => !c.isSeed && handleStatusTogglePrompt(c)}
                         disabled={c.isSeed || statusUpdatingId === c.id}
                         style={{
                           background: isActive ? '#ecfdf5' : '#fef2f2',
@@ -312,6 +418,16 @@ export default function CompanyManagement({
                           title="Open Parameter Store Drawer"
                         >
                           <Sliders size={12} /> Parameters
+                        </button>
+
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '0.25rem 0.45rem', fontSize: '0.72rem', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          onClick={() => setKillswitchCompany(c)}
+                          title="Revoke All Active Sessions (Killswitch)"
+                          disabled={c.isSeed}
+                        >
+                          <Shield size={12} /> Killswitch
                         </button>
                       </div>
                     </td>
@@ -408,6 +524,46 @@ export default function CompanyManagement({
         company={selectedParamCompany}
         onClose={() => setSelectedParamCompany(null)}
         apiBase={apiBase}
+      />
+
+      {/* CONFIRMATION DIALOG MODAL (SCRUM-78) */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={`Change Status: ${confirmModal.company?.name || 'Company'}`}
+        message={`Are you sure you want to change the tenant status from '${confirmModal.company?.status || 'ACTIVE'}' to '${confirmModal.newStatus}'? ${
+          confirmModal.newStatus === 'SUSPENDED'
+            ? 'Suspended tenants will lose access to ETMS operations until reactivated.'
+            : 'Active tenants will regain full access to all micro-ERP features.'
+        }`}
+        confirmText={confirmModal.newStatus === 'SUSPENDED' ? 'Suspend Tenant' : 'Activate Tenant'}
+        cancelText="Cancel"
+        variant={confirmModal.newStatus === 'SUSPENDED' ? 'danger' : 'warning'}
+        loading={confirmModal.loading}
+        onConfirm={handleConfirmStatusToggle}
+        onCancel={() => setConfirmModal({ isOpen: false, company: null, newStatus: null, loading: false })}
+      />
+
+      {/* TENANT SESSION KILLSWITCH CONFIRM MODAL (SCRUM-84) */}
+      <ConfirmModal
+        isOpen={Boolean(killswitchCompany)}
+        title={`Activate Killswitch: ${killswitchCompany?.name || 'Company'}`}
+        message={`Are you sure you want to immediately terminate all active user sessions and invalidate all JWT tokens for '${killswitchCompany?.name}' (${killswitchCompany?.code})? All active devices across this tenant will be forced to log in again.`}
+        confirmText="Revoke All Tenant Sessions"
+        cancelText="Cancel"
+        variant="danger"
+        loading={killswitchLoading}
+        onConfirm={handleRevokeCompanySessions}
+        onCancel={() => setKillswitchCompany(null)}
+      />
+
+      {/* ETMS TENANT RECONCILIATION MODAL (SCRUM-103) */}
+      <TenantReconciliationModal
+        isOpen={showReconcileModal}
+        onClose={() => setShowReconcileModal(false)}
+        apiBase={apiBase}
+        onReconciled={() => {
+          if (onRefresh) onRefresh();
+        }}
       />
     </div>
   );

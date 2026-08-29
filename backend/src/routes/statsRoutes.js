@@ -154,4 +154,116 @@ router.get('/company/:id', async (req, res) => {
   }
 });
 
+// GET /api/stats/health-deep - Deep Infrastructure Telemetry, Heartbeats & Latency Monitor (SCRUM-82)
+router.get('/health-deep', async (req, res) => {
+  const startOverall = Date.now();
+
+  // 1. Measure PostgreSQL Heartbeat & Latency
+  let pgStatus = 'DOWN';
+  let pgLatencyMs = -1;
+  let pgError = null;
+  const startPg = Date.now();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    pgLatencyMs = Date.now() - startPg;
+    pgStatus = 'UP';
+  } catch (err) {
+    pgLatencyMs = Date.now() - startPg;
+    pgError = err.message;
+  }
+
+  // 2. Measure MongoDB Heartbeat & Latency
+  let mongoStatus = 'DOWN';
+  let mongoLatencyMs = -1;
+  let mongoError = null;
+  const startMongo = Date.now();
+  try {
+    if (getIsConnected()) {
+      const mongoose = require('mongoose');
+      await mongoose.connection.db.admin().ping();
+      mongoLatencyMs = Date.now() - startMongo;
+      mongoStatus = 'UP';
+    } else {
+      mongoStatus = 'BUFFERED';
+      mongoLatencyMs = 0;
+    }
+  } catch (err) {
+    mongoLatencyMs = Date.now() - startMongo;
+    mongoError = err.message;
+  }
+
+  // 3. Measure ETMS Outbound Gateway Connectivity
+  let etmsStatus = 'UNREACHABLE';
+  let etmsLatencyMs = -1;
+  const startEtms = Date.now();
+  try {
+    const etmsUrl = process.env.ETMS_BACKEND_URL || 'http://localhost:4000';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const etmsRes = await fetch(`${etmsUrl}/api/health`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    etmsLatencyMs = Date.now() - startEtms;
+    if (etmsRes.ok) etmsStatus = 'UP';
+    else etmsStatus = `HTTP_${etmsRes.status}`;
+  } catch (err) {
+    etmsLatencyMs = Date.now() - startEtms;
+    etmsStatus = 'STANDALONE_MODE';
+  }
+
+  // 4. Runtime & Process Telemetry
+  const mem = process.memoryUsage();
+  const uptimeSec = Math.floor(process.uptime());
+  const hours = Math.floor(uptimeSec / 3600);
+  const minutes = Math.floor((uptimeSec % 3600) / 60);
+  const seconds = uptimeSec % 60;
+  const uptimeFormatted = `${hours > 0 ? `${hours}h ` : ''}${minutes}m ${seconds}s`;
+
+  // Determine aggregate system status
+  const isHealthy = pgStatus === 'UP' && (mongoStatus === 'UP' || mongoStatus === 'BUFFERED');
+  const isDegraded = pgLatencyMs > 250 || mongoLatencyMs > 250;
+  const overallStatus = !isHealthy ? 'CRITICAL' : isDegraded ? 'DEGRADED' : 'HEALTHY';
+
+  res.json({
+    success: true,
+    data: {
+      status: overallStatus,
+      timestamp: new Date().toISOString(),
+      responseTimeMs: Date.now() - startOverall,
+      heartbeats: {
+        postgres: {
+          service: 'PostgreSQL 16 Multi-Tenant Store',
+          status: pgStatus,
+          latencyMs: pgLatencyMs,
+          error: pgError,
+        },
+        mongo: {
+          service: 'MongoDB 7 Audit Log Cluster',
+          status: mongoStatus,
+          latencyMs: mongoLatencyMs,
+          error: mongoError,
+        },
+        etmsGateway: {
+          service: 'ETMS Outbound Job-Work Sync Gateway',
+          status: etmsStatus,
+          latencyMs: etmsLatencyMs,
+        },
+      },
+      runtime: {
+        processId: process.pid,
+        nodeVersion: process.version,
+        platform: process.platform,
+        uptimeSeconds: uptimeSec,
+        uptimeFormatted,
+        memory: {
+          heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024),
+          heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024),
+          rssMB: Math.round(mem.rss / 1024 / 1024),
+          externalMB: Math.round(mem.external / 1024 / 1024),
+        },
+        cpuUsage: process.cpuUsage(),
+      },
+    },
+  });
+});
+
 module.exports = router;

@@ -25,7 +25,9 @@ import {
   Phone,
   Mail,
   MapPin,
-  Search
+  Search,
+  Activity,
+  ExternalLink
 } from 'lucide-react';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import CompanyManagement from './components/CompanyManagement';
@@ -33,20 +35,44 @@ import CompanyOnboardingWizard from './components/CompanyOnboardingWizard';
 import UserManagement from './components/UserManagement';
 import RoleManagement from './components/RoleManagement';
 import AuditLogViewer from './components/AuditLogViewer';
+import CommandPalette from './components/CommandPalette';
+import SubscriptionManagement from './components/SubscriptionManagement';
+import SystemHealthMonitor from './components/SystemHealthMonitor';
+import SecuritySettingsModal from './components/SecuritySettingsModal';
+import TenantReconciliationModal from './components/TenantReconciliationModal';
+import { useToast } from './context/ToastContext';
 
 const API_BASE = 'http://localhost:5000/api';
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
 
 export default function App() {
-  // Auth state
+  const toast = useToast();
+
+  // Real JWT Auth state (SCRUM-84)
   const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [currentUser, setCurrentUser] = useState({
+    name: 'Super Administrator',
+    email: 'admin@ops.saas',
+    isInternalOps: true,
+    twoFactorEnabled: false
+  });
   const [loginEmail, setLoginEmail] = useState('admin@ops.saas');
-  const [loginPass, setLoginPass] = useState('adminpassword123');
+  const [loginPass, setLoginPass] = useState('admin123');
+  const [loginTotpCode, setLoginTotpCode] = useState('');
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+
+  // Tenant Impersonation State (SCRUM-86, 87)
+  const [impersonationContext, setImpersonationContext] = useState(null);
 
   // Navigation & Support Operating context state
   const [activeTab, setActiveTab] = useState('global_dashboard');
   const [operatingCompany, setOperatingCompany] = useState(null);
   const [companySubTab, setCompanySubTab] = useState('overview');
+
+  // Command Palette State (SCRUM-79)
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
 
   // Search Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,6 +87,10 @@ export default function App() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+
+  // ETMS Tenant Reconciliation State (SCRUM-103)
+  const [showReconcileModal, setShowReconcileModal] = useState(false);
+  const [untrackedCount, setUntrackedCount] = useState(0);
 
   // Modals state
   const [showCompanyModal, setShowCompanyModal] = useState(false);
@@ -91,16 +121,61 @@ export default function App() {
   const [newUser, setNewUser] = useState({ name: '', email: '', isInternalOps: false });
   const [editUserData, setEditUserData] = useState({ name: '', email: '', status: 'ACTIVE' });
 
-  // Initial Load
+  const checkUntrackedTenants = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/sync/reconcile/discovery`);
+      const data = await res.json();
+      if (data.success) setUntrackedCount(data.data.untrackedCount || 0);
+    } catch (err) {
+      console.error('Error checking untracked tenants:', err);
+    }
+  };
+
+  // Initial Load & Auth Token Bootstrap
   useEffect(() => {
+    const bootstrapAuthToken = async () => {
+      const existingToken = localStorage.getItem('ops_access_token');
+      if (!existingToken) {
+        try {
+          const res = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'admin@ops.saas', password: 'admin123' }),
+          });
+          const data = await res.json();
+          if (data.success && data.data?.accessToken) {
+            localStorage.setItem('ops_access_token', data.data.accessToken);
+            localStorage.setItem('ops_refresh_token', data.data.refreshToken);
+            if (data.data.user) setCurrentUser(data.data.user);
+          }
+        } catch (e) {
+          console.warn('Bootstrap token fetch error:', e);
+        }
+      }
+    };
+
     if (isLoggedIn) {
+      bootstrapAuthToken();
       fetchGlobalStats();
       fetchCompanies();
       fetchUsers();
       fetchRoles();
       fetchAuditLogs();
+      checkUntrackedTenants();
     }
   }, [isLoggedIn]);
+
+  // Global Shortcut Ctrl+K / Cmd+K (SCRUM-79)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const fetchGlobalStats = async () => {
     try {
@@ -176,9 +251,11 @@ export default function App() {
           type: 'info',
           text: `🎧 Now Operating in Support Mode for ${company.name}.`,
         });
+        toast.info(`Now operating in support mode for ${company.name}`, 'Support Mode Active');
       }
     } catch (err) {
       console.error('Error operating as company:', err);
+      toast.error('Failed to initialize company support context.', 'Support Mode Error');
     } finally {
       setLoading(false);
     }
@@ -186,6 +263,29 @@ export default function App() {
 
   const refreshOperatingCompany = async () => {
     if (operatingCompany) await startOperatingAsCompany(operatingCompany);
+  };
+
+  const handleSyncStaffFromEtms = async () => {
+    if (!operatingCompany) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/sync/companies/${operatingCompany.id}/sync-etms-staff`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message, 'Staff Synced from ETMS');
+        await refreshOperatingCompany();
+        fetchUsers();
+        fetchAuditLogs();
+      } else {
+        toast.error(data.message || 'Failed to sync staff users', 'Sync Error');
+      }
+    } catch (err) {
+      toast.error('Network error while syncing ETMS staff users', 'Sync Error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const exitCompanyOperationalMode = () => {
@@ -196,6 +296,102 @@ export default function App() {
     fetchUsers();
     fetchAuditLogs();
     setMessage({ type: 'info', text: 'Returned to Global Super Admin View.' });
+    toast.info('Returned to Global Super Admin Dashboard view.', 'Global View');
+  };
+
+  const handleImpersonateUser = (impersonationData) => {
+    const originalToken = localStorage.getItem('ops_access_token');
+    const originalUser = currentUser;
+
+    localStorage.setItem('ops_access_token', impersonationData.impersonationToken);
+    setCurrentUser(impersonationData.targetUser);
+    setImpersonationContext({
+      originalToken,
+      originalUser,
+      targetUser: impersonationData.targetUser,
+      impersonatedBy: impersonationData.impersonatedBy,
+      expiresAt: Date.now() + (impersonationData.expiresIn || 900) * 1000,
+    });
+
+    if (impersonationData.targetUser.company) {
+      setOperatingCompany(impersonationData.targetUser.company);
+      setActiveTab('company_operational_mode');
+    }
+  };
+
+  const handleExitImpersonation = async () => {
+    if (!impersonationContext) return;
+    try {
+      const activeToken = localStorage.getItem('ops_access_token');
+      await fetch(`${API_BASE}/auth/exit-impersonation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(activeToken && { Authorization: `Bearer ${activeToken}` }),
+        },
+      });
+    } catch (e) {
+      console.warn('Exit impersonation request error:', e);
+    }
+
+    localStorage.setItem('ops_access_token', impersonationContext.originalToken);
+    setCurrentUser(impersonationContext.originalUser);
+    setImpersonationContext(null);
+    setOperatingCompany(null);
+    setActiveTab('global_dashboard');
+    toast.info('Support Impersonation session terminated. Super Admin identity restored.', 'Support Mode Exited');
+  };
+
+  const handleLaunchEtms = async (targetUser) => {
+    if (!targetUser) return;
+    if (!targetUser.mobile) {
+      toast.warning(`User '${targetUser.name}' does not have a registered mobile phone number for ETMS login.`, 'Missing Mobile');
+      return;
+    }
+
+    toast.info(`Connecting to ETMS Factory Portal for '${targetUser.name}'...`, 'Launching ETMS');
+
+    try {
+      let activeToken = localStorage.getItem('ops_access_token');
+      let res = await fetch(`${API_BASE}/auth/launch-etms/${targetUser.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(activeToken && { Authorization: `Bearer ${activeToken}` })
+        }
+      });
+
+      if (res.status === 401) {
+        const authRes = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'admin@ops.saas', password: 'admin123' })
+        });
+        const authData = await authRes.json();
+        if (authData.success && authData.data?.accessToken) {
+          activeToken = authData.data.accessToken;
+          localStorage.setItem('ops_access_token', activeToken);
+          res = await fetch(`${API_BASE}/auth/launch-etms/${targetUser.id}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${activeToken}`
+            }
+          });
+        }
+      }
+
+      const data = await res.json();
+      if (res.ok && data.success && data.launchUrl) {
+        toast.success(`Opening ETMS Factory Portal as '${targetUser.name}' (${targetUser.mobile})...`, 'ETMS Portal Ready');
+        window.open(data.launchUrl, '_blank');
+      } else {
+        toast.error(data.message || 'Failed to generate ETMS launch session.', 'Launch Error');
+      }
+    } catch (err) {
+      console.error('Error launching ETMS:', err);
+      toast.error('Network error launching ETMS portal.', 'Launch Error');
+    }
   };
 
   const handleCreateCompany = async (e) => {
@@ -209,10 +405,7 @@ export default function App() {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({
-          type: 'success',
-          text: `Company '${newCompany.name}' registered with GSTIN '${newCompany.gstin || 'N/A'}'!`,
-        });
+        toast.success(`Company '${newCompany.name}' registered with GSTIN '${newCompany.gstin || 'N/A'}'!`, 'Tenant Provisioned');
         setNewCompany({
           name: '',
           code: '',
@@ -235,10 +428,10 @@ export default function App() {
         fetchGlobalStats();
         fetchAuditLogs();
       } else {
-        setMessage({ type: 'error', text: data.message });
+        toast.error(data.message || 'Failed to register company', 'Registration Error');
       }
     } catch (err) {
-      setMessage({ type: 'error', text: 'Failed to register company.' });
+      toast.error('Failed to register company due to network error.', 'Registration Error');
     } finally {
       setLoading(false);
     }
@@ -259,17 +452,17 @@ export default function App() {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({ type: 'success', text: `User '${newUser.name}' created successfully!` });
+        toast.success(`User '${newUser.name}' created successfully!`, 'User Created');
         setNewUser({ name: '', email: '', isInternalOps: false });
         setShowUserModal(false);
         fetchUsers();
         if (operatingCompany) refreshOperatingCompany();
         fetchAuditLogs();
       } else {
-        setMessage({ type: 'error', text: data.message });
+        toast.error(data.message || 'Failed to create user', 'User Creation Error');
       }
     } catch (err) {
-      setMessage({ type: 'error', text: 'Failed to create user.' });
+      toast.error('Failed to create user due to network error.', 'User Creation Error');
     } finally {
       setLoading(false);
     }
@@ -287,17 +480,17 @@ export default function App() {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({ type: 'success', text: `Support Update: User '${editUserData.name}' updated. Logged to MongoDB.` });
+        toast.success(`Support Update: User '${editUserData.name}' updated. Logged to MongoDB.`, 'User Updated');
         setShowEditUserModal(false);
         setSelectedUserToEdit(null);
         fetchUsers();
         if (operatingCompany) refreshOperatingCompany();
         fetchAuditLogs();
       } else {
-        setMessage({ type: 'error', text: data.message });
+        toast.error(data.message || 'Failed to update user', 'Update Error');
       }
     } catch (err) {
-      setMessage({ type: 'error', text: 'Failed to update user.' });
+      toast.error('Failed to update user due to network error.', 'Update Error');
     }
   };
 
@@ -310,14 +503,14 @@ export default function App() {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({ type: 'success', text: `Setting '${key}' set to '${value}'. Logged to MongoDB.` });
+        toast.success(`Setting '${key}' set to '${value}'. Logged to MongoDB.`, 'Parameter Updated');
         if (operatingCompany) refreshOperatingCompany();
         fetchAuditLogs();
       } else {
-        setMessage({ type: 'error', text: data.message });
+        toast.error(data.message || 'Failed to update parameter', 'Parameter Error');
       }
     } catch (err) {
-      setMessage({ type: 'error', text: 'Failed to update parameter.' });
+      toast.error('Failed to update parameter due to network error.', 'Parameter Error');
     }
   };
 
@@ -330,9 +523,12 @@ export default function App() {
       });
       const data = await res.json();
       fetchAuditLogs();
-      alert(`⛔ ACTION BLOCKED (403 Forbidden): ${data.message}\n\n🍃 Security violation logged to MongoDB Audit Trail.`);
+      toast.error(
+        `Action Blocked (403 Forbidden): ${data.message}. Security violation logged to MongoDB Audit Trail.`,
+        'Role Guard Active'
+      );
     } catch (err) {
-      alert('Action blocked by system-defined role guard.');
+      toast.error('Action blocked by system-defined role guard.', 'Role Guard Active');
     }
   };
 
@@ -348,30 +544,120 @@ export default function App() {
     );
   });
 
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPass,
+          ...(requires2FA && { totpCode: loginTotpCode }),
+        }),
+      });
+      const data = await res.json();
+      if (data.requires2FA) {
+        setRequires2FA(true);
+        toast.info('Please enter your 6-digit TOTP authenticator code.');
+      } else if (data.success) {
+        localStorage.setItem('ops_access_token', data.data.accessToken);
+        localStorage.setItem('ops_refresh_token', data.data.refreshToken);
+        setCurrentUser(data.data.user);
+        setIsLoggedIn(true);
+        setRequires2FA(false);
+        setLoginTotpCode('');
+        toast.success(`Welcome back, ${data.data.user.name}!`);
+        fetchGlobalStats();
+        fetchCompanies();
+        fetchUsers();
+      } else {
+        toast.error(data.message || 'Authentication failed.');
+      }
+    } catch (err) {
+      toast.error('Network error during login.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc' }}>
-        <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', width: '100%', maxWidth: '380px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-          <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-            <div style={{ display: 'inline-flex', background: '#eef2ff', padding: '0.6rem', borderRadius: '50%', color: '#4f46e5', marginBottom: '0.5rem' }}>
-              <Shield size={28} />
+        <div style={{ background: 'white', padding: '2.25rem', borderRadius: '10px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'inline-flex', background: '#eef2ff', padding: '0.75rem', borderRadius: '50%', color: '#4f46e5', marginBottom: '0.65rem' }}>
+              <Shield size={32} />
             </div>
-            <h1 style={{ fontSize: '1.2rem', fontWeight: 700 }}>OPS Super Admin</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Eye-Friendly Support Control Panel</p>
+            <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>OPS Super Admin</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.2rem' }}>
+              {requires2FA ? 'Two-Factor Verification Required' : 'Production JWT Secure Control Plane'}
+            </p>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); setIsLoggedIn(true); }}>
-            <div className="form-group">
-              <label>OPS Admin Email</label>
-              <input type="email" required className="form-control" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Password</label>
-              <input type="password" required className="form-control" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} />
-            </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.75rem', padding: '0.55rem' }}>
-              Login to OPS Suite
+          <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {!requires2FA ? (
+              <>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>OPS Admin Email</label>
+                  <input
+                    type="email"
+                    required
+                    className="form-control"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Password</label>
+                  <input
+                    type="password"
+                    required
+                    className="form-control"
+                    value={loginPass}
+                    onChange={(e) => setLoginPass(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="form-group">
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>
+                  Enter 6-Digit Authenticator Code (TOTP)
+                </label>
+                <input
+                  type="text"
+                  maxLength="6"
+                  required
+                  placeholder="123456"
+                  className="form-control"
+                  style={{ fontSize: '1.35rem', letterSpacing: '4px', textAlign: 'center', fontWeight: 700 }}
+                  value={loginTotpCode}
+                  onChange={(e) => setLoginTotpCode(e.target.value.replace(/\D/g, ''))}
+                  autoFocus
+                />
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={authLoading || (requires2FA && loginTotpCode.length !== 6)}
+              style={{ width: '100%', marginTop: '0.5rem', padding: '0.6rem', fontSize: '0.88rem' }}
+            >
+              {authLoading ? 'Verifying Credentials...' : requires2FA ? 'Verify 2FA Code' : 'Sign In to Super Admin'}
             </button>
+
+            {requires2FA && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => { setRequires2FA(false); setLoginTotpCode(''); }}
+                style={{ width: '100%', fontSize: '0.78rem' }}
+              >
+                Back to Password Login
+              </button>
+            )}
           </form>
         </div>
       </div>
@@ -402,6 +688,42 @@ export default function App() {
           </div>
         )}
 
+        {/* COMMAND PALETTE QUICK SEARCH BUTTON (SCRUM-79) */}
+        <button
+          type="button"
+          onClick={() => setShowCommandPalette(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.45rem 0.65rem',
+            borderRadius: '6px',
+            border: '1px solid var(--border)',
+            background: '#f8fafc',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '0.78rem',
+            width: '100%',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f1f5f9'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = '#f8fafc'; }}
+          title="Open Command Palette (Ctrl+K)"
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Search size={13} color="#94a3b8" /> Quick jump...
+          </span>
+          <kbd style={{
+            fontSize: '0.65rem',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '3px',
+            padding: '0.1rem 0.3rem',
+            fontFamily: 'var(--font-mono)',
+            color: '#64748b'
+          }}>Ctrl K</kbd>
+        </button>
+
         <div className="nav-menu">
           {!operatingCompany ? (
             <>
@@ -411,11 +733,48 @@ export default function App() {
               <button className={`nav-item ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')}>
                 <Building size={16} /> Companies ({companies.length})
               </button>
+              <button
+                className={`nav-item ${activeTab === 'reconcile' ? 'active' : ''}`}
+                onClick={() => {
+                  checkUntrackedTenants();
+                  setShowReconcileModal(true);
+                }}
+                style={{
+                  background: untrackedCount > 0 ? '#fffbeb' : 'transparent',
+                  color: untrackedCount > 0 ? '#b45309' : 'inherit',
+                  fontWeight: untrackedCount > 0 ? 700 : 'normal',
+                }}
+                title="Scan and Reconcile unmanaged ETMS tenants into OPS Master"
+              >
+                <Shield size={16} color={untrackedCount > 0 ? '#d97706' : '#4f46e5'} />
+                <span>Reconcile ETMS</span>
+                {untrackedCount > 0 && (
+                  <span
+                    style={{
+                      marginLeft: 'auto',
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      borderRadius: '10px',
+                      padding: '0.1rem 0.45rem',
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {untrackedCount}
+                  </span>
+                )}
+              </button>
               <button className={`nav-item ${activeTab === 'all_users' ? 'active' : ''}`} onClick={() => setActiveTab('all_users')}>
                 <Users size={16} /> Users ({users.length})
               </button>
               <button className={`nav-item ${activeTab === 'roles' ? 'active' : ''}`} onClick={() => { fetchRoles(); setActiveTab('roles'); }}>
                 <Lock size={16} /> RBAC Roles ({roles.length})
+              </button>
+              <button className={`nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`} onClick={() => setActiveTab('subscriptions')}>
+                <CreditCard size={16} /> Subscriptions & Quotas
+              </button>
+              <button className={`nav-item ${activeTab === 'system_health' ? 'active' : ''}`} onClick={() => setActiveTab('system_health')}>
+                <Activity size={16} /> Telemetry & Sync DLQ
               </button>
               <button className={`nav-item ${activeTab === 'global_audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(); setActiveTab('global_audit'); }}>
                 <FileText size={16} /> Audit Trail
@@ -445,13 +804,31 @@ export default function App() {
           )}
         </div>
 
-        <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+        <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <button
+            className="btn btn-secondary"
+            style={{ width: '100%', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+            onClick={() => setShowSecurityModal(true)}
+            title="Manage 2FA and JWT security credentials"
+          >
+            <Shield size={13} color="var(--primary)" /> Security & 2FA {currentUser?.twoFactorEnabled && <span className="badge badge-active" style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem' }}>2FA</span>}
+          </button>
+
           {operatingCompany ? (
             <button className="btn btn-secondary" style={{ width: '100%', fontSize: '0.78rem' }} onClick={exitCompanyOperationalMode}>
               <ArrowLeft size={14} /> Exit Support Mode
             </button>
           ) : (
-            <button className="btn btn-secondary" style={{ width: '100%', fontSize: '0.78rem' }} onClick={() => setIsLoggedIn(false)}>
+            <button
+              className="btn btn-secondary"
+              style={{ width: '100%', fontSize: '0.78rem' }}
+              onClick={() => {
+                localStorage.removeItem('ops_access_token');
+                localStorage.removeItem('ops_refresh_token');
+                setIsLoggedIn(false);
+                toast.info('Logged out of Super Admin.');
+              }}
+            >
               <LogOut size={14} /> Logout Admin
             </button>
           )}
@@ -460,6 +837,76 @@ export default function App() {
 
       {/* MAIN CONTENT AREA */}
       <div className="main-content">
+        {/* SUPPORT IMPERSONATION ACTIVE BANNER (SCRUM-87) */}
+        {impersonationContext && (
+          <div
+            style={{
+              background: 'linear-gradient(90deg, #b45309, #d97706, #b45309)',
+              color: '#ffffff',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '6px',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)',
+              border: '1px solid #f59e0b',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>
+                  TENANT IMPERSONATION ACTIVE: Operating as {impersonationContext.targetUser?.name} ({impersonationContext.targetUser?.email})
+                </div>
+                <div style={{ fontSize: '0.74rem', opacity: 0.9 }}>
+                  Tenant: <strong>{impersonationContext.targetUser?.company?.name || 'Internal'}</strong> &bull; Super Admin: <em>{impersonationContext.originalUser?.name}</em> &bull; Ephemeral Token (15m TTL)
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                className="btn"
+                onClick={() => handleLaunchEtms(impersonationContext.targetUser)}
+                style={{
+                  background: '#065f46',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  padding: '0.35rem 0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                }}
+                title={`Open ETMS Factory Portal as ${impersonationContext.targetUser?.name}`}
+              >
+                <ExternalLink size={13} /> Open ETMS Factory Portal ↗
+              </button>
+
+              <button
+                className="btn"
+                onClick={handleExitImpersonation}
+                style={{
+                  background: '#ffffff',
+                  color: '#9a3412',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  padding: '0.35rem 0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                }}
+              >
+                <LogOut size={13} /> Exit Support Mode
+              </button>
+            </div>
+          </div>
+        )}
+
         {message && (
           <div className={`alert alert-${message.type === 'error' ? 'error' : 'info'}`}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -489,6 +936,56 @@ export default function App() {
         {/* GLOBAL DASHBOARD */}
         {activeTab === 'global_dashboard' && !operatingCompany && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* ETMS UNTRACKED TENANTS ALERT BANNER (SCRUM-103) */}
+            {untrackedCount > 0 && (
+              <div
+                style={{
+                  background: 'linear-gradient(90deg, #fffbeb, #fef3c7)',
+                  border: '1px solid #fde68a',
+                  borderRadius: '8px',
+                  padding: '0.85rem 1.25rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  boxShadow: '0 1px 4px rgba(217, 119, 6, 0.1)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div
+                    style={{
+                      background: '#f59e0b',
+                      color: '#ffffff',
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '1rem',
+                    }}
+                  >
+                    !
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#92400e' }}>
+                      {untrackedCount} Untracked Tenant(s) Detected in ETMS!
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: '#78350f' }}>
+                      ETMS contains unmanaged factory companies and mobile accounts. Adopt and standardize them into OPS Master now.
+                    </div>
+                  </div>
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowReconcileModal(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}
+                >
+                  <Shield size={14} /> Adopt & Standardize Now
+                </button>
+              </div>
+            )}
+
             <AnalyticsDashboard
               apiBase={API_BASE}
               onRegisterCompany={() => setShowCompanyModal(true)}
@@ -610,6 +1107,7 @@ export default function App() {
               fetchCompanies();
               fetchRoles();
             }}
+            onImpersonateUser={handleImpersonateUser}
           />
         )}
 
@@ -621,6 +1119,28 @@ export default function App() {
             onRefresh={() => {
               fetchRoles();
               fetchAuditLogs();
+            }}
+          />
+        )}
+
+        {/* SUBSCRIPTIONS & QUOTA DIRECTORY TAB (SCRUM-81) */}
+        {activeTab === 'subscriptions' && !operatingCompany && (
+          <SubscriptionManagement
+            apiBase={API_BASE}
+            onRefresh={() => {
+              fetchCompanies();
+              fetchGlobalStats();
+              fetchAuditLogs();
+            }}
+          />
+        )}
+
+        {/* SYSTEM HEALTH TELEMETRY & SYNC DLQ TAB (SCRUM-82 & SCRUM-83) */}
+        {activeTab === 'system_health' && !operatingCompany && (
+          <SystemHealthMonitor
+            apiBase={API_BASE}
+            onRefresh={() => {
+              fetchGlobalStats();
             }}
           />
         )}
@@ -700,15 +1220,26 @@ export default function App() {
               <div className="card table-container">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <h3 style={{ fontSize: '0.95rem' }}>{operatingCompany.name} - Support User Operations</h3>
-                  <button className="btn btn-primary" onClick={() => setShowUserModal(true)}>
-                    <Plus size={14} /> Create User
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleSyncStaffFromEtms}
+                      disabled={loading}
+                      style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                      title="Sync operational staff users (Supervisors, Munims) from ETMS into this company"
+                    >
+                      <RefreshCw size={13} className={loading ? 'spin' : ''} /> Sync Staff from ETMS
+                    </button>
+                    <button className="btn btn-primary" onClick={() => setShowUserModal(true)} style={{ fontSize: '0.78rem' }}>
+                      <Plus size={14} /> Create User
+                    </button>
+                  </div>
                 </div>
                 <table>
                   <thead>
                     <tr>
                       <th>Name</th>
-                      <th>Email</th>
+                      <th>Email & Mobile</th>
                       <th>Status</th>
                       <th>Role</th>
                       <th>Support Action</th>
@@ -718,9 +1249,26 @@ export default function App() {
                     {operatingCompany.users?.map((u) => (
                       <tr key={u.id}>
                         <td><strong>{u.name}</strong></td>
-                        <td>{u.email}</td>
+                        <td>
+                          <div>{u.email}</div>
+                          {u.mobile && (
+                            <div style={{ fontSize: '0.7rem', color: '#4338ca', fontWeight: 600 }}>
+                              📱 {u.mobile}
+                            </div>
+                          )}
+                        </td>
                         <td><span className="badge badge-active">{u.status || 'ACTIVE'}</span></td>
-                        <td>{u.role ? u.role.name : 'System Admin'}</td>
+                        <td>
+                          {u.role?.name?.toLowerCase().includes('admin') ? (
+                            <span style={{ background: '#dbeafe', color: '#1e40af', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
+                              ⭐ {u.role.name}
+                            </span>
+                          ) : (
+                            <span style={{ background: '#f0fdf4', color: '#166534', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>
+                              🏭 {u.role ? u.role.name : 'Staff'}
+                            </span>
+                          )}
+                        </td>
                         <td>
                           <button className="btn btn-secondary" style={{ padding: '0.15rem 0.45rem', fontSize: '0.72rem' }} onClick={() => { setSelectedUserToEdit(u); setEditUserData({ name: u.name, email: u.email, status: u.status || 'ACTIVE' }); setShowEditUserModal(true); }}>
                             <Edit2 size={12} /> Edit Details
@@ -859,7 +1407,7 @@ export default function App() {
         <div className="modal-backdrop">
           <div className="modal-content" style={{ maxWidth: '550px' }}>
             <h2 style={{ fontSize: '1.1rem' }}>MongoDB Audit Log Record</h2>
-            <pre style={{ background: '#1e293b', color: '#38bdf8', padding: '0.75rem', borderRadius: '50px', borderRadius: '6px', overflowX: 'auto', fontSize: '0.78rem', marginTop: '0.75rem' }}>
+            <pre style={{ background: '#1e293b', color: '#38bdf8', padding: '0.75rem', borderRadius: '6px', overflowX: 'auto', fontSize: '0.78rem', marginTop: '0.75rem' }}>
               {JSON.stringify(selectedAuditLog, null, 2)}
             </pre>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
@@ -868,6 +1416,45 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* GLOBAL COMMAND PALETTE (SCRUM-79) */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        companies={companies}
+        users={users}
+        onNavigateTab={(tab) => {
+          if (operatingCompany) setOperatingCompany(null);
+          if (tab === 'global_audit') fetchAuditLogs();
+          setActiveTab(tab);
+        }}
+        onSelectCompany={(c) => startOperatingAsCompany(c)}
+        onRegisterCompany={() => setShowCompanyModal(true)}
+        onCreateUser={() => setShowUserModal(true)}
+      />
+
+      {/* SECURITY & 2FA SETTINGS MODAL (SCRUM-84) */}
+      <SecuritySettingsModal
+        isOpen={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
+        apiBase={API_BASE}
+        user={currentUser}
+        onUserUpdated={(updatedUser) => setCurrentUser(updatedUser)}
+      />
+
+      {/* ETMS TENANT RECONCILIATION MODAL (SCRUM-103) */}
+      <TenantReconciliationModal
+        isOpen={showReconcileModal}
+        onClose={() => setShowReconcileModal(false)}
+        apiBase={API_BASE}
+        onReconciled={() => {
+          fetchCompanies();
+          fetchUsers();
+          checkUntrackedTenants();
+          fetchAuditLogs();
+        }}
+      />
     </div>
   );
 }
+

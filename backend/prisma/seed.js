@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 const { logAuditEvent, initMongo } = require('../src/services/auditLogger');
 const { closeMongoConnection } = require('../src/config/mongo');
 
@@ -10,6 +11,113 @@ async function main() {
 
   // Initialize MongoDB for seed audit trail logging
   await initMongo();
+
+  // Master Super Admin Account
+  const defaultAdminPassword = await bcrypt.hash('admin123', 10);
+  await prisma.user.upsert({
+    where: { email: 'admin@ops.saas' },
+    update: {
+      name: 'Super Administrator',
+      password: defaultAdminPassword,
+      isInternalOps: true,
+      status: 'ACTIVE',
+    },
+    create: {
+      name: 'Super Administrator',
+      email: 'admin@ops.saas',
+      password: defaultAdminPassword,
+      isInternalOps: true,
+      status: 'ACTIVE',
+    },
+  });
+
+  // 0. Seed Subscription Plans (SCRUM-80)
+  const starterPlan = await prisma.subscriptionPlan.upsert({
+    where: { code: 'STARTER' },
+    update: {
+      name: 'Starter Plan',
+      description: 'Entry-level tier for small job-work units & solo embroidery machines.',
+      price: 0,
+      currency: 'INR',
+      billingInterval: 'MONTHLY',
+      maxMachines: 2,
+      maxUsers: 5,
+      maxInvoicesPerMonth: 100,
+      features: JSON.stringify(['BASIC_BILLING', 'KARIGAR_HISAB', 'CHALLAN_GEN']),
+      isDefault: true,
+    },
+    create: {
+      name: 'Starter Plan',
+      code: 'STARTER',
+      description: 'Entry-level tier for small job-work units & solo embroidery machines.',
+      price: 0,
+      currency: 'INR',
+      billingInterval: 'MONTHLY',
+      maxMachines: 2,
+      maxUsers: 5,
+      maxInvoicesPerMonth: 100,
+      features: JSON.stringify(['BASIC_BILLING', 'KARIGAR_HISAB', 'CHALLAN_GEN']),
+      isDefault: true,
+    },
+  });
+
+  const proPlan = await prisma.subscriptionPlan.upsert({
+    where: { code: 'PROFESSIONAL' },
+    update: {
+      name: 'Professional Growth',
+      description: 'High-speed operations for expanding multi-head embroidery manufacturers.',
+      price: 2499,
+      currency: 'INR',
+      billingInterval: 'MONTHLY',
+      maxMachines: 8,
+      maxUsers: 20,
+      maxInvoicesPerMonth: 1000,
+      features: JSON.stringify(['BASIC_BILLING', 'KARIGAR_HISAB', 'CHALLAN_GEN', 'TALLY_EXPORT', 'DEAD_STOCK_MATCHING', 'MUNIM_PORTAL']),
+      isDefault: false,
+    },
+    create: {
+      name: 'Professional Growth',
+      code: 'PROFESSIONAL',
+      description: 'High-speed operations for expanding multi-head embroidery manufacturers.',
+      price: 2499,
+      currency: 'INR',
+      billingInterval: 'MONTHLY',
+      maxMachines: 8,
+      maxUsers: 20,
+      maxInvoicesPerMonth: 1000,
+      features: JSON.stringify(['BASIC_BILLING', 'KARIGAR_HISAB', 'CHALLAN_GEN', 'TALLY_EXPORT', 'DEAD_STOCK_MATCHING', 'MUNIM_PORTAL']),
+      isDefault: false,
+    },
+  });
+
+  const enterprisePlan = await prisma.subscriptionPlan.upsert({
+    where: { code: 'ENTERPRISE' },
+    update: {
+      name: 'Enterprise Factory Tier',
+      description: 'Unlimited multi-factory textile mills, priority SLA & automated Tally Prime sync.',
+      price: 7999,
+      currency: 'INR',
+      billingInterval: 'MONTHLY',
+      maxMachines: 50,
+      maxUsers: 100,
+      maxInvoicesPerMonth: 10000,
+      features: JSON.stringify(['BASIC_BILLING', 'KARIGAR_HISAB', 'CHALLAN_GEN', 'TALLY_EXPORT', 'DEAD_STOCK_MATCHING', 'MUNIM_PORTAL', 'MULTI_FACTORY', 'PRIORITY_SLA', 'CUSTOM_WEBHOOKS']),
+      isDefault: false,
+    },
+    create: {
+      name: 'Enterprise Factory Tier',
+      code: 'ENTERPRISE',
+      description: 'Unlimited multi-factory textile mills, priority SLA & automated Tally Prime sync.',
+      price: 7999,
+      currency: 'INR',
+      billingInterval: 'MONTHLY',
+      maxMachines: 50,
+      maxUsers: 100,
+      maxInvoicesPerMonth: 10000,
+      features: JSON.stringify(['BASIC_BILLING', 'KARIGAR_HISAB', 'CHALLAN_GEN', 'TALLY_EXPORT', 'DEAD_STOCK_MATCHING', 'MUNIM_PORTAL', 'MULTI_FACTORY', 'PRIORITY_SLA', 'CUSTOM_WEBHOOKS']),
+      isDefault: false,
+    },
+  });
 
   // 1. Create Master Seed Company (000 UUID)
   const seedCompany = await prisma.company.upsert({
@@ -26,6 +134,8 @@ async function main() {
       address: 'OPS Headquarters, Surat IT Park, Nanpura, Surat, Gujarat 395001',
       roundOffFormat: 'NEAREST_RUPEE',
       digitsAfterDecimal: 2,
+      subscriptionPlanId: enterprisePlan.id,
+      planStatus: 'ACTIVE',
     },
     create: {
       id: SEED_COMPANY_ID,
@@ -40,6 +150,8 @@ async function main() {
       address: 'OPS Headquarters, Surat IT Park, Nanpura, Surat, Gujarat 395001',
       roundOffFormat: 'NEAREST_RUPEE',
       digitsAfterDecimal: 2,
+      subscriptionPlanId: enterprisePlan.id,
+      planStatus: 'ACTIVE',
     },
   });
 
@@ -189,7 +301,16 @@ async function main() {
     },
   ];
 
+  const planMap = {
+    'RADHEEMB': { planId: proPlan.id, status: 'ACTIVE', expiry: new Date(Date.now() + 365 * 86400000) },
+    'SURATTEX': { planId: enterprisePlan.id, status: 'ACTIVE', expiry: new Date(Date.now() + 365 * 86400000) },
+    'SHIVSHAKTI': { planId: starterPlan.id, status: 'ACTIVE', expiry: new Date(Date.now() + 30 * 86400000) },
+    'ACMEIN': { planId: starterPlan.id, status: 'TRIAL', expiry: new Date(Date.now() + 14 * 86400000) }
+  };
+
   for (const compData of tenantCompanies) {
+    const planInfo = planMap[compData.code] || { planId: starterPlan.id, status: 'ACTIVE', expiry: null };
+
     // 1. Upsert Company by unique code
     const company = await prisma.company.upsert({
       where: { code: compData.code },
@@ -204,6 +325,9 @@ async function main() {
         roundOffFormat: 'NEAREST_RUPEE',
         digitsAfterDecimal: 2,
         status: 'ACTIVE',
+        subscriptionPlanId: planInfo.planId,
+        planStatus: planInfo.status,
+        planExpiryDate: planInfo.expiry,
       },
       create: {
         id: compData.id,
@@ -218,6 +342,9 @@ async function main() {
         roundOffFormat: 'NEAREST_RUPEE',
         digitsAfterDecimal: 2,
         status: 'ACTIVE',
+        subscriptionPlanId: planInfo.planId,
+        planStatus: planInfo.status,
+        planExpiryDate: planInfo.expiry,
       },
     });
 

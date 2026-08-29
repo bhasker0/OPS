@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Building,
   CheckCircle2,
@@ -13,6 +13,7 @@ import {
   Lock,
   ArrowRight
 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
@@ -22,6 +23,7 @@ export default function CompanyOnboardingWizard({
   onSubmit,
   loading = false
 }) {
+  const toast = useToast();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     // Step 1: Profile
@@ -45,9 +47,11 @@ export default function CompanyOnboardingWizard({
     roundOffFormat: 'NEAREST_RUPEE',
     digitsAfterDecimal: '2',
 
-    // Step 4: Initial Super Admin
+    // Step 4: Initial Super Admin & RBAC
     adminName: '',
-    adminEmail: ''
+    adminEmail: '',
+    adminMobile: '',
+    adminPassword: 'Password@123'
   });
 
   const [gstinError, setGstinError] = useState('');
@@ -67,15 +71,24 @@ export default function CompanyOnboardingWizard({
   const handleNext = () => {
     if (step === 1) {
       if (!formData.name.trim() || !formData.code.trim()) {
-        alert('Please provide Company Name and Code.');
+        toast.warning('Please provide both Company Name and a unique Company Code.', 'Required Fields');
         return;
       }
     }
     if (step === 2) {
       if (formData.gstin && !GSTIN_REGEX.test(formData.gstin)) {
-        alert('Please correct the invalid GSTIN format.');
+        toast.warning('Please correct the invalid GSTIN format (e.g. 24TESTA1234A1Z1).', 'Invalid GSTIN');
         return;
       }
+    }
+    if (step === 3) {
+      setFormData((prev) => ({
+        ...prev,
+        adminName: prev.adminName || prev.contactPerson || `${prev.name} Owner`,
+        adminEmail: prev.adminEmail || prev.email || (prev.code ? `admin@${prev.code.toLowerCase()}.com` : ''),
+        adminMobile: prev.adminMobile || prev.mobile || '9825000000',
+        adminPassword: prev.adminPassword || 'Password@123',
+      }));
     }
     setStep((prev) => Math.min(4, prev + 1));
   };
@@ -87,7 +100,7 @@ export default function CompanyOnboardingWizard({
   const handleFormSubmit = (e) => {
     e.preventDefault();
     if (formData.gstin && !GSTIN_REGEX.test(formData.gstin)) {
-      alert('Invalid GSTIN format.');
+      toast.warning('Invalid GSTIN format provided.', 'Validation Error');
       return;
     }
     onSubmit(formData);
@@ -357,19 +370,21 @@ export default function CompanyOnboardingWizard({
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Initial Admin Name</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Default Admin Name *</label>
                   <input
                     type="text"
-                    placeholder="e.g. Admin Manager"
+                    required
+                    placeholder="e.g. Bhavesh Patel"
                     className="form-control"
                     value={formData.adminName}
                     onChange={(e) => setFormData({ ...formData, adminName: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Initial Admin Email</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Admin Login Email *</label>
                   <input
                     type="email"
+                    required
                     placeholder="admin@tenant.com"
                     className="form-control"
                     value={formData.adminEmail}
@@ -378,9 +393,42 @@ export default function CompanyOnboardingWizard({
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: '#059669' }}>
-                <Shield size={14} />
-                <span>Default Super Admin system role will be automatically attached to tenant.</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Mobile (ETMS Login ID) *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="9825012345"
+                    className="form-control"
+                    value={formData.adminMobile}
+                    onChange={(e) => setFormData({ ...formData, adminMobile: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Default Password</label>
+                  <input
+                    type="text"
+                    placeholder="Password@123"
+                    className="form-control"
+                    value={formData.adminPassword}
+                    onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* 5 COMPANY RBAC ROLES PREVIEW */}
+              <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Shield size={14} style={{ color: '#4f46e5' }} /> 5 Company-Scoped RBAC Roles (Auto-Seeded)
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', fontSize: '0.72rem' }}>
+                  <div>⭐ <strong>Company Admin / Owner</strong>: Full Access (Attached to User)</div>
+                  <div>👔 <strong>Manager</strong>: Orders, Production & Scheduling</div>
+                  <div>💰 <strong>Munim</strong>: Invoices, Daybook, Hisab & Tally</div>
+                  <div>🏭 <strong>Supervisor</strong>: Floor Shifts, Machines & Karigars</div>
+                  <div style={{ gridColumn: 'span 2' }}>🧵 <strong>Karigar Operator</strong>: Shift Logs & Stitch Tracking</div>
+                </div>
               </div>
             </div>
           )}
