@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
+import { API_BASE } from '../config/api';
 
 const PERMISSION_CATEGORIES = {
   'Company Operations': [
@@ -47,7 +48,7 @@ const PERMISSION_CATEGORIES = {
 
 export default function RoleManagement({
   companies = [],
-  apiBase = 'http://localhost:5000/api',
+  apiBase = API_BASE,
   currentCompanyId = null,
   onRefresh
 }) {
@@ -95,9 +96,9 @@ export default function RoleManagement({
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
-      r.name.toLowerCase().includes(q) ||
-      (r.company && r.company.name.toLowerCase().includes(q)) ||
-      (r.permissions && r.permissions.some((p) => p.toLowerCase().includes(q)))
+      (r?.name || '').toLowerCase().includes(q) ||
+      (r?.company?.name || '').toLowerCase().includes(q) ||
+      (r?.permissions && r.permissions.some((p) => (p || '').toLowerCase().includes(q)))
     );
   });
 

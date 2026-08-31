@@ -1173,4 +1173,54 @@ tr:hover td {
   font-size: 0.7rem;
 }
 
+/* ==========================================================================
+   DRAWER DESIGN SYSTEM (Right Slide-Over Architecture)
+   ========================================================================== */
+
+@keyframes drawerFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.drawer-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.drawer-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.drawer-body::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+
+.drawer-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+
 

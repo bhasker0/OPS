@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Calculator, X, CheckCircle2 } from 'lucide-react';
+import { FileText, Calculator, Sparkles } from 'lucide-react';
+import Drawer from './ui/Drawer';
 import { useToast } from '../context/ToastContext';
 
 export default function CreateInvoiceModal({
@@ -61,7 +62,7 @@ export default function CreateInvoiceModal({
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!companyId || !planId) {
       toast.warning('Please select a tenant company and plan.');
       return;
@@ -97,79 +98,81 @@ export default function CreateInvoiceModal({
     }
   };
 
+  const footerContent = (
+    <>
+      <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
+        Cancel
+      </button>
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={handleSubmit}
+        disabled={loading}
+      >
+        {loading ? 'Generating...' : 'Issue & Generate Invoice'}
+      </button>
+    </>
+  );
+
   return (
-    <div className="modal-backdrop">
-      <div className="modal-content" style={{ maxWidth: '580px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <FileText size={18} color="var(--primary)" /> Issue Subscription Tax Invoice (SAC 9983)
-          </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div className="form-group">
-              <label>Select Tenant Company</label>
-              <select className="form-control" value={companyId} onChange={(e) => setCompanyId(e.target.value)} required>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.code}) {c.gstin ? `[GSTIN: ${c.gstin}]` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Subscription Tier</label>
-              <select className="form-control" value={planId} onChange={(e) => handlePlanChange(e.target.value)} required>
-                {plans.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} (₹{p.price}/{p.billingInterval.toLowerCase()})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
-            <div className="form-group">
-              <label>Base Price (₹)</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                className="form-control"
-                value={customBaseAmount}
-                onChange={(e) => setCustomBaseAmount(e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label>Period Start Date</label>
-              <input
-                type="date"
-                required
-                className="form-control"
-                value={billingPeriodStart}
-                onChange={(e) => setBillingPeriodStart(e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label>Period End Date</label>
-              <input
-                type="date"
-                required
-                className="form-control"
-                value={billingPeriodEnd}
-                onChange={(e) => setBillingPeriodEnd(e.target.value)}
-              />
-            </div>
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Issue Subscription Tax Invoice"
+      subtitle="B2B Software & SaaS Platform Billing (SAC 9983)"
+      icon={<FileText size={18} />}
+      size="md"
+      footer={footerContent}
+    >
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.85rem' }}>
+          <div className="form-group">
+            <label>Select Tenant Company *</label>
+            <select
+              className="form-control"
+              value={companyId}
+              onChange={(e) => setCompanyId(e.target.value)}
+              required
+            >
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.code}) {c.gstin ? `[GSTIN: ${c.gstin}]` : ''}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
-            <label>Payment Due Date</label>
+            <label>Subscription Tier *</label>
+            <select
+              className="form-control"
+              value={planId}
+              onChange={(e) => handlePlanChange(e.target.value)}
+              required
+            >
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} (₹{p.price}/{p.billingInterval.toLowerCase()})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+          <div className="form-group">
+            <label>Base Price (₹) *</label>
+            <input
+              type="number"
+              step="0.01"
+              required
+              className="form-control"
+              value={customBaseAmount}
+              onChange={(e) => setCustomBaseAmount(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Payment Due Date *</label>
             <input
               type="date"
               required
@@ -178,53 +181,95 @@ export default function CreateInvoiceModal({
               onChange={(e) => setDueDate(e.target.value)}
             />
           </div>
+        </div>
 
-          {/* LIVE GST SAC 9983 PREVIEW CARD */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '0.85rem', fontSize: '0.8rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
-              <Calculator size={14} color="#4f46e5" /> Indian GST Tax Calculation Summary (SAC 9983)
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <span style={{ color: '#64748b' }}>Tax Jurisdiction:</span>
-              <strong>{isGujarat ? 'Intra-State Gujarat (CGST 9% + SGST 9%)' : 'Inter-State (IGST 18%)'}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <span style={{ color: '#64748b' }}>Taxable Base Amount:</span>
-              <span>₹{basePrice.toFixed(2)}</span>
-            </div>
-            {isGujarat ? (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <span style={{ color: '#64748b' }}>CGST (9%):</span>
-                  <span>+ ₹{cgst.toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <span style={{ color: '#64748b' }}>SGST (9%):</span>
-                  <span>+ ₹{sgst.toFixed(2)}</span>
-                </div>
-              </>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                <span style={{ color: '#64748b' }}>IGST (18%):</span>
-                <span>+ ₹{igst.toFixed(2)}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+          <div className="form-group">
+            <label>Period Start Date *</label>
+            <input
+              type="date"
+              required
+              className="form-control"
+              value={billingPeriodStart}
+              onChange={(e) => setBillingPeriodStart(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Period End Date *</label>
+            <input
+              type="date"
+              required
+              className="form-control"
+              value={billingPeriodEnd}
+              onChange={(e) => setBillingPeriodEnd(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* LIVE GST SAC 9983 PREVIEW CARD */}
+        <div
+          style={{
+            background: 'var(--bg-canvas)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            padding: '1rem',
+            fontSize: '0.8rem',
+            marginTop: '0.25rem',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontWeight: 700,
+              color: 'var(--text-main)',
+              marginBottom: '0.65rem',
+            }}
+          >
+            <Calculator size={15} color="var(--primary)" /> Indian GST Tax Calculation Summary (SAC 9983)
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Tax Jurisdiction:</span>
+            <strong>{isGujarat ? 'Intra-State Gujarat (CGST 9% + SGST 9%)' : 'Inter-State (IGST 18%)'}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Taxable Base Amount:</span>
+            <span>₹{basePrice.toFixed(2)}</span>
+          </div>
+          {isGujarat ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>CGST (9%):</span>
+                <span>+ ₹{cgst.toFixed(2)}</span>
               </div>
-            )}
-            <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '0.4rem', marginTop: '0.4rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.95rem' }}>
-              <span>Total Payable Amount:</span>
-              <span style={{ color: '#4f46e5' }}>₹{grandTotal.toFixed(2)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>SGST (9%):</span>
+                <span>+ ₹{sgst.toFixed(2)}</span>
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+              <span style={{ color: 'var(--text-muted)' }}>IGST (18%):</span>
+              <span>+ ₹{igst.toFixed(2)}</span>
             </div>
+          )}
+          <div
+            style={{
+              borderTop: '1px solid var(--border)',
+              paddingTop: '0.5rem',
+              marginTop: '0.5rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontWeight: 800,
+              fontSize: '0.95rem',
+            }}
+          >
+            <span>Total Payable Amount:</span>
+            <span style={{ color: 'var(--primary)' }}>₹{grandTotal.toFixed(2)}</span>
           </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Generating...' : 'Issue & Generate Invoice'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+      </form>
+    </Drawer>
   );
 }

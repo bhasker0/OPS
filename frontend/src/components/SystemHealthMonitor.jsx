@@ -15,12 +15,13 @@ import {
   Eye,
   Send,
   Radio,
-  Zap,
+  Zap
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from './ConfirmModal';
+import { API_BASE } from '../config/api';
 
-export default function SystemHealthMonitor({ apiBase = 'http://localhost:5000/api', onRefresh }) {
+export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
   const toast = useToast();
 
   const [healthData, setHealthData] = useState(null);

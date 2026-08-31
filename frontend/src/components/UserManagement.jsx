@@ -21,12 +21,13 @@ import ConfirmModal from './ConfirmModal';
 import TableActionMenu from './TableActionMenu';
 import TableDensityControl from './TableDensityControl';
 import { useToast } from '../context/ToastContext';
+import { API_BASE } from '../config/api';
 
 export default function UserManagement({
   users = [],
   companies = [],
   roles = [],
-  apiBase = 'http://localhost:5000/api',
+  apiBase = API_BASE,
   onUserCreated,
   onUserUpdated,
   onImpersonateUser,
@@ -94,11 +95,11 @@ export default function UserManagement({
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
-      u.name.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      (u.mobile && u.mobile.includes(q)) ||
-      (u.company && u.company.name.toLowerCase().includes(q)) ||
-      (u.role && u.role.name.toLowerCase().includes(q))
+      (u?.name || '').toLowerCase().includes(q) ||
+      (u?.email || '').toLowerCase().includes(q) ||
+      (u?.mobile || '').includes(q) ||
+      (u?.company?.name || '').toLowerCase().includes(q) ||
+      (u?.role?.name || '').toLowerCase().includes(q)
     );
   });
 

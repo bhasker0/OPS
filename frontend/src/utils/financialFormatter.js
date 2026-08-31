@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Frontend Financial Formatting & Currency Precision Utility
  * Compliant with Indian Financial Accounting Standards (en-IN)
  */
@@ -67,7 +67,7 @@ export function applyRoundOff(amount, roundOffFormat = 'TWO_DECIMALS', digitsAft
 }
 
 export function formatIndianCurrency(amount, digits = 2, options = {}) {
-  const { symbol = '?', includeSymbol = true, fallback = '?0.00' } = options;
+  const { symbol = '\u20B9', includeSymbol = true, fallback = '\u20B90.00' } = options;
 
   if (amount === null || amount === undefined || isNaN(parseFloat(amount))) {
     return fallback;
@@ -94,7 +94,7 @@ export function parseIndianNumber(str) {
   if (typeof str === 'number') return str;
   if (!str) return 0;
   const clean = String(str)
-    .replace(/[?\s,]/g, '')
+    .replace(/[\u20B9₹\s,]/g, '')
     .trim();
   const parsed = parseFloat(clean);
   return isNaN(parsed) ? 0 : parsed;

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileText,
   Search,
@@ -20,12 +20,14 @@ import {
   Clock,
   X
 } from 'lucide-react';
+import Drawer from './ui/Drawer';
+import { API_BASE } from '../config/api';
 
 const MODULES = ['ALL', 'COMPANY', 'USER', 'ROLE', 'PARAMETER', 'TRANSACTION', 'SUBSCRIPTION', 'SYSTEM', 'AUTH'];
 
 export default function AuditLogViewer({
   companies = [],
-  apiBase = 'http://localhost:5000/api',
+  apiBase = API_BASE,
   companyId = null,
   onRefresh
 }) {
@@ -110,14 +112,35 @@ export default function AuditLogViewer({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const getExportQueryParams = () => {
+    const params = new URLSearchParams();
+    if (selectedCompany && selectedCompany !== 'ALL') params.append('companyId', selectedCompany);
+    if (companyId) params.append('companyId', companyId);
+    if (selectedModule && selectedModule !== 'ALL') params.append('module', selectedModule);
+    if (selectedStatus && selectedStatus !== 'ALL') params.append('status', selectedStatus);
+    if (searchQuery) params.append('search', searchQuery);
+
+    if (dateRange !== 'ALL') {
+      const now = new Date();
+      if (dateRange === '24H') {
+        params.append('startDate', new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString());
+      } else if (dateRange === '7D') {
+        params.append('startDate', new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      } else if (dateRange === '30D') {
+        params.append('startDate', new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString());
+      }
+    }
+    return params.toString();
+  };
+
+  const handleExportCsv = () => {
+    const qs = getExportQueryParams();
+    window.open(`${apiBase}/audit-logs/export/csv?${qs}`, '_blank');
+  };
+
   const handleExportJson = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(logs, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `audit_logs_${new Date().toISOString().slice(0, 10)}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+    const qs = getExportQueryParams();
+    window.open(`${apiBase}/audit-logs/export/json?${qs}`, '_blank');
   };
 
   return (
@@ -137,8 +160,15 @@ export default function AuditLogViewer({
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             className="btn btn-secondary"
+            onClick={handleExportCsv}
+            style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+          >
+            <Download size={13} /> Export CSV
+          </button>
+
+          <button
+            className="btn btn-secondary"
             onClick={handleExportJson}
-            disabled={logs.length === 0}
             style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
           >
             <Download size={13} /> Export JSON
@@ -427,47 +457,71 @@ export default function AuditLogViewer({
         </div>
       </div>
 
-      {/* LIVE INSPECTION MODAL */}
-      {inspectedLog && (
-        <div className="modal-backdrop" style={{ zIndex: 1300 }}>
-          <div className="modal-content" style={{ maxWidth: '680px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-            {/* MODAL HEADER */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ background: '#ede9fe', color: '#5b21b6', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
-                    {inspectedLog.module}
-                  </span>
-                  <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                    {inspectedLog.action}
-                  </h2>
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
-                  Timestamp: <strong>{new Date(inspectedLog.createdAt).toLocaleString('en-IN')}</strong> • ID: <code>{inspectedLog._id}</code>
-                </div>
-              </div>
-
-              <button onClick={() => setInspectedLog(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                <X size={20} />
-              </button>
-            </div>
-
+      {/* LIVE INSPECTION DRAWER */}
+      <Drawer
+        isOpen={Boolean(inspectedLog)}
+        onClose={() => setInspectedLog(null)}
+        title={inspectedLog ? `${inspectedLog.module}: ${inspectedLog.action}` : 'Audit Event Inspector'}
+        subtitle={inspectedLog ? `Timestamp: ${new Date(inspectedLog.createdAt).toLocaleString('en-IN')} • ID: ${inspectedLog._id}` : ''}
+        icon={<Shield size={18} />}
+        size="lg"
+        footer={
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setInspectedLog(null)}
+            style={{ fontSize: '0.78rem' }}
+          >
+            Close Inspector
+          </button>
+        }
+      >
+        {inspectedLog && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* TELEMETRY METRICS GRID */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem', marginBottom: '1rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.75rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '0.65rem',
+                background: 'var(--bg-canvas)',
+                padding: '0.85rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                fontSize: '0.78rem',
+              }}
+            >
               <div>Operator: <strong>{inspectedLog.performedBy}</strong></div>
-              <div>Status: <span style={{ fontWeight: 700, color: inspectedLog.status === 'SUCCESS' ? '#059669' : '#dc2626' }}>{inspectedLog.status}</span></div>
+              <div>
+                Status:{' '}
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: inspectedLog.status === 'SUCCESS' ? 'var(--success)' : 'var(--danger)',
+                  }}
+                >
+                  {inspectedLog.status}
+                </span>
+              </div>
               <div>IP Address: <code>{inspectedLog.ipAddress || '127.0.0.1'}</code></div>
               <div>Company ID: <code>{inspectedLog.companyId || 'Global / N/A'}</code></div>
             </div>
 
             {/* MUTATION DIFF SECTION (IF PRESENT) */}
             {inspectedLog.diff && Object.keys(inspectedLog.diff).length > 0 && (
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.4rem' }}>
+              <div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.45rem' }}>
                   ⚡ Field Mutation Change-Delta
                 </div>
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '0.65rem 0.85rem' }}>
-                  <pre style={{ margin: 0, fontSize: '0.75rem', color: '#14532d', overflowX: 'auto' }}>
+                <div
+                  style={{
+                    background: 'var(--success-light)',
+                    border: '1px solid var(--success)',
+                    borderRadius: '8px',
+                    padding: '0.75rem 1rem',
+                  }}
+                >
+                  <pre style={{ margin: 0, fontSize: '0.75rem', color: 'var(--success)', overflowX: 'auto' }}>
                     {JSON.stringify(inspectedLog.diff, null, 2)}
                   </pre>
                 </div>
@@ -476,16 +530,30 @@ export default function AuditLogViewer({
 
             {/* RAW JSON VIEWER */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
                   Raw Audit Event Payload (MongoDB)
                 </span>
                 <button
+                  type="button"
                   className="btn btn-secondary"
-                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                  style={{
+                    padding: '0.25rem 0.55rem',
+                    fontSize: '0.72rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                  }}
                   onClick={handleCopyJson}
                 >
-                  {copied ? <Check size={12} style={{ color: '#059669' }} /> : <Copy size={12} />}
+                  {copied ? <Check size={12} style={{ color: 'var(--success)' }} /> : <Copy size={12} />}
                   {copied ? 'Copied!' : 'Copy JSON'}
                 </button>
               </div>
@@ -494,27 +562,20 @@ export default function AuditLogViewer({
                 style={{
                   background: '#0f172a',
                   color: '#38bdf8',
-                  padding: '0.85rem',
-                  borderRadius: '6px',
+                  padding: '1rem',
+                  borderRadius: '8px',
                   overflowX: 'auto',
                   fontSize: '0.75rem',
-                  lineHeight: 1.4,
-                  maxHeight: '260px'
+                  lineHeight: 1.45,
+                  maxHeight: '360px',
                 }}
               >
                 {JSON.stringify(inspectedLog, null, 2)}
               </pre>
             </div>
-
-            {/* MODAL FOOTER */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
-              <button className="btn btn-primary" onClick={() => setInspectedLog(null)} style={{ fontSize: '0.78rem' }}>
-                Close Inspector
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Drawer>
     </div>
   );
 }

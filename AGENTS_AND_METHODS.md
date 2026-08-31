@@ -1,60 +1,76 @@
 # 🛠️ Agent Engineering Guidelines & Project Methods Standard
-**Surat Embroidery Micro-ERP (EBTM / ETMS)**
+**Surat Embroidery Micro-ERP (EBTM / ETMS / OPS Super Admin)**
 
 ---
 
 ## 1. System Architecture & Port Mapping
 
-| Component | Codebase Path | Technology Stack | Port | Primary Responsibility |
+| Component | Codebase Path | Technology Stack | Active Dev Port | Primary Responsibility |
 |---|---|---|---|---|
-| **OPS Backend** | `/mnt/Bhasker/EBTM/OPS/backend` | Express / Node 20 / Postgres / Mongo | `5000` | SaaS Super-Admin, Tenant Provisioning & Global Audit Logs |
-| **OPS Frontend** | `/mnt/Bhasker/EBTM/OPS/frontend` | Vite / React 19 / Vanilla CSS | `3000` | Super-Admin Dashboard & Tenant Directory Management |
-| **ETMS Backend** | `/mnt/Bhasker/EBTM/ETMS/backend` | NestJS 10 / Sequelize / Redis | `4000` | SAC 9988 Billing, Karigar Hisab, Munim & Tally Engine |
-| **ETMS Frontend** | `/mnt/Bhasker/EBTM/ETMS-FE` | Next.js 14.2 / Tailwind / PWA | `3002` | Factory Floor Telemetry, Voice Logger, PWA & Thermal Slips |
+| **OPS Backend** | `d:\bhasker\OPS\backend` | Express / Node 20 / PostgreSQL (Prisma) / MongoDB | `5000` | Multi-Tenant SaaS Super-Admin, Company Provisioning & Audit Logs |
+| **OPS Frontend** | `d:\bhasker\OPS\frontend` | Vite / React 19 / Modern CSS Tokens | `5173` (Docker: `3000`) | Super-Admin Portal & Tenant Operations Management |
+| **ETMS Backend** | `d:\bhasker\ETMS\backend` | NestJS 10 / PostgreSQL (Sequelize) / Redis | `4000` | SAC 9988 Billing, Karigar Hisab, Party Ledger, Munim & Tally XML Engine |
+| **ETMS Frontend** | `d:\bhasker\ETMS-FE` | Next.js 14.2 / Tailwind CSS / Lucide / Sonner | `3000` | Factory Floor Telemetry, Shift Drawer, Party Master, Thermal Printing & PWA |
 
 ---
 
-## 2. Standardized Agent Execution Protocol
+## 2. Design System Standard: Right Slide-Over Drawer Architecture
 
-All AI agents and developers working on the EBTM project **must strictly adhere** to the following 6-step lifecycle for all tasks:
+> [!IMPORTANT]
+> **Zero Centered Popups Policy**: All modal dialogs and centered popups across both OPS and ETMS are deprecated and replaced by standard **Right Slide-Over Drawers** (`Drawer` / `AppDrawer`).
+
+### Drawer Anatomy & UX Rules:
+1. **Slide-Over Panel**: Slides from the right with smooth cubic-bezier animation (`translate-x-full` to `translate-x-0`).
+2. **Dimmed Backdrop**: `bg-slate-900/50 backdrop-blur-xs` preserving underlying table context.
+3. **Sticky Top Header**: Clean title, descriptive subtitle, icon badge, and `X` dismiss button.
+4. **Scrollable Body**: `flex-1 overflow-y-auto` with standardized custom scrollbar.
+5. **Sticky Pinned Footer**: Action buttons (*Cancel*, *Save*, *Submit*) pinned at bottom of viewport—never pushed below screen fold.
+6. **Accessibility**: `ESC` key dismiss listener and body scroll locking (`document.body.style.overflow = 'hidden'`).
+7. **Nested Drawers**: Level-based z-indexes supporting multi-level creation (e.g. `ADD_PARTY` drawer opened on top of `ADD_CHALLAN`).
+
+---
+
+## 3. Core Business & Domain Workflows
+
+### A. Karigar Master & Wage Incentive Engine
+- **Per-Meter (`PER_METER`)**: Total meters produced × Rate/meter.
+- **Per-Piece (`PER_PIECE`)**: Total sarees/garments finished × Rate/piece.
+- **Fixed Monthly (`MONTHLY_FIXED`)**: Guaranteed monthly salary.
+- **Hybrid Incentive (`FIXED_PLUS_INCENTIVE`)**: Guaranteed base salary + surplus production commission when exceeding shift/fortnight threshold (e.g. Base salary up to 100,000 stitches + ₹X per 1,000 extra stitches or ₹Y per piece).
+
+### B. Inward Lot (Challan) & Multi-Design Master
+- Each Inward Challan tracks multiple cloth lots, each assigned a specific **Design Number**, total stitches, jobwork billing rate, and Karigar piece-rate commission.
+- Lots and designs are allocated to active machines during shift logging.
+
+### C. Party (Trader) Master & Ledger Khata
+- Searchable Party picker (`PartyPicker`) with autocomplete by Name, Surat GSTIN (`24`), and phone.
+- Contextual in-flow `+ Add Party` drawer trigger across Challan and Invoice drafting.
+- Party statement (`/parties/[id]`) with 3-tier aging, running balances, and WhatsApp share.
+
+### D. Consolidated Multi-Lot Outward Invoicing
+- Fetch all unbilled inward lots for a selected party.
+- Consolidate multiple lots into a single SAC 9988 GST Tax Invoice with automated CGST/SGST/IGST breakdown.
+
+---
+
+## 4. Standardized Sprint & Git Delivery Protocol
+
+All agent work follows a rigorous 6-step lifecycle:
 
 ```mermaid
 graph TD
-    A[1. Requirement Review] --> B[2. Jira Ticket Creation]
-    B --> C[3. Code Implementation]
-    C --> D[4. Automated QA & Build Check]
-    D --> E[5. Chrome Headless UI Verification]
-    E --> F[6. Jira Transition & Client Reporting]
+    A[1. Requirement Review & Jira Story Mapping] --> B[2. Step-by-Step Implementation]
+    B --> C[3. Automated Build & Typecheck Verification]
+    C --> D[4. Browser UI/UX Live Verification]
+    D --> E[5. Jira Issue Transition to Done]
+    E --> F[6. Git Commit & Remote Push]
 ```
 
-### Step 1: Requirement Review
-- Review Jira issue summaries, codebase context, and existing Knowledge Items (KIs).
-- Cross-reference existing NestJS/Next.js services before creating duplicate logic.
-
-### Step 2: Jira Ticket Creation (Mandatory)
-- **Every task or feature MUST be created in Jira** under project key `SCRUM` prior to execution or reporting.
-- Jira tickets must include concise summaries, technical specifications, and clear acceptance criteria.
-
-### Step 3: Code Implementation
-- Follow domain-driven modular structure (`src/modules/*` in NestJS, `src/app/*` in Next.js).
-- Enforce strict tenant isolation (`x-company-id: <UUID>`) on all endpoints.
-
-### Step 4: Automated QA & Build Verification
-- Execute `npm test` in `OPS/backend` (must achieve **100% pass rate**).
-- Execute `nest build` in `ETMS/backend` and `next build` in `ETMS-FE` to ensure zero compilation warnings or errors.
-
-### Step 5: Chrome Headless UI Verification
-- Launch Google Chrome to load the live dev servers (`http://localhost:3000` and `http://localhost:3002`).
-- Capture high-resolution screenshot/video artifacts to verify visual design, responsiveness, and backend API connectivity (`:4000 Connected`).
-
-### Step 6: Jira Transition & Final Reporting
-- Transition completed Jira tickets to `Done` using the Atlassian API.
-- Produce a structured markdown report listing Jira ticket keys, summaries, test metrics, and screenshot references.
-
----
-
-## 3. UI/UX & Localization Standards
-
-1. **Trilingual Support**: Every floor component must support Gujarati (`gu`), Hindi (`hi`), and English (`en`).
-2. **Industrial Tactile UX**: Floor forms must support high-contrast display modes, audio click feedback, haptic vibration, and large touch numeric keypads.
-3. **Receipt Printing**: Print output templates must support both standard A4 GST Tax Invoices and 58mm/80mm thermal POS slips.
+1. **Jira Issue Tracking**: Every task must be mapped to a Jira ticket under project `SCRUM`.
+2. **Code Implementation**: Clean, surgical changes adhering to modular domain architecture.
+3. **Build Quality Gate**:
+   - `npm run build` in `OPS/frontend` (Vite) ➔ Must pass with 0 errors.
+   - `npm run build` in `ETMS-FE` (Next.js) ➔ Must pass all typechecks and generate all static/dynamic routes cleanly.
+4. **Live Verification**: Automated browser inspection via Chrome DevTools MCP verifying interactive states and responsive drawers.
+5. **Jira Closure**: Transition issue to `Done` (transition ID `41`) with detailed release notes.
+6. **Git Release**: Once all sprint tickets are finalized, stage, commit, and push the verified codebase to Git remote.

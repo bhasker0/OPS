@@ -164,6 +164,34 @@ async function getAuditLogs(filter = {}) {
   return filtered;
 }
 
+/**
+ * Neutralize CSV Formula / DDE Injections for spreadsheet exports
+ */
+function sanitizeCsvField(field) {
+  if (field === null || field === undefined) return '';
+  let str = String(field).trim();
+  if (/^[=+@\-\t\r\n]/.test(str)) {
+    str = "'" + str;
+  }
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    str = `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+/**
+ * Neutralize XSS script tags and DOM injections in audit notes
+ */
+function sanitizeHtmlNotes(input) {
+  if (!input || typeof input !== 'string') return '';
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
 module.exports = {
   initMongo,
   logAuditEvent,
@@ -173,4 +201,6 @@ module.exports = {
   extractAuditMetadata,
   auditMiddleware,
   inMemoryAuditLogs,
+  sanitizeCsvField,
+  sanitizeHtmlNotes,
 };

@@ -20,9 +20,11 @@ import {
 } from 'lucide-react';
 import { formatIndianCurrency } from '../utils/financialFormatter';
 import KpiStrip from './KpiStrip';
+import { API_BASE } from '../config/api';
+import { apiFetch } from '../utils/apiClient';
 
 export default function AnalyticsDashboard({
-  apiBase = 'http://localhost:5000/api',
+  apiBase = API_BASE,
   onRegisterCompany,
   onNavigateTab,
   onSelectCompany
@@ -30,22 +32,30 @@ export default function AnalyticsDashboard({
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
   const [pollingActive, setPollingActive] = useState(true);
   const [countdown, setCountdown] = useState(30);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
 
   const fetchDashboardStats = async (isManual = false) => {
     if (isManual) setRefreshing(true);
+    setFetchError(null);
     try {
-      const res = await fetch(`${apiBase}/stats`);
+      const res = await apiFetch(`${apiBase}/stats`);
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}: ${res.statusText}`);
+      }
       const result = await res.json();
       if (result.success) {
         setStats(result.data);
         setLastRefreshed(new Date());
         setCountdown(30);
+      } else {
+        throw new Error(result.message || 'Failed to retrieve telemetry stats');
       }
     } catch (err) {
       console.error('Failed to fetch dashboard stats:', err);
+      setFetchError(err.message || 'Failed to connect to backend telemetry service.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -140,6 +150,49 @@ export default function AnalyticsDashboard({
           </button>
         </div>
       </div>
+
+      {/* ERROR BANNER WITH RETRY CTA */}
+      {fetchError && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.85rem 1.2rem',
+            borderRadius: '10px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#991b1b',
+            fontSize: '0.82rem',
+            gap: '1rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <AlertCircle size={18} style={{ color: '#dc2626', shrink: 0 }} />
+            <div>
+              <strong>Failed to refresh dashboard stats:</strong> {fetchError}
+            </div>
+          </div>
+          <button
+            onClick={() => fetchDashboardStats(true)}
+            className="btn btn-secondary"
+            style={{
+              padding: '0.35rem 0.75rem',
+              fontSize: '0.75rem',
+              borderColor: '#fca5a5',
+              background: '#ffffff',
+              color: '#dc2626',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+            }}
+          >
+            <RefreshCw size={12} className={refreshing ? 'spin' : ''} />
+            Retry Connection
+          </button>
+        </div>
+      )}
 
       {/* SKELETON LOADER STATE */}
       {loading && !stats ? (

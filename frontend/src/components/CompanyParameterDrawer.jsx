@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Settings,
@@ -59,6 +59,19 @@ const PARAMETER_CATEGORIES = [
       'audit_retention_days',
       'rate_limit_per_minute'
     ]
+  },
+  {
+    id: 'security_geofence',
+    title: '🛡️ Factory IP Whitelist & Geofence Gate',
+    description: 'Subnet restrictions, factory GPS coordinates, and geofence radius',
+    icon: <Lock size={15} />,
+    keys: [
+      'allowed_ip_subnets',
+      'factory_gps_latitude',
+      'factory_gps_longitude',
+      'geofence_radius_meters',
+      'enforce_geofence_for_shifts'
+    ]
   }
 ];
 
@@ -80,7 +93,8 @@ export default function CompanyParameterDrawer({
   const [openAccordions, setOpenAccordions] = useState({
     textile_production: true,
     karigar_accounting: true,
-    integration_governance: true
+    integration_governance: true,
+    security_geofence: true
   });
 
   useEffect(() => {

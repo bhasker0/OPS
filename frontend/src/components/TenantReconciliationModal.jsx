@@ -9,8 +9,8 @@ import {
   ArrowDownToLine,
   Sliders,
   Check,
-  X
 } from 'lucide-react';
+import Drawer from './ui/Drawer';
 import { useToast } from '../context/ToastContext';
 
 export default function TenantReconciliationModal({
@@ -102,82 +102,118 @@ export default function TenantReconciliationModal({
 
   const untracked = discoveryData?.untrackedCompanies || [];
 
-  return (
-    <div className="modal-backdrop" style={{ zIndex: 1300 }}>
-      <div className="modal-content" style={{ maxWidth: '750px', width: '100%', maxHeight: '88vh', overflowY: 'auto' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#0f172a' }}>
-              <Shield size={20} color="#4f46e5" /> ETMS Tenant Discovery & Reconciliation Center
-            </h3>
-            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0.2rem 0 0 0' }}>
-              OPS is the authoritative master registry. Ingest untracked ETMS companies, standardize 18 textile parameters, and establish master-slave governance.
-            </p>
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8' }}>
-            ✕
-          </button>
-        </div>
+  const footerContent = (
+    <>
+      <button type="button" className="btn btn-secondary" onClick={onClose}>
+        Close
+      </button>
+      <button
+        type="button"
+        className="btn btn-secondary"
+        onClick={fetchDiscovery}
+        disabled={loading}
+        style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+      >
+        <RefreshCw size={13} className={loading ? 'spin' : ''} /> Rescan
+      </button>
+      {untracked.length > 0 && (
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleAdoptAll}
+          disabled={bulkAdopting}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+        >
+          <ArrowDownToLine size={13} />{' '}
+          {bulkAdopting ? 'Adopting All...' : `Adopt All (${untracked.length})`}
+        </button>
+      )}
+    </>
+  );
 
+  return (
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title="ETMS Tenant Reconciliation"
+      subtitle="Authoritative Master Registry Synchronization & Parameter Standardization"
+      icon={<Shield size={18} />}
+      size="lg"
+      footer={footerContent}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {/* Telemetry Strip */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
-          <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Managed in OPS</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669', marginTop: '0.15rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+          <div
+            style={{
+              background: 'var(--bg-canvas)',
+              padding: '0.85rem',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              Managed in OPS
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--success)', marginTop: '0.15rem' }}>
               {discoveryData?.managedInOpsCount || 0} Tenants
             </div>
           </div>
 
-          <div style={{ background: '#fffbeb', padding: '0.75rem', borderRadius: '6px', border: '1px solid #fef3c7' }}>
-            <div style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 600 }}>Untracked in ETMS</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#d97706', marginTop: '0.15rem' }}>
+          <div
+            style={{
+              background: 'var(--warning-light)',
+              padding: '0.85rem',
+              borderRadius: '8px',
+              border: '1px solid var(--warning)',
+            }}
+          >
+            <div style={{ fontSize: '0.72rem', color: 'var(--warning)', fontWeight: 600 }}>
+              Untracked in ETMS
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--warning)', marginTop: '0.15rem' }}>
               {discoveryData?.untrackedCount || 0} Discovered
             </div>
           </div>
 
-          <div style={{ background: '#eef2ff', padding: '0.75rem', borderRadius: '6px', border: '1px solid #c7d2fe' }}>
-            <div style={{ fontSize: '0.72rem', color: '#4338ca', fontWeight: 600 }}>Orphan Users</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#4338ca', marginTop: '0.15rem' }}>
+          <div
+            style={{
+              background: 'var(--primary-light)',
+              padding: '0.85rem',
+              borderRadius: '8px',
+              border: '1px solid var(--primary)',
+            }}
+          >
+            <div style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 600 }}>
+              Orphan Users
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.15rem' }}>
               {discoveryData?.orphanUsersCount || 0} Accounts
             </div>
           </div>
         </div>
 
-        {/* Action Toolbar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <button
-            className="btn btn-secondary"
-            onClick={fetchDiscovery}
-            disabled={loading}
-            style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-          >
-            <RefreshCw size={13} className={loading ? 'spin' : ''} /> Rescan ETMS Backend
-          </button>
-
-          {untracked.length > 0 && (
-            <button
-              className="btn btn-primary"
-              onClick={handleAdoptAll}
-              disabled={bulkAdopting}
-              style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-            >
-              <ArrowDownToLine size={13} /> {bulkAdopting ? 'Adopting All...' : `Adopt All ${untracked.length} Untracked Tenants`}
-            </button>
-          )}
-        </div>
-
         {/* Untracked Companies List */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '2.5rem', color: '#64748b' }}>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
             <RefreshCw size={24} className="spin" style={{ margin: '0 auto 0.5rem auto' }} />
             <div>Scanning ETMS registry for unmanaged tenants...</div>
           </div>
         ) : untracked.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2.5rem', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-            <CheckCircle2 size={36} color="#059669" style={{ margin: '0 auto 0.5rem auto' }} />
-            <div style={{ fontWeight: 700, color: '#0f172a' }}>All ETMS Tenants are Fully Reconciled!</div>
-            <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.25rem' }}>
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '3rem',
+              background: 'var(--bg-canvas)',
+              borderRadius: '8px',
+              border: '1px dashed var(--border-strong)',
+            }}
+          >
+            <CheckCircle2 size={40} color="var(--success)" style={{ margin: '0 auto 0.75rem auto' }} />
+            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>
+              All ETMS Tenants are Fully Reconciled!
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
               100% of companies and users in ETMS are tracked and governed by OPS Super Admin.
             </p>
           </div>
@@ -187,56 +223,123 @@ export default function TenantReconciliationModal({
               <div
                 key={t.code}
                 style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border)',
                   borderRadius: '8px',
                   padding: '1rem',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '0.75rem',
+                  }}
+                >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>{t.name}</h4>
-                      <code style={{ fontSize: '0.72rem', background: '#fef3c7', color: '#92400e', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                        {t.name}
+                      </h4>
+                      <code
+                        style={{
+                          fontSize: '0.72rem',
+                          background: 'var(--warning-light)',
+                          color: 'var(--warning)',
+                          padding: '0.1rem 0.4rem',
+                          borderRadius: '4px',
+                        }}
+                      >
                         {t.code}
                       </code>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                       {t.address || 'Surat, Gujarat'} {t.gstin ? `• GSTIN: ${t.gstin}` : '• GSTIN: N/A'}
                     </div>
                   </div>
 
                   <button
+                    type="button"
                     className="btn btn-primary"
                     onClick={() => handleAdoptTenant(t)}
                     disabled={adoptingId === t.code}
-                    style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.35rem 0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                    }}
                   >
-                    <ArrowDownToLine size={13} /> {adoptingId === t.code ? 'Adopting...' : 'Adopt & Standardize'}
+                    <ArrowDownToLine size={13} />{' '}
+                    {adoptingId === t.code ? 'Adopting...' : 'Adopt & Standardize'}
                   </button>
                 </div>
 
                 {/* Users & Parameters Sub-details */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: '#f8fafc', padding: '0.65rem', borderRadius: '6px', fontSize: '0.75rem' }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '0.75rem',
+                    background: 'var(--bg-canvas)',
+                    padding: '0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                  }}
+                >
                   <div>
-                    <div style={{ fontWeight: 700, color: '#334155', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Users size={12} color="#4f46e5" /> Detected Users ({t.users?.length || 0})
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        color: 'var(--text-main)',
+                        marginBottom: '0.35rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                      }}
+                    >
+                      <Users size={12} color="var(--primary)" /> Detected Users ({t.users?.length || 0})
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                       {(t.users || []).map((u, i) => (
-                        <span key={i} style={{ background: '#eef2ff', color: '#3730a3', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <strong>{u.name}</strong> ({u.role}) {u.phone ? <span style={{ color: '#4338ca', fontWeight: 600 }}>📱 {u.phone}</span> : null}
+                        <span
+                          key={i}
+                          style={{
+                            background: 'var(--primary-light)',
+                            color: 'var(--primary)',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '4px',
+                            fontSize: '0.7rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                          }}
+                        >
+                          <strong>{u.name}</strong> ({u.role}){' '}
+                          {u.phone ? <span>📱 {u.phone}</span> : null}
                         </span>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <div style={{ fontWeight: 700, color: '#334155', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Sliders size={12} color="#059669" /> Custom Parameters ({Object.keys(t.parameters || {}).length})
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        color: 'var(--text-main)',
+                        marginBottom: '0.35rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                      }}
+                    >
+                      <Sliders size={12} color="var(--success)" /> Custom Parameters (
+                      {Object.keys(t.parameters || {}).length})
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                       Will standardize into 18 master textile parameters inheriting seed defaults.
                     </div>
                   </div>
@@ -246,6 +349,6 @@ export default function TenantReconciliationModal({
           </div>
         )}
       </div>
-    </div>
+    </Drawer>
   );
 }

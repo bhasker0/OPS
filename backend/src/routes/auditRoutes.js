@@ -51,6 +51,90 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// GET /api/audit-logs/export/csv - Server-side CSV streaming export
+router.get('/export/csv', async (req, res) => {
+  try {
+    const { module, companyId, action, status, search, startDate, endDate } = req.query;
+    const query = {};
+    if (module && module !== 'ALL') query.module = module.toUpperCase();
+    if (companyId && companyId !== 'ALL') query.companyId = companyId;
+    if (action) query.action = action;
+    if (status && status !== 'ALL') query.status = status.toUpperCase();
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+    if (search) {
+      query.$or = [
+        { action: { $regex: search, $options: 'i' } },
+        { performedBy: { $regex: search, $options: 'i' } },
+        { 'details.name': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="audit_logs_${Date.now()}.csv"`);
+    res.write('Timestamp,Module,Action,PerformedBy,CompanyID,Status,IPAddress,Details\n');
+
+    if (getIsConnected()) {
+      const cursor = AuditLog.find(query).sort({ createdAt: -1 }).cursor();
+      for await (const doc of cursor) {
+        const detailsStr = JSON.stringify(doc.details || {}).replace(/"/g, '""');
+        res.write(`"${doc.createdAt.toISOString()}","${doc.module}","${doc.action}","${doc.performedBy || ''}","${doc.companyId || ''}","${doc.status || 'SUCCESS'}","${doc.ipAddress || ''}","${detailsStr}"\n`);
+      }
+      return res.end();
+    }
+
+    // Fallback
+    inMemoryAuditLogs.forEach((doc) => {
+      const detailsStr = JSON.stringify(doc.details || {}).replace(/"/g, '""');
+      res.write(`"${(doc.createdAt || new Date()).toISOString()}","${doc.module}","${doc.action}","${doc.performedBy || ''}","${doc.companyId || ''}","${doc.status || 'SUCCESS'}","${doc.ipAddress || ''}","${detailsStr}"\n`);
+    });
+    res.end();
+  } catch (err) {
+    console.error('CSV export error:', err);
+    if (!res.headersSent) res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/audit-logs/export/json - Server-side full JSON export
+router.get('/export/json', async (req, res) => {
+  try {
+    const { module, companyId, action, status, search, startDate, endDate } = req.query;
+    const query = {};
+    if (module && module !== 'ALL') query.module = module.toUpperCase();
+    if (companyId && companyId !== 'ALL') query.companyId = companyId;
+    if (action) query.action = action;
+    if (status && status !== 'ALL') query.status = status.toUpperCase();
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+    if (search) {
+      query.$or = [
+        { action: { $regex: search, $options: 'i' } },
+        { performedBy: { $regex: search, $options: 'i' } },
+        { 'details.name': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="audit_logs_${Date.now()}.json"`);
+
+    if (getIsConnected()) {
+      const logs = await AuditLog.find(query).sort({ createdAt: -1 }).limit(10000).lean();
+      return res.send(JSON.stringify(logs, null, 2));
+    }
+
+    res.send(JSON.stringify(inMemoryAuditLogs, null, 2));
+  } catch (err) {
+    console.error('JSON export error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // GET /api/audit-logs/:id - Retrieve single audit log by ID
 router.get('/:id', async (req, res) => {
   try {

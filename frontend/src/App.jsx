@@ -45,11 +45,11 @@ import SubscriptionManagement from './components/SubscriptionManagement';
 import SystemHealthMonitor from './components/SystemHealthMonitor';
 import SecuritySettingsModal from './components/SecuritySettingsModal';
 import TenantReconciliationModal from './components/TenantReconciliationModal';
+import Drawer from './components/ui/Drawer';
 import ThemeToggle from './components/ThemeToggle';
 import KpiStrip from './components/KpiStrip';
-import { useToast } from './context/ToastContext';
+import { API_BASE } from './config/api';
 
-const API_BASE = 'http://localhost:5000/api';
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
 
 export default function App() {
@@ -1454,73 +1454,149 @@ export default function App() {
         loading={loading}
       />
 
-      {/* MODAL: CREATE USER */}
-      {showUserModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h2 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>Create User</h2>
-            <form onSubmit={handleCreateUser}>
-              <div className="form-group">
-                <label>Full Name</label>
-                <input type="text" required placeholder="Rajesh Sharma" className="form-control" value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Email Address</label>
-                <input type="email" required placeholder="rajesh@acme.in" className="form-control" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowUserModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create User</button>
-              </div>
-            </form>
+      {/* DRAWER: CREATE USER */}
+      <Drawer
+        isOpen={showUserModal}
+        onClose={() => setShowUserModal(false)}
+        title="Create New User"
+        subtitle="Provision user credentials and assign company tenant scope"
+        icon={<Users size={18} />}
+        size="md"
+        footer={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowUserModal(false)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleCreateUser}
+            >
+              Create User
+            </button>
+          </>
+        }
+      >
+        <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="form-group">
+            <label>Full Name *</label>
+            <input
+              type="text"
+              required
+              placeholder="Rajesh Sharma"
+              className="form-control"
+              value={newUser.name}
+              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+            />
           </div>
-        </div>
-      )}
-
-      {/* MODAL: SUPPORT EDIT USER */}
-      {showEditUserModal && selectedUserToEdit && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h2 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>🎧 Edit User Details</h2>
-            <form onSubmit={handleUpdateUser}>
-              <div className="form-group">
-                <label>Full Name</label>
-                <input type="text" required className="form-control" value={editUserData.name} onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Email Address</label>
-                <input type="email" required className="form-control" value={editUserData.email} onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Account Status</label>
-                <select className="form-control" value={editUserData.status} onChange={(e) => setEditUserData({ ...editUserData, status: e.target.value })}>
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="SUSPENDED">SUSPENDED</option>
-                </select>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowEditUserModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Changes</button>
-              </div>
-            </form>
+          <div className="form-group">
+            <label>Email Address *</label>
+            <input
+              type="email"
+              required
+              placeholder="rajesh@acme.in"
+              className="form-control"
+              value={newUser.email}
+              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+            />
           </div>
-        </div>
-      )}
+        </form>
+      </Drawer>
 
-      {/* MODAL: AUDIT LOG PAYLOAD */}
-      {selectedAuditLog && (
-        <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: '550px' }}>
-            <h2 style={{ fontSize: '1.1rem' }}>MongoDB Audit Log Record</h2>
-            <pre style={{ background: '#1e293b', color: '#38bdf8', padding: '0.75rem', borderRadius: '6px', overflowX: 'auto', fontSize: '0.78rem', marginTop: '0.75rem' }}>
-              {JSON.stringify(selectedAuditLog, null, 2)}
-            </pre>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
-              <button className="btn btn-primary" onClick={() => setSelectedAuditLog(null)}>Close</button>
+      {/* DRAWER: SUPPORT EDIT USER */}
+      <Drawer
+        isOpen={Boolean(showEditUserModal && selectedUserToEdit)}
+        onClose={() => setShowEditUserModal(false)}
+        title={`Edit User: ${selectedUserToEdit?.name || ''}`}
+        subtitle="Update profile identity, permissions, and account status"
+        icon={<Users size={18} />}
+        size="md"
+        footer={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowEditUserModal(false)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleUpdateUser}
+            >
+              Save Changes
+            </button>
+          </>
+        }
+      >
+        {selectedUserToEdit && (
+          <form onSubmit={handleUpdateUser} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="form-group">
+              <label>Full Name *</label>
+              <input
+                type="text"
+                required
+                className="form-control"
+                value={editUserData.name}
+                onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
+              />
             </div>
-          </div>
-        </div>
-      )}
+            <div className="form-group">
+              <label>Email Address *</label>
+              <input
+                type="email"
+                required
+                className="form-control"
+                value={editUserData.email}
+                onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>Account Status</label>
+              <select
+                className="form-control"
+                value={editUserData.status}
+                onChange={(e) => setEditUserData({ ...editUserData, status: e.target.value })}
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="SUSPENDED">SUSPENDED</option>
+              </select>
+            </div>
+          </form>
+        )}
+      </Drawer>
+
+      {/* DRAWER: AUDIT LOG PAYLOAD */}
+      <Drawer
+        isOpen={Boolean(selectedAuditLog)}
+        onClose={() => setSelectedAuditLog(null)}
+        title="Audit Log Event Record"
+        subtitle="Full immutable event payload inspection (MongoDB)"
+        icon={<Shield size={18} />}
+        size="lg"
+        footer={
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setSelectedAuditLog(null)}
+          >
+            Close Inspector
+          </button>
+        }
+      >
+        {selectedAuditLog && (
+          <pre
+            style={{
+              background: '#0f172a',
+              color: '#38bdf8',
+              padding: '1rem',
+              borderRadius: '8px',
+              overflowX: 'auto',
+              fontSize: '0.78rem',
+              lineHeight: 1.45,
+            }}
+          >
+            {JSON.stringify(selectedAuditLog, null, 2)}
+          </pre>
+        )}
+      </Drawer>
 
       {/* GLOBAL COMMAND PALETTE (SCRUM-79) */}
       <CommandPalette

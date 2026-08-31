@@ -17,17 +17,20 @@ import {
   ExternalLink,
   Shield,
   RefreshCw,
-  Power
+  Power,
+  Archive,
 } from 'lucide-react';
 import CompanyOnboardingWizard from './CompanyOnboardingWizard';
 import CompanyParameterDrawer from './CompanyParameterDrawer';
 import TenantReconciliationModal from './TenantReconciliationModal';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
+import { API_BASE } from '../config/api';
+import { apiFetch } from '../utils/apiClient';
 
 export default function CompanyManagement({
   companies = [],
-  apiBase = 'http://localhost:5000/api',
+  apiBase = API_BASE,
   onCompanyCreated,
   onOperateCompany,
   onRefresh
@@ -63,11 +66,11 @@ export default function CompanyManagement({
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
-      c.name.toLowerCase().includes(q) ||
-      c.code.toLowerCase().includes(q) ||
-      (c.gstin && c.gstin.toLowerCase().includes(q)) ||
-      (c.contactPerson && c.contactPerson.toLowerCase().includes(q)) ||
-      (c.address && c.address.toLowerCase().includes(q))
+      (c?.name || '').toLowerCase().includes(q) ||
+      (c?.code || '').toLowerCase().includes(q) ||
+      (c?.gstin || '').toLowerCase().includes(q) ||
+      (c?.contactPerson || '').toLowerCase().includes(q) ||
+      (c?.address || '').toLowerCase().includes(q)
     );
   });
 
@@ -90,9 +93,8 @@ export default function CompanyManagement({
     setStatusUpdatingId(company.id);
 
     try {
-      const res = await fetch(`${apiBase}/companies/${company.id}/status`, {
+      const res = await apiFetch(`${apiBase}/companies/${company.id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await res.json();
@@ -153,6 +155,32 @@ export default function CompanyManagement({
     } finally {
       setKillswitchLoading(false);
       setKillswitchCompany(null);
+    }
+  };
+
+  const [exportingArchiveId, setExportingArchiveId] = useState(null);
+
+  const handleExportTenantArchive = async (company) => {
+    setExportingArchiveId(company.id);
+    try {
+      const res = await fetch(`${apiBase}/companies/${company.id}/export-archive`, { method: 'POST' });
+      const result = await res.json();
+      if (result.success) {
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(result.data, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute('href', dataStr);
+        downloadAnchor.setAttribute('download', result.archive_filename || `TENANT_ARCHIVE_${company.code}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        toast.success(`Data archive exported with SHA-256: ${result.checksum_sha256.slice(0, 12)}...`, 'Tenant Data Portability');
+      } else {
+        toast.error(result.message || 'Failed to export tenant archive');
+      }
+    } catch (e) {
+      toast.error('Network error during archive generation');
+    } finally {
+      setExportingArchiveId(null);
     }
   };
 
@@ -418,6 +446,16 @@ export default function CompanyManagement({
                           title="Open Parameter Store Drawer"
                         >
                           <Sliders size={12} /> Parameters
+                        </button>
+
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', color: '#0284c7', background: '#f0f9ff', borderColor: '#bae6fd', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          onClick={() => handleExportTenantArchive(c)}
+                          title="Download Complete Tenant Data Archive (GDPR / DPDP Compliance)"
+                          disabled={exportingArchiveId === c.id}
+                        >
+                          <Archive size={12} /> {exportingArchiveId === c.id ? 'Exporting...' : 'Archive'}
                         </button>
 
                         <button

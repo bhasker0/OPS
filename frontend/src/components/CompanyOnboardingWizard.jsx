@@ -13,6 +13,7 @@ import {
   Lock,
   ArrowRight
 } from 'lucide-react';
+import Drawer from './ui/Drawer';
 import { useToast } from '../context/ToastContext';
 
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
@@ -106,59 +107,99 @@ export default function CompanyOnboardingWizard({
     onSubmit(formData);
   };
 
-  return (
-    <div className="modal-backdrop" style={{ zIndex: 1100 }}>
-      <div className="modal-content" style={{ maxWidth: '640px', width: '100%', padding: '1.5rem', borderRadius: '10px' }}>
-        {/* HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Building size={20} style={{ color: '#4f46e5' }} />
-              Provision New Tenant Company
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '0.78rem', margin: '0.15rem 0 0 0' }}>
-              Multi-step onboarding wizard with compliance and parameter inheritance.
-            </p>
-          </div>
+  const footerContent = (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+      {step > 1 ? (
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={handleBack}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
+        >
+          <ChevronLeft size={15} /> Back
+        </button>
+      ) : <div />}
+
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onClose}
+          style={{ fontSize: '0.8rem' }}
+        >
+          Cancel
+        </button>
+
+        {step < 4 ? (
           <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0.2rem' }}
+            type="button"
+            className="btn btn-primary"
+            onClick={handleNext}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
           >
-            <X size={20} />
+            Next Step <ChevronRight size={15} />
           </button>
-        </div>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={loading}
+            onClick={handleFormSubmit}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}
+          >
+            <CheckCircle2 size={15} />
+            {loading ? 'Provisioning...' : 'Complete Onboarding'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
+  return (
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Provision New Tenant Company"
+      subtitle="Multi-step onboarding wizard with compliance and parameter inheritance."
+      icon={<Building size={20} />}
+      size="lg"
+      footer={footerContent}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {/* STEP PROGRESS INDICATOR */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          {[
-            { num: 1, title: 'Identity' },
-            { num: 2, title: 'Compliance' },
-            { num: 3, title: 'Parameters' },
-            { num: 4, title: 'Admin & Review' }
-          ].map((s) => (
-            <div
-              key={s.num}
-              style={{
-                padding: '0.5rem 0.4rem',
-                borderRadius: '6px',
-                background: step === s.num ? '#eef2ff' : step > s.num ? '#ecfdf5' : '#f8fafc',
-                border: `1px solid ${step === s.num ? '#c7d2fe' : step > s.num ? '#a7f3d0' : '#e2e8f0'}`,
-                textAlign: 'center',
-                cursor: step > s.num ? 'pointer' : 'default'
-              }}
-              onClick={() => { if (step > s.num) setStep(s.num); }}
-            >
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: step === s.num ? '#4f46e5' : step > s.num ? '#059669' : '#64748b' }}>
-                STEP {s.num}
+        <div style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+            {[
+              { num: 1, title: 'Identity' },
+              { num: 2, title: 'Compliance' },
+              { num: 3, title: 'Parameters' },
+              { num: 4, title: 'Admin & Review' }
+            ].map((s) => (
+              <div
+                key={s.num}
+                style={{
+                  padding: '0.5rem 0.4rem',
+                  borderRadius: '6px',
+                  background: step === s.num ? '#eef2ff' : step > s.num ? '#ecfdf5' : '#ffffff',
+                  border: `1px solid ${step === s.num ? '#c7d2fe' : step > s.num ? '#a7f3d0' : '#e2e8f0'}`,
+                  textAlign: 'center',
+                  cursor: step > s.num ? 'pointer' : 'default'
+                }}
+                onClick={() => { if (step > s.num) setStep(s.num); }}
+              >
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: step === s.num ? '#4f46e5' : step > s.num ? '#059669' : '#64748b' }}>
+                  STEP {s.num}
+                </div>
+                <div style={{ fontSize: '0.76rem', fontWeight: 600, color: step === s.num ? '#1e1b4b' : '#334155' }}>
+                  {s.title}
+                </div>
               </div>
-              <div style={{ fontSize: '0.76rem', fontWeight: 600, color: step === s.num ? '#1e1b4b' : '#334155' }}>
-                {s.title}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        <form onSubmit={handleFormSubmit}>
+        <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', margin: 0 }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem' }}>
           {/* STEP 1: IDENTITY & BASIC PROFILE */}
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -432,54 +473,9 @@ export default function CompanyOnboardingWizard({
               </div>
             </div>
           )}
-
-          {/* FOOTER ACTIONS */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
-            {step > 1 ? (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleBack}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
-              >
-                <ChevronLeft size={15} /> Back
-              </button>
-            ) : <div />}
-
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={onClose}
-                style={{ fontSize: '0.8rem' }}
-              >
-                Cancel
-              </button>
-
-              {step < 4 ? (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleNext}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
-                >
-                  Next Step <ChevronRight size={15} />
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={loading}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}
-                >
-                  <CheckCircle2 size={15} />
-                  {loading ? 'Provisioning...' : 'Complete Onboarding'}
-                </button>
-              )}
-            </div>
           </div>
         </form>
       </div>
-    </div>
+    </Drawer>
   );
 }
