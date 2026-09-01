@@ -16,7 +16,8 @@ import {
   CreditCard,
   Settings,
   Clock,
-  ExternalLink
+  ExternalLink,
+  ChevronRight
 } from 'lucide-react';
 import { formatIndianCurrency } from '../utils/financialFormatter';
 import KpiStrip from './KpiStrip';
@@ -87,45 +88,27 @@ export default function AnalyticsDashboard({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* HEADER WITH CONTROLS & AUTO-REFRESH */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.85rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
-            Executive Analytics & Platform Health
-          </h1>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.82rem', margin: '0.2rem 0 0 0' }}>
-            Real-time multi-tenant monitoring, financial ledger volume, and infrastructure status.
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <TrendingUp size={18} color="var(--accent-red)" />
+            Executive Analytics & Revenue Telemetry
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
+            Multi-tenant subscription volume, annualized run-rate, and cluster telemetry
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
           {/* Polling Toggle Badge */}
           <button
             onClick={() => setPollingActive(!pollingActive)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.4rem 0.75rem',
-              borderRadius: '20px',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              background: pollingActive ? '#ecfdf5' : '#f1f5f9',
-              color: pollingActive ? '#059669' : '#64748b',
-              border: `1px solid ${pollingActive ? '#a7f3d0' : '#cbd5e1'}`,
-              cursor: 'pointer',
-            }}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.78rem' }}
             title="Toggle automatic 30s polling"
           >
-            <span
-              style={{
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                background: pollingActive ? '#10b981' : '#94a3b8',
-                display: 'inline-block',
-              }}
-            />
-            {pollingActive ? `Live Polling (${countdown}s)` : 'Polling Paused'}
+            <span className={pollingActive ? 'phosphor-beacon' : ''} style={{ width: '6px', height: '6px' }} />
+            <span>{pollingActive ? `Refresh in ${countdown}s` : 'Polling Paused'}</span>
           </button>
 
           {/* Manual Refresh Button */}
@@ -133,20 +116,18 @@ export default function AnalyticsDashboard({
             className="btn btn-secondary"
             onClick={() => fetchDashboardStats(true)}
             disabled={refreshing}
-            style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{ fontSize: '0.78rem' }}
           >
-            <RefreshCw size={13} className={refreshing ? 'spin' : ''} />
-            Refresh
+            <RefreshCw size={13} className={refreshing ? 'spin' : ''} /> Refresh
           </button>
 
           {/* Quick Action: Register Company */}
           <button
             className="btn btn-primary"
             onClick={onRegisterCompany}
-            style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            style={{ fontSize: '0.78rem' }}
           >
-            <Plus size={14} />
-            Register Company
+            <Plus size={13} /> Register Tenant
           </button>
         </div>
       </div>
@@ -154,159 +135,205 @@ export default function AnalyticsDashboard({
       {/* ERROR BANNER WITH RETRY CTA */}
       {fetchError && (
         <div
+          className="alert alert-error"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0.85rem 1.2rem',
-            borderRadius: '10px',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#991b1b',
-            fontSize: '0.82rem',
             gap: '1rem',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <AlertCircle size={18} style={{ color: '#dc2626', shrink: 0 }} />
+            <AlertCircle size={16} color="var(--danger)" />
             <div>
-              <strong>Failed to refresh dashboard stats:</strong> {fetchError}
+              <strong>Telemetry Fetch Failure:</strong> {fetchError}
             </div>
           </div>
           <button
             onClick={() => fetchDashboardStats(true)}
             className="btn btn-secondary"
-            style={{
-              padding: '0.35rem 0.75rem',
-              fontSize: '0.75rem',
-              borderColor: '#fca5a5',
-              background: '#ffffff',
-              color: '#dc2626',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-            }}
+            style={{ fontSize: '0.75rem' }}
           >
-            <RefreshCw size={12} className={refreshing ? 'spin' : ''} />
-            Retry Connection
+            <RefreshCw size={12} className={refreshing ? 'spin' : ''} /> Retry Connection
           </button>
         </div>
       )}
 
       {/* SKELETON LOADER STATE */}
       {loading && !stats ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+        <div className="bento-grid">
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="card" style={{ padding: '1.25rem', height: '110px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#ffffff' }}>
-              <div style={{ width: '40%', height: '14px', background: '#e2e8f0', borderRadius: '4px' }} />
-              <div style={{ width: '60%', height: '28px', background: '#cbd5e1', borderRadius: '6px' }} />
-              <div style={{ width: '80%', height: '12px', background: '#f1f5f9', borderRadius: '4px' }} />
+            <div key={n} className="bento-card bento-span-3" style={{ height: '110px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Loading telemetry metric...</div>
             </div>
           ))}
         </div>
       ) : (
         <>
-          {/* COMPACT RESPONSIVE KPI METRIC STRIP (SCRUM-96) */}
+          {/* COMPACT RESPONSIVE KPI METRIC STRIP */}
           <KpiStrip
             items={[
               {
                 label: 'Active Tenants',
                 value: `${stats?.activeCompanies ?? 0} / ${stats?.totalCompanies ?? 0}`,
                 subtext: `${stats?.suspendedCompanies ?? 0} suspended • +12% MoM`,
-                icon: <Building size={20} />,
-                accentColor: 'var(--primary)',
+                icon: <Building size={16} />,
+                accentColor: 'var(--text-main)',
                 filterKey: 'companies',
-                sparklinePath: 'M0 16 Q 12 4, 24 10 T 48 2',
                 tooltip: 'Click to view Registered Companies'
               },
               {
                 label: 'Total Ledger Volume',
                 value: stats?.totalVolumeFormatted || formatIndianCurrency(stats?.totalVolume || 0),
-                subtext: `24h: ${stats?.volume24hFormatted || formatIndianCurrency(stats?.volume24h || 0)}`,
-                icon: <TrendingUp size={20} />,
-                accentColor: 'var(--success)',
+                subtext: `24h Volume: ${stats?.volume24hFormatted || formatIndianCurrency(stats?.volume24h || 0)}`,
+                icon: <TrendingUp size={16} />,
+                accentColor: 'var(--accent-green)',
                 filterKey: 'subscriptions',
-                sparklinePath: 'M0 18 Q 12 12, 24 6 T 48 2',
                 tooltip: 'Click to view Subscriptions & Billing'
               },
               {
                 label: 'System Uptime & Health',
                 value: `${stats?.systemHealth?.uptimePercent ?? 99.99}%`,
-                subtext: 'PostgreSQL & MongoDB Active',
-                icon: <Activity size={20} />,
-                accentColor: '#0284c7',
+                subtext: 'PostgreSQL & Mongo Active',
+                icon: <Activity size={16} />,
+                accentColor: 'var(--text-main)',
                 filterKey: 'system_health',
-                sparklinePath: 'M0 10 Q 12 10, 24 10 T 48 10',
                 tooltip: 'Click to view Telemetry & Sync DLQ'
               },
               {
                 label: 'Registered Platform Users',
                 value: String(stats?.totalUsers ?? 0),
                 subtext: `${stats?.superAdminsCount ?? 0} Super Admins`,
-                icon: <Users size={20} />,
-                accentColor: '#d97706',
+                icon: <Users size={16} />,
+                accentColor: 'var(--warning)',
                 filterKey: 'all_users',
-                sparklinePath: 'M0 14 Q 12 8, 24 12 T 48 4',
                 tooltip: 'Click to view User Directory'
               }
             ]}
             onFilterSelect={(tabKey) => onNavigateTab && onNavigateTab(tabKey)}
           />
 
-          {/* QUICK OPERATIONAL ACTION SHORTCUTS */}
-          <div className="card" style={{ padding: '1rem 1.25rem' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>
-              ⚡ Operational Quick Actions
+          {/* ASYMMETRICAL BENTO FINANCIAL BLUEPRINT & ACTIONS */}
+          <div className="bento-grid">
+            {/* PRIMARY ARR / MONETIZATION BANNER */}
+            <div className="bento-card bento-span-8" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '1.25rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Annualized Run-Rate (ARR) Runway
+                  </div>
+                  <span className="badge badge-pastel-green">
+                    <TrendingUp size={11} /> +18.4% YoY Projected
+                  </span>
+                </div>
+
+                <div style={{
+                  fontSize: 'clamp(2.2rem, 3.8vw, 3.2rem)',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-serif)',
+                  letterSpacing: '-0.025em',
+                  lineHeight: 1.05,
+                  color: 'var(--text-main)',
+                  marginTop: '0.25rem',
+                }}>
+                  {formatIndianCurrency((stats?.totalVolume || 0) * 12)}
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)', marginTop: '0.35rem' }}>
+                  Estimated baseline recurring software subscriptions across all active company tenants
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Estimated MRR</div>
+                  <div className="font-mono-tabular" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-green)', marginTop: '2px' }}>
+                    {formatIndianCurrency(stats?.totalVolume || 0)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>24h Transaction Volume</div>
+                  <div className="font-mono-tabular" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '2px' }}>
+                    {formatIndianCurrency(stats?.volume24h || 0)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cluster Heartbeat</div>
+                  <div className="font-mono-tabular" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '4px' }}>
+                    {lastRefreshed.toISOString().split('T')[1].slice(0, 8)} UTC
+                  </div>
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
-              <button
-                className="btn btn-secondary"
-                onClick={() => onNavigateTab && onNavigateTab('companies')}
-                style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem', fontSize: '0.8rem', gap: '0.5rem' }}
-              >
-                <Building size={15} style={{ color: '#4f46e5' }} />
-                <span>Manage Companies</span>
-              </button>
+
+            {/* OPERATIONAL SHORTCUTS BENTO BOX */}
+            <div className="bento-card bento-span-4" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.75rem' }}>
+                  Operational Shortcuts
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => onNavigateTab && onNavigateTab('companies')}
+                    style={{ justifyContent: 'space-between', padding: '0.6rem 0.85rem', fontSize: '0.78rem', width: '100%' }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Building size={14} color="var(--accent-blue)" /> Manage Tenants
+                    </span>
+                    <ChevronRight size={13} color="var(--text-tertiary)" />
+                  </button>
+
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => onNavigateTab && onNavigateTab('all_users')}
+                    style={{ justifyContent: 'space-between', padding: '0.6rem 0.85rem', fontSize: '0.78rem', width: '100%' }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Users size={14} color="var(--accent-green)" /> User Directory
+                    </span>
+                    <ChevronRight size={13} color="var(--text-tertiary)" />
+                  </button>
+
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => onNavigateTab && onNavigateTab('global_audit')}
+                    style={{ justifyContent: 'space-between', padding: '0.6rem 0.85rem', fontSize: '0.78rem', width: '100%' }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <FileText size={14} color="var(--accent-red)" /> Audit Stream
+                    </span>
+                    <ChevronRight size={13} color="var(--text-tertiary)" />
+                  </button>
+                </div>
+              </div>
 
               <button
-                className="btn btn-secondary"
-                onClick={() => onNavigateTab && onNavigateTab('all_users')}
-                style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem', fontSize: '0.8rem', gap: '0.5rem' }}
-              >
-                <Users size={15} style={{ color: '#10b981' }} />
-                <span>User Directory</span>
-              </button>
-
-              <button
-                className="btn btn-secondary"
-                onClick={() => onNavigateTab && onNavigateTab('global_audit')}
-                style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem', fontSize: '0.8rem', gap: '0.5rem' }}
-              >
-                <FileText size={15} style={{ color: '#0284c7' }} />
-                <span>Live Audit Trail</span>
-              </button>
-
-              <button
-                className="btn btn-secondary"
+                className="btn btn-primary"
                 onClick={onRegisterCompany}
-                style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem', fontSize: '0.8rem', gap: '0.5rem' }}
+                style={{ width: '100%', fontSize: '0.78rem', padding: '0.55rem' }}
               >
-                <Plus size={15} style={{ color: '#8b5cf6' }} />
-                <span>Provision Tenant</span>
+                <Plus size={13} /> Provision New Tenant
               </button>
             </div>
           </div>
 
           {/* RECENT TRANSACTIONS & INFRASTRUCTURE STATUS GRID */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
+          <div className="bento-grid">
             {/* Recent Transactions Snapshot */}
-            <div className="card" style={{ padding: '1rem 1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
-                  💳 Recent Financial Ledger Entries
+            <div className="bento-card bento-span-6" style={{ padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.65rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <CreditCard size={15} color="var(--accent-green)" />
+                  <span>Recent Financial Entries</span>
                 </div>
-                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Latest 5 entries</span>
+                <button
+                  className="btn btn-secondary"
+                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}
+                  onClick={() => onNavigateTab && onNavigateTab('subscriptions')}
+                >
+                  View All
+                </button>
               </div>
 
               {stats?.recentTransactions && stats.recentTransactions.length > 0 ? (
@@ -318,31 +345,22 @@ export default function AnalyticsDashboard({
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        padding: '0.5rem 0.6rem',
-                        background: '#f8fafc',
-                        borderRadius: '6px',
-                        border: '1px solid #e2e8f0',
+                        padding: '0.6rem 0.85rem',
+                        background: 'var(--bg-surface-elevated)',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)',
                         fontSize: '0.78rem',
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{tx.company?.name || 'Tenant'}</div>
-                        <div style={{ color: '#64748b', fontSize: '0.72rem' }}>{tx.description || 'Service Charge'}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{tx.company?.name || 'Tenant'}</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{tx.description || 'Subscription Renewal'}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 700, color: tx.status === 'SUCCESS' ? '#059669' : tx.status === 'REFUNDED' ? '#d97706' : '#dc2626' }}>
+                        <div className="font-mono-tabular" style={{ fontWeight: 700, color: tx.status === 'SUCCESS' ? 'var(--accent-green)' : tx.status === 'REFUNDED' ? 'var(--warning)' : 'var(--danger)', fontSize: '0.875rem' }}>
                           {formatIndianCurrency(tx.amount)}
                         </div>
-                        <span
-                          style={{
-                            fontSize: '0.68rem',
-                            padding: '0.1rem 0.35rem',
-                            borderRadius: '4px',
-                            background: tx.status === 'SUCCESS' ? '#ecfdf5' : '#fef2f2',
-                            color: tx.status === 'SUCCESS' ? '#065f46' : '#991b1b',
-                            fontWeight: 600,
-                          }}
-                        >
+                        <span className={`badge ${tx.status === 'SUCCESS' ? 'badge-pastel-green' : 'badge-pastel-red'}`} style={{ fontSize: '0.68rem', marginTop: '0.15rem' }}>
                           {tx.status}
                         </span>
                       </div>
@@ -350,46 +368,52 @@ export default function AnalyticsDashboard({
                   ))}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.8rem' }}>
-                  No recent ledger entries found.
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                  Zero financial entries detected
                 </div>
               )}
             </div>
 
             {/* Infrastructure & Database Health */}
-            <div className="card" style={{ padding: '1rem 1.25rem' }}>
-              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>
-                🛡️ Platform Infrastructure Status
+            <div className="bento-card bento-span-6" style={{ padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.65rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <Activity size={15} color="var(--accent-blue)" />
+                  <span>Platform Infrastructure</span>
+                </div>
+                <button
+                  className="btn btn-secondary"
+                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}
+                  onClick={() => onNavigateTab && onNavigateTab('system_health')}
+                >
+                  Deep Telemetry
+                </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                    <Database size={15} style={{ color: '#0284c7' }} />
-                    <span style={{ fontWeight: 600 }}>PostgreSQL Relational DB</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.78rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Database size={15} color="var(--accent-blue)" />
+                    <span style={{ fontWeight: 600 }}>PostgreSQL 16 Cluster</span>
                   </div>
-                  <span style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#065f46', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 700 }}>
-                    PORT 5433 • HEALTHY
-                  </span>
+                  <span className="badge badge-pastel-green">Port 5433 &bull; Healthy</span>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                    <FileText size={15} style={{ color: '#10b981' }} />
-                    <span style={{ fontWeight: 600 }}>MongoDB Audit Trail Store</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FileText size={15} color="var(--accent-green)" />
+                    <span style={{ fontWeight: 600 }}>MongoDB 7 Audit Store</span>
                   </div>
-                  <span style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#065f46', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 700 }}>
-                    PORT 27017 • CONNECTED
-                  </span>
+                  <span className="badge badge-pastel-green">Port 27017 &bull; Connected</span>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0.75rem', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                    <Clock size={15} style={{ color: '#8b5cf6' }} />
-                    <span style={{ fontWeight: 600 }}>Last Polling Heartbeat</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Clock size={15} color="var(--accent-yellow)" />
+                    <span style={{ fontWeight: 600 }}>Telemetry Heartbeat</span>
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    {lastRefreshed.toLocaleTimeString('en-IN')}
+                  <span className="font-mono-tabular" style={{ color: 'var(--text-muted)' }}>
+                    {lastRefreshed.toLocaleTimeString()}
                   </span>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Key, QrCode, CheckCircle, AlertTriangle, Copy, Lock, RefreshCw } from 'lucide-react';
+import { Shield, Key, QrCode, CheckCircle, AlertTriangle, Copy, Lock, RefreshCw, Terminal } from 'lucide-react';
 import Drawer from './ui/Drawer';
 import { useToast } from '../context/ToastContext';
 
@@ -138,15 +138,15 @@ export default function SecuritySettingsModal({
   const getFooter = () => {
     if (step === 'overview') {
       return (
-        <>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', width: '100%' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose} style={{ fontSize: '0.78rem' }}>
             Close
           </button>
           {user?.twoFactorEnabled ? (
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ color: '#dc2626' }}
+              style={{ color: 'var(--accent-red)', fontSize: '0.78rem' }}
               onClick={() => setStep('disable')}
             >
               Disable 2FA
@@ -157,19 +157,19 @@ export default function SecuritySettingsModal({
               className="btn btn-primary"
               onClick={handleStart2FASetup}
               disabled={loading}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}
             >
               <Key size={14} /> Enable Two-Factor Auth
             </button>
           )}
-        </>
+        </div>
       );
     }
 
     if (step === 'setup') {
       return (
-        <>
-          <button type="button" className="btn btn-secondary" onClick={() => setStep('overview')}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', width: '100%' }}>
+          <button type="button" className="btn btn-secondary" onClick={() => setStep('overview')} style={{ fontSize: '0.78rem' }}>
             Back
           </button>
           <button
@@ -177,30 +177,30 @@ export default function SecuritySettingsModal({
             className="btn btn-primary"
             onClick={handleVerifyAndEnable2FA}
             disabled={loading || verificationCode.length !== 6}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}
           >
-            <CheckCircle size={14} /> Verify & Activate 2FA
+            <CheckCircle size={14} /> Verify &amp; Activate 2FA
           </button>
-        </>
+        </div>
       );
     }
 
     if (step === 'disable') {
       return (
-        <>
-          <button type="button" className="btn btn-secondary" onClick={() => setStep('overview')}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', width: '100%' }}>
+          <button type="button" className="btn btn-secondary" onClick={() => setStep('overview')} style={{ fontSize: '0.78rem' }}>
             Cancel
           </button>
           <button
             type="button"
-            className="btn btn-primary"
-            style={{ background: '#dc2626' }}
+            className="btn btn-danger"
             onClick={handleDisable2FA}
             disabled={loading || verificationCode.length !== 6}
+            style={{ fontSize: '0.78rem' }}
           >
-            Confirm & Disable 2FA
+            Confirm &amp; Disable 2FA
           </button>
-        </>
+        </div>
       );
     }
 
@@ -211,80 +211,68 @@ export default function SecuritySettingsModal({
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
-      title="Account Security & MFA"
-      subtitle="TOTP RFC 6238 Multi-Factor Authentication & Session Controls"
-      icon={<Shield size={18} />}
+      title="Security Dossier & MFA Settings"
+      subtitle="TOTP RFC 6238 Authentication & Session Defense"
+      icon={<Shield size={18} color="var(--accent-red)" />}
       size="md"
       footer={getFooter()}
     >
       {/* STEP 1: OVERVIEW */}
       {step === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div
             style={{
-              background: user?.twoFactorEnabled ? 'var(--success-light)' : 'var(--warning-light)',
-              border: `1px solid ${user?.twoFactorEnabled ? 'var(--success)' : 'var(--warning)'}`,
-              borderRadius: '8px',
+              background: user?.twoFactorEnabled ? 'var(--accent-green-bg)' : 'var(--accent-yellow-bg)',
+              border: `1px solid ${user?.twoFactorEnabled ? 'rgba(46, 125, 50, 0.2)' : 'rgba(149, 100, 0, 0.2)'}`,
+              borderRadius: 'var(--radius-sm)',
               padding: '1rem',
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               gap: '0.75rem',
             }}
           >
             {user?.twoFactorEnabled ? (
-              <CheckCircle size={24} color="var(--success)" />
+              <CheckCircle size={20} color="var(--accent-green)" style={{ marginTop: '0.1rem' }} />
             ) : (
-              <AlertTriangle size={24} color="var(--warning)" />
+              <AlertTriangle size={20} color="var(--accent-yellow)" style={{ marginTop: '0.1rem' }} />
             )}
             <div>
               <div
                 style={{
                   fontWeight: 700,
-                  fontSize: '0.95rem',
-                  color: user?.twoFactorEnabled ? 'var(--success)' : 'var(--warning)',
+                  fontSize: '0.88rem',
+                  color: user?.twoFactorEnabled ? 'var(--accent-green)' : 'var(--accent-yellow)',
                 }}
               >
-                2FA Status: {user?.twoFactorEnabled ? 'PROTECTED (Active)' : 'NOT CONFIGURED'}
+                2FA Status: {user?.twoFactorEnabled ? 'Protected (Active)' : 'Not Configured (Elevated Risk)'}
               </div>
               <div
                 style={{
                   fontSize: '0.78rem',
                   color: 'var(--text-muted)',
-                  marginTop: '0.1rem',
+                  marginTop: '0.25rem',
+                  lineHeight: 1.5
                 }}
               >
                 {user?.twoFactorEnabled
-                  ? 'Your Super Admin account requires a 6-digit TOTP code during every login.'
-                  : 'Protect your operations account with Google Authenticator, Authy, or Microsoft Authenticator.'}
+                  ? 'Super Admin account requires a 6-digit TOTP RFC 6238 token upon every login.'
+                  : 'Protect your OPS Super Admin privileges using Google Authenticator, Microsoft Authenticator, or 1Password.'}
               </div>
             </div>
           </div>
 
-          <div
-            style={{
-              background: 'var(--bg-canvas)',
-              padding: '1rem',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              fontSize: '0.8rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Account:</span>
-              <strong>{user?.email || 'admin@ops.saas'}</strong>
+          <div className="card" style={{ padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', background: 'var(--bg-surface-elevated)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Account Identity:</span>
+              <span className="font-mono-tabular" style={{ fontWeight: 600 }}>{user?.email || 'admin@ops.saas'}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Auth Architecture:</span>
-              <strong>JWT (Argon2 / Bcrypt) + TOTP RFC 6238</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Auth Cipher:</span>
+              <span className="font-mono-tabular">Argon2id + TOTP RFC 6238</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Session Killswitch:</span>
-              <span className="badge badge-active" style={{ fontSize: '0.7rem' }}>
-                ACTIVE ENFORCEMENT
-              </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Session Policy:</span>
+              <span className="badge badge-pastel-green">Global Token Revocation Armed</span>
             </div>
           </div>
         </div>
@@ -293,17 +281,17 @@ export default function SecuritySettingsModal({
       {/* STEP 2: SETUP 2FA */}
       {step === 'setup' && (
         <form onSubmit={handleVerifyAndEnable2FA} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
-            Scan the QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, or 1Password):
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>
+            Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, or 1Password):
           </p>
 
           <div
             style={{
               display: 'flex',
               justifyContent: 'center',
-              padding: '1rem',
-              background: 'var(--bg-canvas)',
-              borderRadius: '8px',
+              padding: '1.25rem',
+              background: 'var(--bg-surface-elevated)',
+              borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border)',
             }}
           >
@@ -311,40 +299,42 @@ export default function SecuritySettingsModal({
               <img
                 src={qrCodeUrl}
                 alt="TOTP QR Code"
-                style={{ width: '180px', height: '180px', borderRadius: '6px' }}
+                style={{ width: '160px', height: '160px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
               />
             ) : (
-              <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Generating QR...</div>
+              <div style={{ padding: '2rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>Generating QR matrix...</div>
             )}
           </div>
 
           <div>
             <label
               style={{
-                fontSize: '0.75rem',
+                fontSize: '0.78rem',
                 fontWeight: 600,
                 color: 'var(--text-muted)',
                 display: 'block',
-                marginBottom: '0.25rem',
+                marginBottom: '0.35rem',
               }}
             >
-              Or enter this Secret Key manually:
+              Or enter secret key manually:
             </label>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <code
+              <samp
+                className="font-mono-tabular"
                 style={{
                   flex: 1,
-                  padding: '0.4rem 0.6rem',
-                  background: 'var(--border-subtle)',
-                  borderRadius: '5px',
-                  fontSize: '0.82rem',
+                  padding: '0.45rem 0.65rem',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.78rem',
                   letterSpacing: '1px',
                   wordBreak: 'break-all',
                 }}
               >
                 {totpSecret}
-              </code>
-              <button type="button" className="btn btn-secondary" onClick={copySecret} title="Copy Key">
+              </samp>
+              <button type="button" className="btn btn-secondary" onClick={copySecret} title="Copy Key" style={{ padding: '0.4rem 0.65rem' }}>
                 <Copy size={13} />
               </button>
             </div>
@@ -360,14 +350,14 @@ export default function SecuritySettingsModal({
                 marginBottom: '0.35rem',
               }}
             >
-              Enter the 6-digit code shown in your app:
+              Enter 6-digit code from app:
             </label>
             <input
               type="text"
               maxLength="6"
               placeholder="123456"
-              className="form-control"
-              style={{ fontSize: '1.25rem', letterSpacing: '4px', textAlign: 'center', fontWeight: 700 }}
+              className="form-control font-mono-tabular"
+              style={{ fontSize: '1.25rem', letterSpacing: '6px', textAlign: 'center', fontWeight: 700, borderRadius: 'var(--radius-sm)' }}
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
               autoFocus
@@ -381,15 +371,16 @@ export default function SecuritySettingsModal({
         <form onSubmit={handleDisable2FA} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div
             style={{
-              background: 'var(--danger-light)',
+              background: 'var(--accent-red-bg)',
               padding: '0.85rem',
-              borderRadius: '6px',
-              border: '1px solid var(--danger)',
-              fontSize: '0.8rem',
-              color: 'var(--danger)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(198, 40, 40, 0.2)',
+              fontSize: '0.78rem',
+              color: 'var(--accent-red)',
+              lineHeight: 1.5
             }}
           >
-            ⚠️ Disabling Two-Factor Authentication reduces your Super Admin account security. Enter current OTP code to confirm.
+            ⚠️ <strong>Warning:</strong> Disabling Two-Factor Authentication lowers account security defenses. Enter your current 6-digit code to confirm.
           </div>
 
           <div>
@@ -408,8 +399,8 @@ export default function SecuritySettingsModal({
               type="text"
               maxLength="6"
               placeholder="123456"
-              className="form-control"
-              style={{ fontSize: '1.25rem', letterSpacing: '4px', textAlign: 'center', fontWeight: 700 }}
+              className="form-control font-mono-tabular"
+              style={{ fontSize: '1.25rem', letterSpacing: '6px', textAlign: 'center', fontWeight: 700, borderRadius: 'var(--radius-sm)' }}
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
               autoFocus
@@ -420,3 +411,4 @@ export default function SecuritySettingsModal({
     </Drawer>
   );
 }
+

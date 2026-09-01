@@ -204,55 +204,76 @@ export default function RoleManagement({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.85rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Lock size={22} style={{ color: '#4f46e5' }} />
-            Role & RBAC Permission Matrix
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0.15rem 0 0 0' }}>
-            Configure access controls, granular privilege schemes, and inspect system safety guards.
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Lock size={18} color="var(--accent-red)" />
+            RBAC Roles & Permission Schemes
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
+            Tenant permission boundaries, privilege matrices & system immutability guards
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className="btn btn-secondary"
             onClick={fetchRoles}
-            style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{ fontSize: '0.78rem' }}
           >
-            <RefreshCw size={13} /> Refresh
+            <RefreshCw size={13} className={loading ? 'spin' : ''} /> Refresh
           </button>
           <button
             className="btn btn-primary"
             onClick={handleOpenCreate}
-            style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            style={{ fontSize: '0.78rem' }}
           >
-            <Plus size={14} /> Create Custom Role
+            <Plus size={14} /> Provision Custom Role
           </button>
         </div>
       </div>
 
+      {/* TELEMETRY READOUT BAR */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          background: 'var(--bg-surface-elevated)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.65rem 1rem',
+          fontSize: '0.78rem',
+        }}
+      >
+        <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>RBAC Telemetry:</span>
+        <span style={{ color: 'var(--text-main)' }}>Total Roles: <strong className="font-mono-tabular">{roles.length}</strong></span>
+        <span style={{ color: 'var(--accent-yellow)' }}>System Locked: <strong className="font-mono-tabular">{roles.filter(r => r.isSystemDefined).length}</strong></span>
+        <span style={{ color: 'var(--accent-green)' }}>Custom Tenant: <strong className="font-mono-tabular">{roles.filter(r => !r.isSystemDefined).length}</strong></span>
+        <span style={{ color: 'var(--accent-blue)' }}>Immutability: <strong>Enforced (403)</strong></span>
+      </div>
+
       {/* FILTER TOOLBAR */}
-      <div className="card" style={{ padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
+      <div className="card" style={{ padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '280px' }}>
           <div style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
-            <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               placeholder="Search roles or permissions..."
               className="form-control"
-              style={{ paddingLeft: '2.1rem', fontSize: '0.8rem' }}
+              style={{ paddingLeft: '2.2rem', fontSize: '0.78rem', borderRadius: 'var(--radius-sm)' }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Building size={13} style={{ color: '#64748b' }} />
+            <Building size={13} color="var(--text-muted)" />
             <select
               className="form-control"
-              style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem' }}
+              style={{ fontSize: '0.78rem', padding: '0.3rem 0.5rem', borderRadius: 'var(--radius-sm)' }}
               value={selectedCompanyId}
               onChange={(e) => setSelectedCompanyId(e.target.value)}
             >
@@ -265,14 +286,14 @@ export default function RoleManagement({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#92400e', fontWeight: 600 }}>
-            <Lock size={12} /> System Defined = Locked
+          <span className="badge badge-pastel-yellow">
+            System Defined = Immutable
           </span>
         </div>
       </div>
 
       {/* ROLES GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '0.85rem' }}>
         {filteredRoles.map((r) => {
           const isLocked = r.isSystemDefined;
 
@@ -281,114 +302,106 @@ export default function RoleManagement({
               key={r.id}
               className="card"
               style={{
-                padding: '1.25rem',
+                padding: '1.15rem',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 gap: '0.85rem',
-                borderTop: `3px solid ${isLocked ? '#92400e' : '#4f46e5'}`
+                borderLeft: `3px solid ${isLocked ? 'var(--accent-yellow)' : 'var(--accent-green)'}`
               }}
             >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                         {r.name}
                       </h3>
                       {isLocked ? (
                         <span
-                          style={{
-                            background: '#fef3c7',
-                            color: '#92400e',
-                            padding: '0.1rem 0.4rem',
-                            borderRadius: '4px',
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.2rem'
-                          }}
+                          className="badge badge-pastel-yellow"
+                          style={{ fontSize: '0.65rem' }}
                           title="System-defined role cannot be modified or deleted"
                         >
-                          <Lock size={10} /> SYSTEM LOCKED
+                          System Locked
                         </span>
                       ) : (
-                        <span style={{ background: '#ecfdf5', color: '#065f46', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 600 }}>
-                          CUSTOM ROLE
+                        <span className="badge badge-pastel-green" style={{ fontSize: '0.65rem' }}>
+                          Custom
                         </span>
                       )}
                     </div>
 
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                       Tenant: <strong>{r.company?.name || 'Global Template'}</strong>
                     </div>
                   </div>
 
-                  <span style={{ fontSize: '0.72rem', background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px', color: '#475569', fontWeight: 600 }}>
-                    {r._count?.users ?? 0} Users Assigned
+                  <span className="font-mono-tabular badge badge-pastel-blue" style={{ fontSize: '0.7rem' }}>
+                    {r._count?.users ?? 0} Users
                   </span>
                 </div>
 
-                {/* PERMISSION TAGS PREVIEW */}
+                {/* BINARY PERMISSION MATRIX PREVIEW */}
                 <div style={{ marginTop: '0.75rem' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
                     Granted Privileges ({r.permissions?.length || 0})
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', maxHeight: '110px', overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', maxHeight: '100px', overflowY: 'auto' }}>
                     {r.permissions && r.permissions.length > 0 ? (
                       r.permissions.map((p) => (
                         <span
                           key={p}
                           style={{
-                            background: '#f8fafc',
-                            border: '1px solid #e2e8f0',
-                            padding: '0.1rem 0.35rem',
-                            borderRadius: '4px',
+                            background: 'var(--bg-surface-elevated)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '3px',
+                            padding: '0.15rem 0.4rem',
                             fontSize: '0.68rem',
-                            color: '#334155'
+                            color: 'var(--text-main)',
+                            fontWeight: 500
                           }}
                         >
-                          <code>{p}</code>
+                          {p}
                         </span>
                       ))
                     ) : (
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>No explicit permissions assigned</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>No explicit privileges</span>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* FOOTER ACTIONS */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.65rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', borderTop: '1px solid var(--border)', paddingTop: '0.65rem' }}>
                 <button
                   className="btn btn-secondary"
                   style={{
-                    padding: '0.25rem 0.6rem',
+                    padding: '0.25rem 0.55rem',
                     fontSize: '0.72rem',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.25rem',
-                    opacity: isLocked ? 0.6 : 1,
+                    opacity: isLocked ? 0.5 : 1,
                     cursor: isLocked ? 'not-allowed' : 'pointer'
                   }}
                   disabled={isLocked}
                   onClick={() => handleOpenEdit(r)}
                   title={isLocked ? 'System role cannot be modified' : 'Edit role permissions'}
                 >
-                  <Edit2 size={12} /> Edit Permissions
+                  <Edit2 size={12} /> Edit
                 </button>
 
                 <button
                   className="btn btn-secondary"
                   style={{
-                    padding: '0.25rem 0.6rem',
+                    padding: '0.25rem 0.55rem',
                     fontSize: '0.72rem',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.25rem',
-                    color: isLocked ? '#94a3b8' : '#dc2626',
-                    opacity: isLocked ? 0.6 : 1,
+                    color: isLocked ? 'var(--text-muted)' : 'var(--accent-red)',
+                    opacity: isLocked ? 0.5 : 1,
                     cursor: isLocked ? 'not-allowed' : 'pointer'
                   }}
                   disabled={isLocked || (r._count?.users > 0)}
@@ -403,15 +416,20 @@ export default function RoleManagement({
         })}
       </div>
 
-      {/* CREATE / EDIT ROLE MODAL WITH PERMISSION CHECK-GRID */}
+      {/* CREATE / EDIT ROLE MODAL WITH BINARY PERMISSION MATRIX */}
       {showRoleModal && (
         <div className="modal-backdrop" style={{ zIndex: 1200 }}>
-          <div className="modal-content" style={{ maxWidth: '640px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
-                {editingRole ? `Edit Role: ${editingRole.name}` : 'Create Custom RBAC Role'}
-              </h2>
-              <button onClick={() => setShowRoleModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+          <div className="modal-content" style={{ maxWidth: '660px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent-red)' }}>
+                  RBAC Access Control Scheme
+                </div>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0.2rem 0 0 0' }}>
+                  {editingRole ? `Edit Role: ${editingRole.name}` : 'Provision Custom RBAC Role'}
+                </h2>
+              </div>
+              <button onClick={() => setShowRoleModal(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '0.3rem', cursor: 'pointer' }}><X size={16} /></button>
             </div>
 
             <form onSubmit={handleRoleSubmit}>
@@ -443,15 +461,15 @@ export default function RoleManagement({
                 </div>
               </div>
 
-              {/* PERMISSION MATRIX CHECK-GRID */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>
-                  Fine-Grained Privilege Schemes (RBAC Matrix)
+              {/* BINARY PERMISSION MATRIX CHECK-GRID */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                  Permission Matrix:
                 </div>
 
                 {Object.entries(PERMISSION_CATEGORIES).map(([category, perms]) => (
-                  <div key={category} style={{ background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e40af', marginBottom: '0.5rem' }}>
+                  <div key={category} style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)', marginBottom: '0.5rem' }}>
                       {category}
                     </div>
 
@@ -465,12 +483,14 @@ export default function RoleManagement({
                             style={{
                               display: 'flex',
                               alignItems: 'flex-start',
-                              gap: '0.4rem',
+                              gap: '0.5rem',
                               fontSize: '0.75rem',
                               cursor: 'pointer',
-                              padding: '0.25rem',
-                              borderRadius: '4px',
-                              background: checked ? '#eef2ff' : 'transparent'
+                              padding: '0.4rem 0.5rem',
+                              borderRadius: 'var(--radius-sm)',
+                              border: `1px solid ${checked ? 'var(--primary)' : 'var(--border)'}`,
+                              background: checked ? 'var(--bg-surface)' : 'transparent',
+                              transition: 'all 0.15s ease'
                             }}
                           >
                             <input
@@ -480,8 +500,10 @@ export default function RoleManagement({
                               style={{ marginTop: '0.15rem' }}
                             />
                             <div>
-                              <div style={{ fontWeight: 600, color: checked ? '#4338ca' : '#1e293b' }}>{p.label}</div>
-                              <code style={{ fontSize: '0.68rem', color: '#64748b' }}>{p.code}</code>
+                              <div style={{ fontWeight: 600, color: checked ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                                {p.label}
+                              </div>
+                              <code className="font-mono-tabular" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{p.code}</code>
                             </div>
                           </label>
                         );
@@ -491,10 +513,12 @@ export default function RoleManagement({
                 ))}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowRoleModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">
-                  {editingRole ? 'Save Changes' : 'Create Role'}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.25rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border)' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowRoleModal(false)} style={{ fontSize: '0.78rem' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ fontSize: '0.78rem' }}>
+                  {editingRole ? 'Save Changes' : 'Provision Role'}
                 </button>
               </div>
             </form>

@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Scissors,
   DollarSign,
-  Activity
+  Activity,
+  Terminal
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
@@ -23,9 +24,9 @@ import { useToast } from '../context/ToastContext';
 const PARAMETER_CATEGORIES = [
   {
     id: 'textile_production',
-    title: '🧵 Textile & Production Rules',
+    title: '/// 01_TEXTILE_PRODUCTION_RULES',
     description: 'SAC rates, stitching tolerances, decimals, and machine caps',
-    icon: <Scissors size={15} />,
+    icon: <Scissors size={14} />,
     keys: [
       'sac_code',
       'default_rate_per_1000',
@@ -37,9 +38,9 @@ const PARAMETER_CATEGORIES = [
   },
   {
     id: 'karigar_accounting',
-    title: '💰 Karigar & Job-Work Accounting',
+    title: '/// 02_KARIGAR_ACCOUNTING',
     description: 'Wage deduction, TDS, advance limits, and challan prefixes',
-    icon: <DollarSign size={15} />,
+    icon: <DollarSign size={14} />,
     keys: [
       'karigar_tds_deduction_percent',
       'jobwork_challan_prefix',
@@ -49,9 +50,9 @@ const PARAMETER_CATEGORIES = [
   },
   {
     id: 'integration_governance',
-    title: '⚡ Integration & Governance',
+    title: '/// 03_INTEGRATION_GOVERNANCE',
     description: 'Outbound sync webhooks, retry thresholds, and audit retention',
-    icon: <Activity size={15} />,
+    icon: <Activity size={14} />,
     keys: [
       'outbound_sync_enabled',
       'sync_retry_max_attempts',
@@ -62,9 +63,9 @@ const PARAMETER_CATEGORIES = [
   },
   {
     id: 'security_geofence',
-    title: '🛡️ Factory IP Whitelist & Geofence Gate',
+    title: '/// 04_SECURITY_GEOFENCE_GATE',
     description: 'Subnet restrictions, factory GPS coordinates, and geofence radius',
-    icon: <Lock size={15} />,
+    icon: <Lock size={14} />,
     keys: [
       'allowed_ip_subnets',
       'factory_gps_latitude',
@@ -187,8 +188,8 @@ export default function CompanyParameterDrawer({
     if (p.dataType === 'BOOLEAN' || p.value === 'true' || p.value === 'false') {
       const isChecked = editingValues[p.key] === 'true' || editingValues[p.key] === true;
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
             <input
               type="checkbox"
               checked={isChecked}
@@ -198,7 +199,7 @@ export default function CompanyParameterDrawer({
                 handleSaveParam(p.key, newVal);
               }}
             />
-            {isChecked ? 'Enabled' : 'Disabled'}
+            <span className={`badge ${isChecked ? 'badge-pastel-green' : 'badge-pastel-yellow'}`}>{isChecked ? 'Enabled' : 'Disabled'}</span>
           </label>
         </div>
       );
@@ -216,7 +217,7 @@ export default function CompanyParameterDrawer({
               setEditingValues((prev) => ({ ...prev, [p.key]: val }));
               handleSaveParam(p.key, val);
             }}
-            style={{ fontSize: '0.78rem', padding: '0.35rem 0.5rem', width: '160px' }}
+            style={{ fontSize: '0.78rem', padding: '0.3rem 0.5rem', width: '150px', borderRadius: 'var(--radius-sm)' }}
           >
             <option value="NEAREST_RUPEE">NEAREST_RUPEE</option>
             <option value="ROUND_UP">ROUND_UP</option>
@@ -228,11 +229,11 @@ export default function CompanyParameterDrawer({
     }
 
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
         <input
           type={p.dataType === 'NUMBER' ? 'number' : 'text'}
           className="form-control"
-          style={{ width: '140px', fontSize: '0.78rem', padding: '0.35rem 0.5rem' }}
+          style={{ width: '130px', fontSize: '0.78rem', padding: '0.3rem 0.5rem', borderRadius: 'var(--radius-sm)' }}
           value={editingValues[p.key] ?? p.value}
           onChange={(e) => setEditingValues((prev) => ({ ...prev, [p.key]: e.target.value }))}
         />
@@ -240,11 +241,11 @@ export default function CompanyParameterDrawer({
           <button
             type="button"
             className="btn btn-primary"
-            style={{ padding: '0.3rem 0.55rem', fontSize: '0.72rem' }}
+            style={{ padding: '0.25rem 0.45rem', fontSize: '0.72rem' }}
             disabled={savingKey === p.key}
             onClick={() => handleSaveParam(p.key, editingValues[p.key])}
           >
-            <Save size={12} /> {savingKey === p.key ? '...' : 'Save'}
+            <Save size={11} /> {savingKey === p.key ? '...' : 'Save'}
           </button>
         )}
       </div>
@@ -256,39 +257,40 @@ export default function CompanyParameterDrawer({
       <div
         style={{
           width: '100%',
-          maxWidth: '560px',
+          maxWidth: '580px',
           height: '100vh',
           background: 'var(--bg-surface)',
-          boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
+          borderLeft: '1px solid var(--border)',
           display: 'flex',
           flexDirection: 'column',
-          animation: 'slideInRight 0.25s ease-out'
+          boxShadow: 'var(--shadow-drawer)',
+          animation: 'slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
         {/* HEADER */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface-elevated)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
-              <Sliders size={14} /> Parameter Settings Drawer
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-red)', fontSize: '0.75rem', fontWeight: 600 }}>
+              <Sliders size={14} /> Parameter Store &bull; Seed & Overrides
             </div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.15rem 0 0 0' }}>
-              {company.name} <code style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>{company.code}</code>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', margin: '0.2rem 0 0 0' }}>
+              {company.name} <span className="font-mono-tabular" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>[{company.code}]</span>
             </h2>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-            <X size={20} />
+          <button onClick={onClose} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '0.35rem', cursor: 'pointer', color: 'var(--text-muted)' }}>
+            <X size={16} />
           </button>
         </div>
 
         {/* SEARCH BAR */}
-        <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-canvas)' }}>
+        <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
           <div style={{ position: 'relative' }}>
             <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              placeholder="Live filter across all 18 parameter keys..."
+              placeholder="Search parameter key, description or value..."
               className="form-control"
-              style={{ paddingLeft: '2.2rem', fontSize: '0.78rem', width: '100%' }}
+              style={{ paddingLeft: '2.2rem', fontSize: '0.78rem', width: '100%', borderRadius: 'var(--radius-sm)' }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -296,7 +298,7 @@ export default function CompanyParameterDrawer({
         </div>
 
         {/* ACCORDION CONTENT */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           {PARAMETER_CATEGORIES.map((cat) => {
             const catParams = parameters.filter((p) => {
               const matchesCat = cat.keys.includes(p.key);
@@ -315,7 +317,7 @@ export default function CompanyParameterDrawer({
             const isAccordionOpen = search ? true : openAccordions[cat.id];
 
             return (
-              <div key={cat.id} style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', background: 'var(--bg-surface)' }}>
+              <div key={cat.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', overflow: 'hidden' }}>
                 <button
                   type="button"
                   onClick={() => toggleAccordion(cat.id)}
@@ -325,37 +327,39 @@ export default function CompanyParameterDrawer({
                     justifyContent: 'space-between',
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    background: 'var(--border-subtle)',
+                    background: 'var(--bg-surface-elevated)',
                     border: 'none',
+                    borderBottom: isAccordionOpen ? '1px solid var(--border)' : 'none',
                     textAlign: 'left',
                     cursor: 'pointer'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: 'var(--primary)' }}>{cat.icon}</span>
+                    <span style={{ color: 'var(--accent-blue)' }}>{cat.icon}</span>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>{cat.title}</div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{cat.description}</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-main)' }}>{cat.title.replace('/// ', '')}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{cat.description}</div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span className="badge badge-system" style={{ fontSize: '0.65rem' }}>{catParams.length} rules</span>
-                    {isAccordionOpen ? <ChevronDown size={16} color="var(--text-muted)" /> : <ChevronRight size={16} color="var(--text-muted)" />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span className="badge badge-pastel-blue" style={{ fontSize: '0.7rem' }}>{catParams.length} Rules</span>
+                    {isAccordionOpen ? <ChevronDown size={14} color="var(--text-muted)" /> : <ChevronRight size={14} color="var(--text-muted)" />}
                   </div>
                 </button>
 
                 {isAccordionOpen && (
-                  <div style={{ padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {catParams.map((p) => {
                       const isOverride = p.companyId && p.companyId !== '00000000-0000-0000-0000-000000000000';
                       return (
                         <div
                           key={p.key}
                           style={{
-                            padding: '0.6rem 0.75rem',
+                            padding: '0.65rem 0.85rem',
                             border: '1px solid var(--border)',
-                            borderRadius: '6px',
-                            background: isOverride ? 'var(--primary-light)' : 'var(--bg-surface)',
+                            borderRadius: 'var(--radius-sm)',
+                            background: isOverride ? 'var(--bg-surface-elevated)' : 'var(--bg-surface)',
+                            borderLeft: isOverride ? '3px solid var(--accent-green)' : '3px solid var(--border)',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center'
@@ -363,9 +367,9 @@ export default function CompanyParameterDrawer({
                         >
                           <div style={{ flex: 1, paddingRight: '0.75rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)' }}>{p.key}</span>
-                              <span className={isOverride ? 'badge badge-active' : 'badge badge-seed'} style={{ fontSize: '0.65rem' }}>
-                                {isOverride ? 'Tenant Override' : 'Inherited Master'}
+                              <span className="font-mono-tabular" style={{ fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-main)' }}>{p.key}</span>
+                              <span className={`badge ${isOverride ? 'badge-pastel-green' : 'badge-pastel-blue'}`} style={{ fontSize: '0.65rem' }}>
+                                {isOverride ? 'Override' : 'Default'}
                               </span>
                             </div>
                             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
@@ -373,17 +377,17 @@ export default function CompanyParameterDrawer({
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                             {renderParameterInput(p)}
                             {isOverride && (
                               <button
                                 type="button"
                                 className="btn btn-secondary"
-                                style={{ padding: '0.3rem 0.45rem', fontSize: '0.7rem' }}
-                                title="Reset override back to 000 Master Seed"
+                                style={{ padding: '0.25rem 0.4rem', fontSize: '0.7rem' }}
+                                title="Reset override back to Master Seed"
                                 onClick={() => setConfirmResetKey(p.key)}
                               >
-                                <RotateCcw size={12} />
+                                <RotateCcw size={11} />
                               </button>
                             )}
                           </div>
@@ -398,9 +402,9 @@ export default function CompanyParameterDrawer({
         </div>
 
         {/* FOOTER */}
-        <div style={{ padding: '0.85rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--bg-canvas)', display: 'flex', justifyContent: 'flex-end' }}>
-          <button className="btn btn-secondary" onClick={onClose}>
-            Close Drawer
+        <div style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid var(--border)', background: 'var(--bg-surface)', display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="btn btn-secondary" onClick={onClose} style={{ fontSize: '0.78rem' }}>
+            Close
           </button>
         </div>
 
@@ -420,3 +424,4 @@ export default function CompanyParameterDrawer({
     </div>
   );
 }
+

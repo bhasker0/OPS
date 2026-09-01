@@ -7,18 +7,14 @@ import {
   Copy,
   Check,
   Building,
-  Calendar,
   Layers,
-  Shield,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
   Eye,
   Download,
   ChevronLeft,
   ChevronRight,
+  Terminal,
   Clock,
-  X
+  Sparkles
 } from 'lucide-react';
 import Drawer from './ui/Drawer';
 import { API_BASE } from '../config/api';
@@ -29,7 +25,6 @@ export default function AuditLogViewer({
   companies = [],
   apiBase = API_BASE,
   companyId = null,
-  onRefresh
 }) {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
@@ -146,91 +141,123 @@ export default function AuditLogViewer({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* HEADER & ACTION BUTTONS */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.85rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <FileText size={22} style={{ color: '#4f46e5' }} />
-            Audit Trail & Compliance Inspector
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0.15rem 0 0 0' }}>
-            Real-time immutable MongoDB compliance logs, change-deltas, and security forensic telemetry.
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
+            <FileText size={18} color="var(--accent-red)" />
+            Audit Stream & Forensic Logs
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
+            Immutable MongoDB event telemetry and real-time state mutation diffs
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className="btn btn-secondary"
             onClick={handleExportCsv}
-            style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{ fontSize: '0.78rem' }}
           >
             <Download size={13} /> Export CSV
           </button>
 
           <button
-            className="btn btn-secondary"
+            className="btn btn-primary"
             onClick={handleExportJson}
-            style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{ fontSize: '0.78rem' }}
           >
-            <Download size={13} /> Export JSON
+            <Download size={13} /> Export NDJSON
           </button>
 
           <button
             className="btn btn-secondary"
             onClick={() => fetchLogs(true)}
             disabled={refreshing}
-            style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{ fontSize: '0.78rem' }}
           >
             <RefreshCw size={13} className={refreshing ? 'spin' : ''} /> Refresh
           </button>
         </div>
       </div>
 
-      {/* AGGREGATE SUMMARY PILLS */}
+      {/* AGGREGATE SUMMARY BENTO STRIP */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
-          <div className="card" style={{ padding: '0.75rem 1rem', borderLeft: '3px solid #4f46e5' }}>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Total Audit Events</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e1b4b' }}>{stats.totalEvents}</div>
+        <div className="kpi-strip">
+          <div className="kpi-card-compact">
+            <div>
+              <div className="kpi-metric-label">Total Audit Events</div>
+              <div className="kpi-metric-value">{stats.totalEvents}</div>
+            </div>
           </div>
-          <div className="card" style={{ padding: '0.75rem 1rem', borderLeft: '3px solid #10b981' }}>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Successful Mutations</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#064e3b' }}>{stats.byStatus?.SUCCESS || 0}</div>
+          <div className="kpi-card-compact" style={{ borderLeft: '3px solid var(--accent-green)' }}>
+            <div>
+              <div className="kpi-metric-label" style={{ color: 'var(--accent-green)' }}>Successful Mutations</div>
+              <div className="kpi-metric-value" style={{ color: 'var(--accent-green)' }}>{stats.byStatus?.SUCCESS || 0}</div>
+            </div>
           </div>
-          <div className="card" style={{ padding: '0.75rem 1rem', borderLeft: '3px solid #dc2626' }}>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Security Alerts & Blocks</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#7f1d1d' }}>{stats.byStatus?.FAILURE || stats.byStatus?.WARNING || 0}</div>
+          <div className="kpi-card-compact" style={{ borderLeft: '3px solid var(--accent-red)' }}>
+            <div>
+              <div className="kpi-metric-label" style={{ color: 'var(--accent-red)' }}>Security Alerts & Blocks</div>
+              <div className="kpi-metric-value" style={{ color: 'var(--accent-red)' }}>{stats.byStatus?.FAILURE || stats.byStatus?.WARNING || 0}</div>
+            </div>
           </div>
-          <div className="card" style={{ padding: '0.75rem 1rem', borderLeft: '3px solid #8b5cf6' }}>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Active Logging Modules</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#4c1d95' }}>{Object.keys(stats.byModule || {}).length}</div>
+          <div className="kpi-card-compact">
+            <div>
+              <div className="kpi-metric-label">Active Modules</div>
+              <div className="kpi-metric-value">{Object.keys(stats.byModule || {}).length}</div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* MULTI-FILTER TOOLBAR */}
-      <div className="card" style={{ padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      {/* SEGMENTED FILTERS BAR */}
+      <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {/* Search Box */}
-          <div style={{ position: 'relative', flex: 1, minWidth: '220px', maxWidth: '340px' }}>
-            <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          {/* Search Input */}
+          <div style={{ position: 'relative', flex: 1, minWidth: '240px', maxWidth: '360px' }}>
+            <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
-              placeholder="Search by action, operator, details..."
+              placeholder="Search action, operator, details..."
               className="form-control"
-              style={{ paddingLeft: '2.1rem', fontSize: '0.8rem' }}
+              style={{ paddingLeft: '2.2rem', fontSize: '0.8125rem', borderRadius: 'var(--radius-sm)' }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') fetchLogs(); }}
             />
           </div>
 
-          {/* Company Filter (if in global view) */}
+          {/* Segmented Time-Window Selectors */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'var(--bg-surface-elevated)', padding: '0.2rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', padding: '0 0.4rem' }}>
+              <Clock size={12} style={{ display: 'inline', marginRight: '3px' }} /> Window:
+            </span>
+            {['24H', '7D', '30D', 'ALL'].map((range) => (
+              <button
+                key={range}
+                type="button"
+                className={`btn ${dateRange === range ? 'btn-primary' : 'btn-secondary'}`}
+                style={{
+                  padding: '0.25rem 0.55rem',
+                  fontSize: '0.75rem',
+                  border: 'none',
+                  borderRadius: 'var(--radius-sm)',
+                  boxShadow: dateRange === range ? 'var(--shadow-card)' : 'none'
+                }}
+                onClick={() => { setDateRange(range); setPage(1); }}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+
+          {/* Company Filter */}
           {!companyId && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <Building size={13} style={{ color: '#64748b' }} />
+              <Building size={14} color="var(--text-muted)" />
               <select
                 className="form-control"
-                style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem' }}
+                style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', borderRadius: 'var(--radius-sm)' }}
                 value={selectedCompany}
                 onChange={(e) => { setSelectedCompany(e.target.value); setPage(1); }}
               >
@@ -244,10 +271,10 @@ export default function AuditLogViewer({
 
           {/* Module Filter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Layers size={13} style={{ color: '#64748b' }} />
+            <Layers size={14} color="var(--text-muted)" />
             <select
               className="form-control"
-              style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem' }}
+              style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', borderRadius: 'var(--radius-sm)' }}
               value={selectedModule}
               onChange={(e) => { setSelectedModule(e.target.value); setPage(1); }}
             >
@@ -257,28 +284,12 @@ export default function AuditLogViewer({
             </select>
           </div>
 
-          {/* Date Range Presets */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Calendar size={13} style={{ color: '#64748b' }} />
-            <select
-              className="form-control"
-              style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem' }}
-              value={dateRange}
-              onChange={(e) => { setDateRange(e.target.value); setPage(1); }}
-            >
-              <option value="ALL">All Time</option>
-              <option value="24H">Last 24 Hours</option>
-              <option value="7D">Last 7 Days</option>
-              <option value="30D">Last 30 Days</option>
-            </select>
-          </div>
-
           {/* Status Filter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Filter size={13} style={{ color: '#64748b' }} />
+            <Filter size={14} color="var(--text-muted)" />
             <select
               className="form-control"
-              style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem' }}
+              style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', borderRadius: 'var(--radius-sm)' }}
               value={selectedStatus}
               onChange={(e) => { setSelectedStatus(e.target.value); setPage(1); }}
             >
@@ -291,31 +302,31 @@ export default function AuditLogViewer({
         </div>
       </div>
 
-      {/* AUDIT LOG TABLE */}
-      <div className="card table-container" style={{ padding: 0 }}>
+      {/* EDITORIAL AUDIT STREAM TABLE */}
+      <div className="table-container" style={{ borderRadius: 'var(--radius-sm)' }}>
         <table>
           <thead>
             <tr>
-              <th>Timestamp (IST)</th>
+              <th>Timestamp (UTC)</th>
               <th>Module</th>
               <th>Action / Event</th>
               <th>Operator</th>
               <th>Status</th>
               <th>Change Delta</th>
-              <th>Inspect</th>
+              <th style={{ textAlign: 'right' }}>Inspect</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                  Loading audit event streams...
+                <td colSpan="7" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  Querying MongoDB audit telemetry...
                 </td>
               </tr>
             ) : logs.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                  No matching audit records found.
+                <td colSpan="7" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  Zero matching audit records located
                 </td>
               </tr>
             ) : (
@@ -326,87 +337,56 @@ export default function AuditLogViewer({
 
                 return (
                   <tr key={log._id || idx}>
-                    <td style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
-                      <div style={{ fontWeight: 600, color: '#1e293b' }}>
-                        {new Date(log.createdAt).toLocaleDateString('en-IN')}
-                      </div>
-                      <div style={{ color: '#64748b', fontSize: '0.7rem' }}>
-                        {new Date(log.createdAt).toLocaleTimeString('en-IN')}
+                    <td className="font-mono-tabular" style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                      <div>{new Date(log.createdAt).toISOString().split('T')[0]}</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                        {new Date(log.createdAt).toISOString().split('T')[1].replace('Z', '')}
                       </div>
                     </td>
 
                     <td>
-                      <span
-                        style={{
-                          background: '#ede9fe',
-                          color: '#5b21b6',
-                          padding: '0.15rem 0.45rem',
-                          borderRadius: '4px',
-                          fontSize: '0.7rem',
-                          fontWeight: 700
-                        }}
-                      >
+                      <span className="badge badge-pastel-blue">
                         {log.module}
                       </span>
                     </td>
 
                     <td>
-                      <strong style={{ color: isBlocked ? '#dc2626' : isDelete ? '#d97706' : '#0f172a', fontSize: '0.78rem' }}>
+                      <strong style={{ color: isBlocked ? 'var(--accent-red)' : isDelete ? 'var(--accent-yellow)' : 'var(--text-main)', fontSize: '0.8125rem' }}>
                         {log.action}
                       </strong>
                     </td>
 
-                    <td style={{ fontSize: '0.75rem' }}>
-                      <div>{log.performedBy || 'admin@ops.saas'}</div>
-                      <code style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{log.ipAddress || '127.0.0.1'}</code>
+                    <td style={{ fontSize: '0.78rem' }}>
+                      <div style={{ fontWeight: 500 }}>{log.performedBy || 'admin@ops.saas'}</div>
+                      <span className="font-mono-tabular" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {log.ipAddress || '127.0.0.1'}
+                      </span>
                     </td>
 
                     <td>
-                      <span
-                        style={{
-                          background: log.status === 'SUCCESS' ? '#ecfdf5' : '#fef2f2',
-                          color: log.status === 'SUCCESS' ? '#065f46' : '#991b1b',
-                          padding: '0.15rem 0.45rem',
-                          borderRadius: '10px',
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.25rem'
-                        }}
-                      >
-                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: log.status === 'SUCCESS' ? '#10b981' : '#ef4444' }} />
+                      <span className={`badge ${log.status === 'SUCCESS' ? 'badge-pastel-green' : 'badge-pastel-red'}`}>
                         {log.status || 'SUCCESS'}
                       </span>
                     </td>
 
                     <td>
                       {hasDiff ? (
-                        <span
-                          style={{
-                            background: '#e0e7ff',
-                            color: '#3730a3',
-                            padding: '0.15rem 0.45rem',
-                            borderRadius: '4px',
-                            fontSize: '0.7rem',
-                            fontWeight: 600
-                          }}
-                        >
-                          ⚡ Delta Tracked
+                        <span className="badge badge-pastel-yellow" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <Sparkles size={10} /> Delta Tracked
                         </span>
                       ) : (
-                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>—</span>
+                        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>—</span>
                       )}
                     </td>
 
-                    <td>
+                    <td style={{ textAlign: 'right' }}>
                       <button
                         className="btn btn-secondary"
-                        style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
                         onClick={() => setInspectedLog(log)}
-                        title="Inspect full JSON telemetry"
+                        title="Inspect full JSON telemetry and mutation delta"
                       >
-                        <Eye size={12} /> Inspect
+                        <Eye size={12} /> View
                       </button>
                     </td>
                   </tr>
@@ -418,12 +398,12 @@ export default function AuditLogViewer({
       </div>
 
       {/* PAGINATION CONTROLS */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#64748b' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', fontSize: '0.78rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
           <span>Rows per page:</span>
           <select
             className="form-control"
-            style={{ width: '70px', padding: '0.2rem 0.4rem', fontSize: '0.78rem' }}
+            style={{ width: '70px', padding: '0.2rem 0.4rem', fontSize: '0.78rem', borderRadius: 'var(--radius-sm)' }}
             value={limit}
             onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
           >
@@ -431,11 +411,11 @@ export default function AuditLogViewer({
             <option value="50">50</option>
             <option value="100">100</option>
           </select>
-          <span>Total: {pagination.total} records</span>
+          <span className="font-mono-tabular">Total: {pagination.total} events</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+          <span className="font-mono-tabular" style={{ color: 'var(--text-muted)' }}>
             Page {pagination.page || page} of {pagination.totalPages || 1}
           </span>
           <button
@@ -444,7 +424,7 @@ export default function AuditLogViewer({
             disabled={page <= 1}
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
           >
-            <ChevronLeft size={14} />
+            <ChevronLeft size={13} />
           </button>
           <button
             className="btn btn-secondary"
@@ -452,18 +432,18 @@ export default function AuditLogViewer({
             disabled={page >= (pagination.totalPages || 1)}
             onClick={() => setPage((prev) => prev + 1)}
           >
-            <ChevronRight size={14} />
+            <ChevronRight size={13} />
           </button>
         </div>
       </div>
 
-      {/* LIVE INSPECTION DRAWER */}
+      {/* 1-BIT MUTATION DIFF & LIVE INSPECTION DRAWER */}
       <Drawer
         isOpen={Boolean(inspectedLog)}
         onClose={() => setInspectedLog(null)}
-        title={inspectedLog ? `${inspectedLog.module}: ${inspectedLog.action}` : 'Audit Event Inspector'}
-        subtitle={inspectedLog ? `Timestamp: ${new Date(inspectedLog.createdAt).toLocaleString('en-IN')} • ID: ${inspectedLog._id}` : ''}
-        icon={<Shield size={18} />}
+        title={inspectedLog ? `Forensic Event: ${inspectedLog.module} › ${inspectedLog.action}` : 'Audit Event Inspector'}
+        subtitle={inspectedLog ? `Timestamp: ${new Date(inspectedLog.createdAt).toISOString()} • UUID: ${inspectedLog._id}` : ''}
+        icon={<Terminal size={18} color="var(--accent-red)" />}
         size="lg"
         footer={
           <button
@@ -478,52 +458,77 @@ export default function AuditLogViewer({
       >
         {inspectedLog && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* TELEMETRY METRICS GRID */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '0.65rem',
-                background: 'var(--bg-canvas)',
-                padding: '0.85rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                fontSize: '0.78rem',
-              }}
-            >
-              <div>Operator: <strong>{inspectedLog.performedBy}</strong></div>
-              <div>
-                Status:{' '}
-                <span
-                  style={{
-                    fontWeight: 700,
-                    color: inspectedLog.status === 'SUCCESS' ? 'var(--success)' : 'var(--danger)',
-                  }}
-                >
-                  {inspectedLog.status}
+            {/* TELEMETRY METRICS SPEC SHEET */}
+            <div className="spec-sheet-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+              <div className="spec-sheet-row">
+                <span className="spec-sheet-key">Operator</span>
+                <span className="spec-sheet-val">{inspectedLog.performedBy}</span>
+              </div>
+              <div className="spec-sheet-row">
+                <span className="spec-sheet-key">Status</span>
+                <span className="spec-sheet-val">
+                  <span className={`badge ${inspectedLog.status === 'SUCCESS' ? 'badge-pastel-green' : 'badge-pastel-red'}`}>
+                    {inspectedLog.status}
+                  </span>
                 </span>
               </div>
-              <div>IP Address: <code>{inspectedLog.ipAddress || '127.0.0.1'}</code></div>
-              <div>Company ID: <code>{inspectedLog.companyId || 'Global / N/A'}</code></div>
+              <div className="spec-sheet-row">
+                <span className="spec-sheet-key">IP Address</span>
+                <span className="spec-sheet-val font-mono-tabular">{inspectedLog.ipAddress || '127.0.0.1'}</span>
+              </div>
+              <div className="spec-sheet-row">
+                <span className="spec-sheet-key">Tenant ID</span>
+                <span className="spec-sheet-val font-mono-tabular">{inspectedLog.companyId || 'Global Control Plane'}</span>
+              </div>
             </div>
 
-            {/* MUTATION DIFF SECTION (IF PRESENT) */}
+            {/* 1-BIT MUTATION DIFF SECTION */}
             {inspectedLog.diff && Object.keys(inspectedLog.diff).length > 0 && (
               <div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.45rem' }}>
-                  ⚡ Field Mutation Change-Delta
+                <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Sparkles size={14} color="var(--accent-yellow)" />
+                  <span>Entity Mutation Delta</span>
                 </div>
                 <div
                   style={{
-                    background: 'var(--success-light)',
-                    border: '1px solid var(--success)',
-                    borderRadius: '8px',
-                    padding: '0.75rem 1rem',
+                    background: 'var(--bg-surface-elevated)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.85rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.65rem',
+                    fontSize: '0.78rem',
                   }}
                 >
-                  <pre style={{ margin: 0, fontSize: '0.75rem', color: 'var(--success)', overflowX: 'auto' }}>
-                    {JSON.stringify(inspectedLog.diff, null, 2)}
-                  </pre>
+                  {Object.entries(inspectedLog.diff).map(([key, delta]) => {
+                    const isPrimitiveDiff = delta && typeof delta === 'object' && ('old' in delta || 'new' in delta);
+                    return (
+                      <div key={key} style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                          Field: <span className="font-mono-tabular" style={{ color: 'var(--text-muted)' }}>{key}</span>
+                        </div>
+                        {isPrimitiveDiff ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            {delta.old !== undefined && (
+                              <div style={{ color: 'var(--accent-red)', background: 'var(--accent-red-bg)', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(159, 47, 45, 0.2)', textDecoration: 'line-through' }}>
+                                [-] Prev: {JSON.stringify(delta.old)}
+                              </div>
+                            )}
+                            {delta.new !== undefined && (
+                              <div style={{ color: 'var(--accent-green)', background: 'var(--accent-green-bg)', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(43, 89, 63, 0.2)' }}>
+                                [+] Next: {JSON.stringify(delta.new)}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <pre style={{ margin: 0, padding: '0.5rem', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflowX: 'auto', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
+                            {JSON.stringify(delta, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -538,35 +543,34 @@ export default function AuditLogViewer({
                   marginBottom: '0.5rem',
                 }}
               >
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  Raw Audit Event Payload (MongoDB)
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  Raw Event Payload (MongoDB)
                 </span>
                 <button
                   type="button"
                   className="btn btn-secondary"
                   style={{
                     padding: '0.25rem 0.55rem',
-                    fontSize: '0.72rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
+                    fontSize: '0.75rem',
                   }}
                   onClick={handleCopyJson}
                 >
-                  {copied ? <Check size={12} style={{ color: 'var(--success)' }} /> : <Copy size={12} />}
-                  {copied ? 'Copied!' : 'Copy JSON'}
+                  {copied ? <Check size={12} color="var(--accent-green)" /> : <Copy size={12} />}
+                  {copied ? 'Copied' : 'Copy JSON'}
                 </button>
               </div>
 
               <pre
                 style={{
-                  background: '#0f172a',
-                  color: '#38bdf8',
+                  background: 'var(--bg-surface-elevated)',
+                  color: 'var(--text-main)',
                   padding: '1rem',
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border)',
                   overflowX: 'auto',
-                  fontSize: '0.75rem',
-                  lineHeight: 1.45,
+                  fontSize: '0.78rem',
+                  fontFamily: 'var(--font-mono)',
+                  lineHeight: 1.5,
                   maxHeight: '360px',
                 }}
               >

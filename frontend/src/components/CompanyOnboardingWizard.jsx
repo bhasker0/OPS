@@ -11,7 +11,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Terminal
 } from 'lucide-react';
 import Drawer from './ui/Drawer';
 import { useToast } from '../context/ToastContext';
@@ -63,7 +64,7 @@ export default function CompanyOnboardingWizard({
     const val = e.target.value.toUpperCase().trim();
     setFormData({ ...formData, gstin: val });
     if (val && !GSTIN_REGEX.test(val)) {
-      setGstinError('Invalid GSTIN format (e.g. 27AAPCU1234M1ZV)');
+      setGstinError('INVALID GSTIN FORMAT (e.g. 24AAPCU1234M1ZV)');
     } else {
       setGstinError('');
     }
@@ -114,9 +115,9 @@ export default function CompanyOnboardingWizard({
           type="button"
           className="btn btn-secondary"
           onClick={handleBack}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem' }}
         >
-          <ChevronLeft size={15} /> Back
+          <ChevronLeft size={13} /> Back
         </button>
       ) : <div />}
 
@@ -125,7 +126,7 @@ export default function CompanyOnboardingWizard({
           type="button"
           className="btn btn-secondary"
           onClick={onClose}
-          style={{ fontSize: '0.8rem' }}
+          style={{ fontSize: '0.78rem' }}
         >
           Cancel
         </button>
@@ -135,9 +136,9 @@ export default function CompanyOnboardingWizard({
             type="button"
             className="btn btn-primary"
             onClick={handleNext}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem' }}
           >
-            Next Step <ChevronRight size={15} />
+            Continue <ChevronRight size={13} />
           </button>
         ) : (
           <button
@@ -145,10 +146,10 @@ export default function CompanyOnboardingWizard({
             className="btn btn-primary"
             disabled={loading}
             onClick={handleFormSubmit}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}
           >
-            <CheckCircle2 size={15} />
-            {loading ? 'Provisioning...' : 'Complete Onboarding'}
+            <CheckCircle2 size={14} />
+            {loading ? 'Provisioning...' : 'Complete Tenant Onboarding'}
           </button>
         )}
       </div>
@@ -159,38 +160,36 @@ export default function CompanyOnboardingWizard({
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
-      title="Provision New Tenant Company"
-      subtitle="Multi-step onboarding wizard with compliance and parameter inheritance."
-      icon={<Building size={20} />}
+      title="Provision Tenant Organization"
+      subtitle="Engineering onboarding wizard & seed parameter matrix"
+      icon={<Building size={18} color="var(--accent-red)" />}
       size="lg"
       footer={footerContent}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {/* STEP PROGRESS INDICATOR */}
-        <div style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ paddingBottom: '0.5rem', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
             {[
-              { num: 1, title: 'Identity' },
-              { num: 2, title: 'Compliance' },
-              { num: 3, title: 'Parameters' },
-              { num: 4, title: 'Admin & Review' }
+              { num: 1, title: '1. Identity' },
+              { num: 2, title: '2. Compliance' },
+              { num: 3, title: '3. Parameters' },
+              { num: 4, title: '4. Security' }
             ].map((s) => (
               <div
                 key={s.num}
                 style={{
-                  padding: '0.5rem 0.4rem',
-                  borderRadius: '6px',
-                  background: step === s.num ? '#eef2ff' : step > s.num ? '#ecfdf5' : '#ffffff',
-                  border: `1px solid ${step === s.num ? '#c7d2fe' : step > s.num ? '#a7f3d0' : '#e2e8f0'}`,
+                  padding: '0.5rem',
+                  background: step === s.num ? 'var(--bg-surface-elevated)' : 'var(--bg-surface)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: `1px solid ${step === s.num ? 'var(--primary)' : 'var(--border)'}`,
                   textAlign: 'center',
-                  cursor: step > s.num ? 'pointer' : 'default'
+                  cursor: step > s.num ? 'pointer' : 'default',
+                  transition: 'all 0.15s ease'
                 }}
                 onClick={() => { if (step > s.num) setStep(s.num); }}
               >
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: step === s.num ? '#4f46e5' : step > s.num ? '#059669' : '#64748b' }}>
-                  STEP {s.num}
-                </div>
-                <div style={{ fontSize: '0.76rem', fontWeight: 600, color: step === s.num ? '#1e1b4b' : '#334155' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: step === s.num ? 'var(--primary)' : step > s.num ? 'var(--accent-green)' : 'var(--text-muted)' }}>
                   {s.title}
                 </div>
               </div>
@@ -198,18 +197,21 @@ export default function CompanyOnboardingWizard({
           </div>
         </div>
 
-        <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', margin: 0 }}>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem' }}>
+        <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, margin: 0 }}>
           {/* STEP 1: IDENTITY & BASIC PROFILE */}
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Tenant Identity & Code Generation
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
                   <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Company Name *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Acme Textiles Ltd."
+                    placeholder="e.g. Acme Textiles Ltd"
                     className="form-control"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -229,7 +231,7 @@ export default function CompanyOnboardingWizard({
               </div>
 
               <div className="form-group">
-                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Logo Image URL</label>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Logo URL / CDN Asset</label>
                 <input
                   type="url"
                   placeholder="https://cdn.example.com/logo.png"
@@ -268,10 +270,14 @@ export default function CompanyOnboardingWizard({
           {/* STEP 2: INDIAN COMPLIANCE & CONTACTS */}
           {step === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Tax Compliance & GSTIN Matrix
+              </div>
+
               <div className="form-group">
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 600 }}>
                   <span>Indian GST Number (GSTIN)</span>
-                  <span style={{ color: '#64748b', fontWeight: 400 }}>15 alphanumeric characters</span>
+                  <span style={{ color: 'var(--text-muted)' }}>15 alphanumeric chars</span>
                 </label>
                 <input
                   type="text"
@@ -279,15 +285,15 @@ export default function CompanyOnboardingWizard({
                   className="form-control"
                   value={formData.gstin}
                   onChange={handleGstinChange}
-                  style={{ borderColor: gstinError ? '#ef4444' : undefined }}
+                  style={{ borderColor: gstinError ? 'var(--accent-red)' : undefined }}
                 />
                 {gstinError ? (
-                  <span style={{ color: '#ef4444', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
+                  <span style={{ color: 'var(--accent-red)', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
                     <AlertCircle size={12} /> {gstinError}
                   </span>
                 ) : formData.gstin && (
-                  <span style={{ color: '#059669', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
-                    <CheckCircle2 size={12} /> Valid GSTIN Format (State Code: {formData.gstin.substring(0, 2)})
+                  <span style={{ color: 'var(--accent-green)', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
+                    <CheckCircle2 size={12} /> Valid GSTIN (State Code: {formData.gstin.substring(0, 2)})
                   </span>
                 )}
               </div>
@@ -331,6 +337,10 @@ export default function CompanyOnboardingWizard({
           {/* STEP 3: FINANCIAL PARAMETERS & LOCALIZATION */}
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Decimal Precision & Currency Formatters
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
                   <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Base Currency</label>
@@ -379,15 +389,15 @@ export default function CompanyOnboardingWizard({
                     onChange={(e) => setFormData({ ...formData, roundOffFormat: e.target.value })}
                   >
                     <option value="NEAREST_RUPEE">Nearest Rupee</option>
-                    <option value="NORMAL">Normal 2-Decimal Rounding</option>
+                    <option value="NORMAL">Normal 2-Decimal</option>
                     <option value="CEIL">Round Up (Ceil)</option>
                     <option value="FLOOR">Round Down (Floor)</option>
                   </select>
                 </div>
               </div>
 
-              <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.75rem', color: '#475569' }}>
-                💡 <strong>Parameter Inheritance:</strong> Tenant automatically inherits global seed configurations (e.g. GST E-Invoicing features and Audit deltas).
+              <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                ℹ️ <strong>Parameter Inheritance:</strong> 18 standardized seed attributes will automatically attach to this organization.
               </div>
             </div>
           )}
@@ -395,17 +405,26 @@ export default function CompanyOnboardingWizard({
           {/* STEP 4: INITIAL SUPER ADMIN & CONFIRMATION */}
           {step === 4 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div style={{ background: '#eef2ff', padding: '0.85rem', borderRadius: '6px', border: '1px solid #c7d2fe' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e1b4b', marginBottom: '0.5rem' }}>
-                  📋 Onboarding Summary Preview
+              <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Security Clearance & RBAC Initialization
+              </div>
+
+              <div className="card" style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.78rem', background: 'var(--bg-surface-elevated)' }}>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Company: </span>
+                  <strong>{formData.name} ({formData.code})</strong>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', fontSize: '0.75rem' }}>
-                  <div>Company: <strong>{formData.name}</strong> (<code>{formData.code}</code>)</div>
-                  <div>GSTIN: <code>{formData.gstin || 'N/A'}</code></div>
-                  <div>Contact: <strong>{formData.contactPerson || 'N/A'}</strong></div>
-                  <div>Currency: <strong>{formData.currencySymbol} {formData.currency}</strong></div>
-                  <div>Date Format: <strong>{formData.dateFormat}</strong></div>
-                  <div>Timezone: <strong>{formData.timezone}</strong></div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>GSTIN: </span>
+                  <span className="font-mono-tabular">{formData.gstin || 'N/A'}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Currency: </span>
+                  <strong>{formData.currencySymbol} {formData.currency}</strong>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Timezone: </span>
+                  <span>{formData.timezone}</span>
                 </div>
               </div>
 
@@ -459,21 +478,20 @@ export default function CompanyOnboardingWizard({
               </div>
 
               {/* 5 COMPANY RBAC ROLES PREVIEW */}
-              <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <Shield size={14} style={{ color: '#4f46e5' }} /> 5 Company-Scoped RBAC Roles (Auto-Seeded)
+              <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Shield size={14} color="var(--accent-blue)" /> 5 Company-Scoped RBAC Roles (Auto-Seeded):
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', fontSize: '0.72rem' }}>
-                  <div>⭐ <strong>Company Admin / Owner</strong>: Full Access (Attached to User)</div>
-                  <div>👔 <strong>Manager</strong>: Orders, Production & Scheduling</div>
-                  <div>💰 <strong>Munim</strong>: Invoices, Daybook, Hisab & Tally</div>
-                  <div>🏭 <strong>Supervisor</strong>: Floor Shifts, Machines & Karigars</div>
-                  <div style={{ gridColumn: 'span 2' }}>🧵 <strong>Karigar Operator</strong>: Shift Logs & Stitch Tracking</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  <div>1. Company Admin / Owner (Full access)</div>
+                  <div>2. Manager (Production & orders)</div>
+                  <div>3. Munim (Invoicing, hisab & Tally)</div>
+                  <div>4. Supervisor (Machines & shifts)</div>
+                  <div style={{ gridColumn: 'span 2' }}>5. Karigar Operator (Stitch telemetry)</div>
                 </div>
               </div>
             </div>
           )}
-          </div>
         </form>
       </div>
     </Drawer>

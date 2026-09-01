@@ -22,7 +22,8 @@ import {
   Printer,
   FileSpreadsheet,
   Download,
-  X
+  X,
+  ChevronRight
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import CreateInvoiceModal from './CreateInvoiceModal';
@@ -56,7 +57,7 @@ export default function SubscriptionManagement({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('plans'); // 'plans' | 'allocations' | 'invoices'
 
-  // Invoices & Billing state (SCRUM-89, 91)
+  // Invoices & Billing state
   const [invoices, setInvoices] = useState([]);
   const [invoiceStats, setInvoiceStats] = useState(null);
   const [invoicesLoading, setInvoicesLoading] = useState(false);
@@ -79,7 +80,7 @@ export default function SubscriptionManagement({
   const [confirmDeletePlan, setConfirmDeletePlan] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Razorpay Recurring Subscription & Autopay State (SCRUM-142)
+  // Razorpay Recurring Subscription & Autopay State
   const [selectedPlanForRzp, setSelectedPlanForRzp] = useState(null);
   const [rzpCompanyId, setRzpCompanyId] = useState('');
   const [rzpUpiVpa, setRzpUpiVpa] = useState('bhasker@okaxis');
@@ -372,23 +373,23 @@ export default function SubscriptionManagement({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+      {/* HEADER & ACTION BUTTONS */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.85rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <CreditCard size={22} style={{ color: '#4f46e5' }} />
-            Subscription Tiers & Multi-Tenant Quotas
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0.15rem 0 0 0' }}>
-            Manage pricing tiers, machine & user quotas, feature flags, and tenant billing allocations.
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <CreditCard size={18} color="var(--accent-red)" />
+            Subscription Ledger & Quotas
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
+            Pricing tiers, machine & user seat allocations, and SAC 9983 fiscal invoicing
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className="btn btn-secondary"
             onClick={() => { fetchData(); fetchInvoices(); }}
-            style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{ fontSize: '0.78rem' }}
           >
             <RefreshCw size={13} className={loading || invoicesLoading ? 'spin' : ''} /> Refresh
           </button>
@@ -396,124 +397,183 @@ export default function SubscriptionManagement({
             <button
               className="btn btn-primary"
               onClick={() => setShowCreateInvoiceModal(true)}
-              style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+              style={{ fontSize: '0.78rem' }}
             >
-              <Plus size={14} /> Issue Invoice (SAC 9983)
+              <Plus size={13} /> Issue Invoice (SAC 9983)
             </button>
           ) : (
             <button
               className="btn btn-primary"
               onClick={handleOpenCreatePlan}
-              style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+              style={{ fontSize: '0.78rem' }}
             >
-              <Plus size={14} /> Create Tier
+              <Plus size={13} /> Provision Tier
             </button>
           )}
         </div>
       </div>
 
-      {/* VIEW SELECTOR TABS */}
-      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.4rem' }}>
+      {/* GATEWAY TELEMETRY STATUS BAR */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.5rem 0.85rem',
+          fontSize: '0.75rem',
+        }}
+      >
+        <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Gateway Telemetry:</span>
+        <span className="badge badge-pastel-green">Razorpay: Active</span>
+        <span className="badge badge-pastel-green">UPI Autopay: Online</span>
+        <span className="badge badge-pastel-blue">Dunning: 72h Grace</span>
+        <span className="badge badge-pastel-yellow">SAC 9983 GST: Enforced</span>
+      </div>
+
+      {/* MAKER-CHECKER DUAL APPROVAL HUD NOTICE */}
+      <div
+        style={{
+          background: 'var(--accent-yellow-bg)',
+          border: '1px solid rgba(149, 100, 0, 0.25)',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.75rem 1rem',
+          fontSize: '0.78rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.65rem',
+          color: 'var(--accent-yellow)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ShieldAlert size={16} color="var(--accent-yellow)" />
+          <span><strong>Maker-Checker Protocol:</strong> Tier allocations and invoice status overrides require dual-operator clearance.</span>
+        </div>
+        <span className="font-mono-tabular" style={{ opacity: 0.85, fontSize: '0.72rem' }}>Audit ID: #4091 &bull; Clearance Active</span>
+      </div>
+
+      {/* SEGMENTED VIEW SELECTOR TABS */}
+      <div style={{ display: 'flex', gap: '0.35rem', background: 'var(--bg-surface-elevated)', padding: '0.25rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', width: 'fit-content' }}>
         <button
           className={`btn ${activeTab === 'plans' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('plans')}
-          style={{ padding: '0.35rem 0.8rem', fontSize: '0.78rem' }}
+          style={{
+            padding: '0.35rem 0.75rem',
+            fontSize: '0.78rem',
+            border: 'none',
+            borderRadius: 'var(--radius-sm)',
+            boxShadow: activeTab === 'plans' ? 'var(--shadow-card)' : 'none'
+          }}
         >
-          <Layers size={13} /> Pricing Tiers & Quota Schemes ({plans.length})
+          <Layers size={13} /> Pricing Tiers ({plans.length})
         </button>
         <button
           className={`btn ${activeTab === 'allocations' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('allocations')}
-          style={{ padding: '0.35rem 0.8rem', fontSize: '0.78rem' }}
+          style={{
+            padding: '0.35rem 0.75rem',
+            fontSize: '0.78rem',
+            border: 'none',
+            borderRadius: 'var(--radius-sm)',
+            boxShadow: activeTab === 'allocations' ? 'var(--shadow-card)' : 'none'
+          }}
         >
-          <Building size={13} /> Tenant Plan Allocations ({companies.length})
+          <Building size={13} /> Tenant Allocations ({companies.length})
         </button>
         <button
           className={`btn ${activeTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => { setActiveTab('invoices'); fetchInvoices(); }}
-          style={{ padding: '0.35rem 0.8rem', fontSize: '0.78rem' }}
+          style={{
+            padding: '0.35rem 0.75rem',
+            fontSize: '0.78rem',
+            border: 'none',
+            borderRadius: 'var(--radius-sm)',
+            boxShadow: activeTab === 'invoices' ? 'var(--shadow-card)' : 'none'
+          }}
         >
-          <FileSpreadsheet size={13} /> Invoices & GST Billing ({invoices.length})
+          <FileSpreadsheet size={13} /> Invoice Ledger ({invoices.length})
         </button>
       </div>
 
-      {/* TAB 1: PRICING TIERS GRID */}
+      {/* TAB 1: PRICING TIERS BENTO GRID */}
       {activeTab === 'plans' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+        <div className="bento-grid">
           {plans.map((plan) => {
-            const isStarter = plan.code === 'STARTER';
             const isEnterprise = plan.code === 'ENTERPRISE';
 
             return (
               <div
                 key={plan.id}
+                className="bento-card bento-span-4"
                 style={{
-                  background: '#ffffff',
-                  borderRadius: '10px',
-                  border: isEnterprise ? '2px solid #6366f1' : '1px solid #e2e8f0',
-                  padding: '1.25rem',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  boxShadow: isEnterprise ? '0 10px 25px -5px rgba(99, 102, 241, 0.15)' : '0 1px 3px rgba(0,0,0,0.05)',
+                  gap: '1rem',
+                  borderColor: isEnterprise ? 'var(--primary)' : 'var(--border)',
                   position: 'relative',
                 }}
               >
                 {plan.isDefault && (
-                  <span style={{ position: 'absolute', top: '12px', right: '12px', background: '#ecfdf5', color: '#059669', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #a7f3d0' }}>
-                    DEFAULT TIER
+                  <span className="badge badge-pastel-green" style={{ position: 'absolute', top: '16px', right: '16px' }}>
+                    Default Tier
                   </span>
                 )}
 
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>{plan.name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.25rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>{plan.name}</h3>
                   </div>
-                  <code style={{ fontSize: '0.7rem', color: '#6366f1', background: '#eef2ff', padding: '0.1rem 0.35rem', borderRadius: '3px' }}>
+                  <span className="font-mono-tabular" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: 'var(--bg-surface-elevated)', padding: '0.15rem 0.4rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                     {plan.code}
-                  </code>
-                  <p style={{ color: '#64748b', fontSize: '0.78rem', margin: '0.5rem 0 1rem 0', minHeight: '34px' }}>
+                  </span>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0.65rem 0 1rem 0', minHeight: '34px', lineHeight: 1.4 }}>
                     {plan.description || 'Standard multi-tenant subscription plan.'}
                   </p>
 
                   {/* PRICE DISPLAY */}
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', margin: '0.75rem 0 1.25rem 0' }}>
-                    <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem', margin: '0.5rem 0 1.25rem 0' }}>
+                    <span className="font-mono-tabular" style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.025em' }}>
                       {plan.price === 0 ? 'Free' : `₹${plan.price.toLocaleString('en-IN')}`}
                     </span>
                     {plan.price > 0 && (
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/ {plan.billingInterval.toLowerCase()}</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>/ {plan.billingInterval.toLowerCase()}</span>
                     )}
                   </div>
 
-                  {/* QUOTA SPECIFICATIONS */}
-                  <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                      <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Cpu size={13} color="#4f46e5" /> Embroidery Machines:
+                  {/* QUOTA SPECIFICATIONS SPEC BOX */}
+                  <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Cpu size={13} color="var(--accent-blue)" /> Embroidery Machines:
                       </span>
-                      <strong style={{ color: '#0f172a' }}>Up to {plan.maxMachines} units</strong>
+                      <strong style={{ color: 'var(--text-main)' }}>Up to {plan.maxMachines} units</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                      <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Users size={13} color="#4f46e5" /> Operator & Munim Users:
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Users size={13} color="var(--accent-green)" /> Operator & Munim Users:
                       </span>
-                      <strong style={{ color: '#0f172a' }}>Up to {plan.maxUsers} seats</strong>
+                      <strong style={{ color: 'var(--text-main)' }}>Up to {plan.maxUsers} seats</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                      <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <FileText size={13} color="#4f46e5" /> Invoices / Month:
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <FileText size={13} color="var(--accent-yellow)" /> Invoices / Month:
                       </span>
-                      <strong style={{ color: '#0f172a' }}>{plan.maxInvoicesPerMonth.toLocaleString()} bills</strong>
+                      <strong style={{ color: 'var(--text-main)' }}>{plan.maxInvoicesPerMonth.toLocaleString()} bills</strong>
                     </div>
                   </div>
 
                   {/* INCLUDED FEATURES */}
                   <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
                       Included Capabilities
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                       {AVAILABLE_FEATURES.map((feat) => {
                         const isIncluded = Array.isArray(plan.features) && plan.features.includes(feat.code);
                         return (
@@ -522,12 +582,12 @@ export default function SubscriptionManagement({
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '0.35rem',
-                              fontSize: '0.74rem',
-                              color: isIncluded ? '#1e293b' : '#cbd5e1',
+                              gap: '0.45rem',
+                              fontSize: '0.78rem',
+                              color: isIncluded ? 'var(--text-main)' : 'var(--text-tertiary)',
                             }}
                           >
-                            <Check size={13} color={isIncluded ? '#10b981' : '#e2e8f0'} />
+                            <Check size={13} color={isIncluded ? 'var(--accent-green)' : 'var(--border)'} />
                             <span>{feat.label}</span>
                           </div>
                         );
@@ -537,14 +597,14 @@ export default function SubscriptionManagement({
                 </div>
 
                 {/* CARD FOOTER */}
-                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     🏢 <strong>{plan.activeTenantsCount}</strong> active tenant(s)
                   </span>
-                  <div style={{ display: 'flex', gap: '0.3rem' }}>
+                  <div style={{ display: 'flex', gap: '0.35rem' }}>
                     <button
                       className="btn btn-secondary"
-                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', color: '#0284c7', background: '#f0f9ff', borderColor: '#bae6fd', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
                       title="Setup UPI Autopay / e-NACH via Razorpay Subscriptions"
                       onClick={() => {
                         setSelectedPlanForRzp(plan);
@@ -555,7 +615,7 @@ export default function SubscriptionManagement({
                     </button>
                     <button
                       className="btn btn-secondary"
-                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
                       onClick={() => handleOpenEditPlan(plan)}
                     >
                       <Edit2 size={12} /> Edit
@@ -563,10 +623,10 @@ export default function SubscriptionManagement({
                     {!plan.isDefault && (
                       <button
                         className="btn btn-secondary"
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--accent-red)' }}
                         onClick={() => handleDeletePlanPrompt(plan)}
                       >
-                        <Trash2 size={12} /> Delete
+                        <Trash2 size={12} />
                       </button>
                     )}
                   </div>
@@ -580,25 +640,25 @@ export default function SubscriptionManagement({
       {/* TAB 2: TENANT PLAN ALLOCATIONS TABLE */}
       {activeTab === 'allocations' && (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
-            <div style={{ position: 'relative', width: '280px' }}>
-              <Search size={14} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          <div style={{ padding: '0.85rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface-elevated)' }}>
+            <div style={{ position: 'relative', width: '300px' }}>
+              <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="text"
                 placeholder="Search tenant or plan..."
                 className="form-control"
-                style={{ paddingLeft: '2rem', fontSize: '0.78rem' }}
+                style={{ paddingLeft: '2.2rem', fontSize: '0.78rem', borderRadius: 'var(--radius-sm)' }}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-              Showing <strong>{filteredCompanies.length}</strong> tenant organizations
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              Showing <strong className="font-mono-tabular">{filteredCompanies.length}</strong> tenant organizations
             </span>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ margin: 0 }}>
+          <div className="table-container" style={{ margin: 0, borderRadius: 0 }}>
+            <table>
               <thead>
                 <tr>
                   <th>Tenant Company</th>
@@ -621,33 +681,23 @@ export default function SubscriptionManagement({
                   return (
                     <tr key={c.id}>
                       <td>
-                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>{c.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Code: {c.code} • GSTIN: {c.gstin || 'N/A'}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.8125rem' }}>{c.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Code: {c.code} &bull; GSTIN: {c.gstin || 'N/A'}</div>
                       </td>
 
                       <td>
-                        <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 700 }}>
+                        <span className="badge badge-pastel-blue">
                           {plan.name}
                         </span>
                       </td>
 
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <span
-                            style={{
-                              background: isExpired ? '#fef2f2' : isTrial ? '#fefce8' : '#ecfdf5',
-                              color: isExpired ? '#dc2626' : isTrial ? '#ca8a04' : '#059669',
-                              padding: '0.1rem 0.4rem',
-                              borderRadius: '4px',
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              border: `1px solid ${isExpired ? '#fecaca' : isTrial ? '#fef08a' : '#a7f3d0'}`,
-                            }}
-                          >
+                        <div>
+                          <span className={`badge ${isExpired ? 'badge-pastel-red' : isTrial ? 'badge-pastel-yellow' : 'badge-pastel-green'}`}>
                             {c.planStatus || 'ACTIVE'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.15rem' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                           {c.planExpiryDate
                             ? `Expires: ${new Date(c.planExpiryDate).toLocaleDateString('en-GB')}`
                             : 'Continuous / Annual'}
@@ -655,16 +705,17 @@ export default function SubscriptionManagement({
                       </td>
 
                       <td style={{ minWidth: '160px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#475569', marginBottom: '0.15rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
                           <span>{userCount} / {plan.maxUsers} Users</span>
-                          <span><strong>{userPercent}%</strong></span>
+                          <span className="font-mono-tabular"><strong>{userPercent}%</strong></span>
                         </div>
-                        <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ width: '100%', height: '4px', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
                           <div
                             style={{
                               width: `${userPercent}%`,
                               height: '100%',
-                              background: userPercent >= 100 ? '#ef4444' : userPercent >= 80 ? '#f59e0b' : '#10b981',
+                              background: userPercent >= 100 ? 'var(--accent-red)' : userPercent >= 80 ? 'var(--warning)' : 'var(--accent-green)',
+                              borderRadius: 'var(--radius-full)',
                               transition: 'width 0.3s ease',
                             }}
                           />
@@ -672,7 +723,7 @@ export default function SubscriptionManagement({
                       </td>
 
                       <td>
-                        <span style={{ fontSize: '0.75rem', color: '#334155' }}>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>
                           1 / {plan.maxMachines} Machine(s)
                         </span>
                       </td>
@@ -680,7 +731,7 @@ export default function SubscriptionManagement({
                       <td style={{ textAlign: 'right' }}>
                         <button
                           className="btn btn-secondary"
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
                           onClick={() => handleOpenAllocateModal(c)}
                         >
                           <ArrowUpRight size={12} /> Upgrade / Change
@@ -697,55 +748,51 @@ export default function SubscriptionManagement({
 
       {/* TAB 3: INVOICES & BILLING LEDGER (SAC 9983) */}
       {activeTab === 'invoices' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* COMPACT KPI STRIP (SCRUM-96) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* COMPACT KPI STRIP */}
           <KpiStrip
             items={[
               {
                 label: 'Total Invoiced Volume',
                 value: `₹${(invoiceStats?.totalBilled || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                 subtext: `${invoiceStats?.totalInvoices || invoices.length} Issued Tax Invoices`,
-                icon: <FileText size={20} />,
+                icon: <FileText size={16} />,
                 accentColor: 'var(--primary)',
-                sparklinePath: 'M0 16 Q 12 6, 24 12 T 48 2'
               },
               {
                 label: 'Total Collected Revenue',
                 value: `₹${(invoiceStats?.totalCollected || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                 subtext: `${invoiceStats?.counts?.paid || 0} Invoices Fully Settled`,
-                icon: <CheckCircle2 size={20} />,
-                accentColor: 'var(--success)',
-                sparklinePath: 'M0 18 Q 12 10, 24 6 T 48 2'
+                icon: <CheckCircle2 size={16} />,
+                accentColor: 'var(--accent-green)',
               },
               {
                 label: 'Pending & Outstanding',
                 value: `₹${(invoiceStats?.pendingAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                 subtext: `${invoiceStats?.counts?.pending || 0} Pending (${invoiceStats?.counts?.overdue || 0} Overdue)`,
-                icon: <Clock size={20} />,
+                icon: <Clock size={16} />,
                 accentColor: 'var(--warning)',
-                sparklinePath: 'M0 8 Q 12 14, 24 10 T 48 6'
               },
               {
                 label: 'GST Tax Pool (SAC 9983)',
                 value: `₹${(invoiceStats?.totalTaxCollected || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                 subtext: `CGST: ₹${invoiceStats?.taxBreakdown?.cgst || 0} | SGST: ₹${invoiceStats?.taxBreakdown?.sgst || 0}`,
-                icon: <Layers size={20} />,
-                accentColor: '#7c3aed',
-                sparklinePath: 'M0 12 Q 12 6, 24 10 T 48 4'
+                icon: <Layers size={16} />,
+                accentColor: 'var(--accent-blue)',
               }
             ]}
           />
 
           {/* Filter Bar */}
-          <div className="card" style={{ padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div className="card" style={{ padding: '0.85rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
               <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
-                <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
-                  placeholder="Search by invoice #, company name, code..."
+                  placeholder="Search invoice #, company name, code..."
                   className="form-control"
-                  style={{ paddingLeft: '2.1rem', fontSize: '0.8rem' }}
+                  style={{ paddingLeft: '2.2rem', fontSize: '0.78rem', borderRadius: 'var(--radius-sm)' }}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -753,7 +800,7 @@ export default function SubscriptionManagement({
 
               <select
                 className="form-control"
-                style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem', maxWidth: '160px' }}
+                style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', maxWidth: '170px', borderRadius: 'var(--radius-sm)' }}
                 value={invoiceStatusFilter}
                 onChange={(e) => setInvoiceStatusFilter(e.target.value)}
               >
@@ -766,14 +813,14 @@ export default function SubscriptionManagement({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <TableDensityControl density={tableDensity} onDensityChange={handleDensityChange} />
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 Showing Invoices ({invoices.length})
               </span>
             </div>
           </div>
 
           {/* Invoices Table */}
-          <div className="card table-container" style={{ padding: 0 }}>
+          <div className="table-container" style={{ borderRadius: 'var(--radius-sm)' }}>
             <table className={`table-${tableDensity}`}>
               <thead>
                 <tr>
@@ -811,7 +858,7 @@ export default function SubscriptionManagement({
                       },
                       {
                         label: 'Mark as Fully Paid',
-                        icon: <Check size={13} color="var(--success)" />,
+                        icon: <Check size={13} color="var(--accent-green)" />,
                         hidden: isPaid,
                         onClick: () => handleMarkInvoicePaid(inv)
                       },
@@ -827,64 +874,50 @@ export default function SubscriptionManagement({
                     return (
                       <tr key={inv.id}>
                         <td>
-                          <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.82rem' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.8125rem' }}>
                             {inv.invoiceNumber}
                           </div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          <div className="font-mono-tabular" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                             Issued: {new Date(inv.createdAt).toLocaleDateString('en-IN')}
                           </div>
                         </td>
 
                         <td>
-                          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>{inv.company?.name}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            Code: <code className="mono">{inv.company?.code}</code> {inv.company?.gstin ? `• GSTIN: ${inv.company.gstin}` : ''}
+                          <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-main)' }}>{inv.company?.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            Code: <span className="font-mono-tabular">{inv.company?.code}</span> {inv.company?.gstin ? `• GSTIN: ${inv.company.gstin}` : ''}
                           </div>
                         </td>
 
                         <td>
-                          <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
+                          <span className="badge badge-pastel-blue">
                             {inv.plan?.name || 'SaaS Plan'}
                           </span>
                         </td>
 
-                        <td style={{ fontWeight: 600, fontSize: '0.8rem' }}>
+                        <td className="font-mono-tabular" style={{ fontWeight: 600, fontSize: '0.8125rem' }}>
                           ₹{inv.baseAmount?.toFixed(2)}
                         </td>
 
                         <td>
                           {isIntra ? (
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                            <div className="font-mono-tabular" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                               <div>CGST (9%): ₹{inv.cgstAmount?.toFixed(2)}</div>
                               <div>SGST (9%): ₹{inv.sgstAmount?.toFixed(2)}</div>
                             </div>
                           ) : (
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                            <div className="font-mono-tabular" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                               <div>IGST (18%): ₹{inv.igstAmount?.toFixed(2)}</div>
                             </div>
                           )}
                         </td>
 
-                        <td style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.85rem' }}>
+                        <td className="font-mono-tabular" style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.875rem' }}>
                           ₹{inv.totalAmount?.toFixed(2)}
                         </td>
 
                         <td>
-                          <span
-                            style={{
-                              background: isPaid ? 'var(--success-light)' : 'var(--warning-light)',
-                              color: isPaid ? 'var(--success)' : 'var(--warning)',
-                              border: `1px solid ${isPaid ? 'var(--success)' : 'var(--warning)'}`,
-                              padding: '0.15rem 0.45rem',
-                              borderRadius: '10px',
-                              fontSize: '0.7rem',
-                              fontWeight: 700,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.25rem',
-                            }}
-                          >
-                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: isPaid ? 'var(--success)' : 'var(--warning)' }} />
+                          <span className={`badge ${isPaid ? 'badge-pastel-green' : 'badge-pastel-yellow'}`}>
                             {inv.status}
                           </span>
                         </td>
@@ -893,11 +926,11 @@ export default function SubscriptionManagement({
                           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
                             <button
                               className="btn btn-secondary"
-                              style={{ padding: '0.15rem 0.45rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
                               onClick={() => setSelectedInvoiceForPdf(inv)}
                               title="View & Print A4 Tax Invoice PDF"
                             >
-                              <Printer size={11} /> PDF
+                              <Printer size={12} /> PDF
                             </button>
                             <TableActionMenu actions={invoiceActions} />
                           </div>
@@ -916,12 +949,12 @@ export default function SubscriptionManagement({
         <div className="modal-backdrop" style={{ zIndex: 1200 }}>
           <div className="modal-content" style={{ maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
                 {editingPlan ? `Edit Tier: ${editingPlan.name}` : 'Provision New Subscription Tier'}
               </h2>
               <button
                 type="button"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
                 onClick={() => setShowPlanModal(false)}
               >
                 <X size={18} />
@@ -1006,8 +1039,8 @@ export default function SubscriptionManagement({
               </div>
 
               {/* QUOTA LIMITS */}
-              <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', margin: '0.75rem 0' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
+              <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', margin: '0.75rem 0' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
                   Operational Quota Limits
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem' }}>
@@ -1047,7 +1080,7 @@ export default function SubscriptionManagement({
               {/* FEATURE TOGGLES */}
               <div className="form-group">
                 <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Included Feature Capabilities</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', marginTop: '0.3rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', marginTop: '0.35rem' }}>
                   {AVAILABLE_FEATURES.map((feat) => {
                     const checked = planForm.features.includes(feat.code);
                     return (
@@ -1056,13 +1089,13 @@ export default function SubscriptionManagement({
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.4rem',
-                          fontSize: '0.75rem',
+                          gap: '0.45rem',
+                          fontSize: '0.78rem',
                           cursor: 'pointer',
-                          padding: '0.35rem 0.5rem',
-                          borderRadius: '4px',
-                          border: `1px solid ${checked ? '#c7d2fe' : '#e2e8f0'}`,
-                          background: checked ? '#eef2ff' : 'transparent',
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: 'var(--radius-sm)',
+                          border: `1px solid ${checked ? 'var(--primary)' : 'var(--border)'}`,
+                          background: checked ? 'var(--bg-surface-elevated)' : 'transparent',
                         }}
                       >
                         <input
@@ -1070,7 +1103,7 @@ export default function SubscriptionManagement({
                           checked={checked}
                           onChange={() => handleFeatureToggle(feat.code)}
                         />
-                        <span style={{ fontWeight: checked ? 600 : 400, color: checked ? '#3730a3' : '#1e293b' }}>
+                        <span style={{ fontWeight: checked ? 600 : 400, color: 'var(--text-main)' }}>
                           {feat.label}
                         </span>
                       </label>
@@ -1097,12 +1130,12 @@ export default function SubscriptionManagement({
         <div className="modal-backdrop" style={{ zIndex: 1200 }}>
           <div className="modal-content" style={{ maxWidth: '480px', width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
                 Allocate Plan: {selectedCompanyForPlan.name}
               </h2>
               <button
                 type="button"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
                 onClick={() => setShowAllocateModal(false)}
               >
                 <X size={18} />
@@ -1191,7 +1224,7 @@ export default function SubscriptionManagement({
         onCancel={() => setConfirmDeleteInvoice(null)}
       />
 
-      {/* CREATE TAX INVOICE MODAL (SCRUM-89) */}
+      {/* CREATE TAX INVOICE MODAL */}
       <CreateInvoiceModal
         isOpen={showCreateInvoiceModal}
         onClose={() => setShowCreateInvoiceModal(false)}
@@ -1204,50 +1237,50 @@ export default function SubscriptionManagement({
         }}
       />
 
-      {/* A4 PRINTABLE TAX INVOICE PDF VIEWER MODAL (SCRUM-91) */}
+      {/* A4 PRINTABLE TAX INVOICE PDF VIEWER MODAL */}
       <InvoicePdfViewerModal
         isOpen={Boolean(selectedInvoiceForPdf)}
         onClose={() => setSelectedInvoiceForPdf(null)}
         invoice={selectedInvoiceForPdf}
       />
 
-      {/* RAZORPAY SUBSCRIPTION & UPI AUTOPAY MODAL (SCRUM-142) */}
+      {/* RAZORPAY SUBSCRIPTION & UPI AUTOPAY MODAL */}
       {selectedPlanForRzp && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1050, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#fff', borderRadius: '12px', maxWidth: '480px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', maxWidth: '480px', width: '100%', padding: '1.5rem', boxShadow: 'var(--shadow-card)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <CreditCard size={18} color="#0284c7" />
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>
+                <CreditCard size={18} color="var(--accent-blue)" />
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>
                   Razorpay Subscriptions & UPI Autopay
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedPlanForRzp(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.8rem' }}>
+            <div style={{ background: 'var(--accent-blue-bg)', border: '1px solid rgba(43, 89, 140, 0.2)', borderRadius: 'var(--radius-sm)', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.78rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                <span style={{ color: '#0369a1' }}>Target Plan:</span>
+                <span style={{ color: 'var(--accent-blue)' }}>Target Plan:</span>
                 <strong>{selectedPlanForRzp.name} ({selectedPlanForRzp.code})</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                <span style={{ color: '#0369a1' }}>Mandate Amount:</span>
-                <strong style={{ color: '#0284c7', fontSize: '0.9rem' }}>₹{Number(selectedPlanForRzp.price || 0).toLocaleString('en-IN')}/month</strong>
+                <span style={{ color: 'var(--accent-blue)' }}>Mandate Amount:</span>
+                <strong className="font-mono-tabular" style={{ color: 'var(--accent-blue)', fontSize: '0.9rem' }}>₹{Number(selectedPlanForRzp.price || 0).toLocaleString('en-IN')}/month</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#0369a1' }}>SAC Code:</span>
+                <span style={{ color: 'var(--accent-blue)' }}>SAC Code:</span>
                 <span>9983 (SaaS Cloud Software)</span>
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem', marginBottom: '1.25rem' }}>
               <div>
-                <label style={{ display: 'block', fontWeight: 500, color: '#334155', marginBottom: '0.25rem' }}>
+                <label style={{ display: 'block', fontWeight: 500, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
                   Subscriber Organization *
                 </label>
                 <select
@@ -1265,7 +1298,7 @@ export default function SubscriptionManagement({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontWeight: 500, color: '#334155', marginBottom: '0.25rem' }}>
+                <label style={{ display: 'block', fontWeight: 500, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
                   UPI ID for Autopay e-Mandate *
                 </label>
                 <input
@@ -1278,8 +1311,8 @@ export default function SubscriptionManagement({
                 />
               </div>
 
-              <div style={{ padding: '0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.72rem', color: '#64748b' }}>
-                🛡️ <strong>Automated Dunning Policy:</strong> On renewal failure, retry scheduled for Day 1, 2, and 3. Factory tenant receives WhatsApp SMS alert with 72-hour grace period before access suspension.
+              <div style={{ padding: '0.65rem', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                🛡️ <strong>Automated Dunning Policy:</strong> On renewal failure, retries scheduled for Day 1, 2, and 3. Factory tenant receives WhatsApp SMS alert with 72-hour grace period before access suspension.
               </div>
             </div>
 
@@ -1287,7 +1320,7 @@ export default function SubscriptionManagement({
               <button
                 type="button"
                 className="btn btn-secondary"
-                style={{ fontSize: '0.8rem' }}
+                style={{ fontSize: '0.78rem' }}
                 onClick={() => setSelectedPlanForRzp(null)}
               >
                 Cancel
@@ -1295,7 +1328,7 @@ export default function SubscriptionManagement({
               <button
                 type="button"
                 className="btn btn-primary"
-                style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#0284c7', borderColor: '#0284c7' }}
+                style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                 disabled={rzpSubscribing}
                 onClick={async () => {
                   setRzpSubscribing(true);

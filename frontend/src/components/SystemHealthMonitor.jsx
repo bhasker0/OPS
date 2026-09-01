@@ -6,22 +6,23 @@ import {
   RefreshCw,
   Clock,
   Cpu,
-  HardDrive,
-  AlertTriangle,
   CheckCircle,
+  AlertTriangle,
   XCircle,
   Play,
   Trash2,
   Eye,
   Send,
-  Radio,
-  Zap
+  Zap,
+  Terminal,
+  ArrowUpRight
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from './ConfirmModal';
+import Drawer from './ui/Drawer';
 import { API_BASE } from '../config/api';
 
-export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
+export default function SystemHealthMonitor({ apiBase = API_BASE }) {
   const toast = useToast();
 
   const [healthData, setHealthData] = useState(null);
@@ -76,7 +77,7 @@ export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
     loadAllData();
   }, [dlqStatusFilter]);
 
-  // 10s Heartbeat Polling Loop
+  // 10s Heartbeat Polling Loop (no flashing)
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
@@ -164,42 +165,54 @@ export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
       case 'UP':
       case 'HEALTHY':
       case 'REPLAYED':
-        return <span className="badge badge-active" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><CheckCircle size={12} /> {status}</span>;
+        return (
+          <span className="badge badge-pastel-green">
+            <CheckCircle size={11} /> {status}
+          </span>
+        );
       case 'PENDING_RETRY':
       case 'BUFFERED':
       case 'STANDALONE_MODE':
       case 'WARNING':
       case 'DEGRADED':
-        return <span className="badge badge-suspended" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><AlertTriangle size={12} /> {status}</span>;
+        return (
+          <span className="badge badge-pastel-yellow">
+            <AlertTriangle size={11} /> {status}
+          </span>
+        );
       default:
-        return <span className="badge badge-inactive" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><XCircle size={12} /> {status || 'DOWN'}</span>;
+        return (
+          <span className="badge badge-pastel-red">
+            <XCircle size={11} /> {status || 'DOWN'}
+          </span>
+        );
     }
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* HEADER BAR */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+      {/* HEADER COCKPIT BAR */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.85rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Activity size={22} color="var(--primary)" />
-            Live Infrastructure Telemetry & Outbound Sync Monitor
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-main)' }}>
+            <Activity size={18} color="var(--accent-red)" />
+            System Health & DLQ Telemetry
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-            Real-time DB cluster latency, Node.js process memory metrics, and ETMS Outbound Sync Dead-Letter Queue (DLQ).
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
+            Live cluster latency, database connection pools, and forensic dead-letter dispatch queues
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', cursor: 'pointer', background: '#f8fafc', padding: '0.35rem 0.65rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', cursor: 'pointer', background: 'var(--bg-surface)', padding: '0.35rem 0.75rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)' }}>
             <input
               type="checkbox"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
               style={{ cursor: 'pointer' }}
             />
-            <Radio size={14} color={autoRefresh ? '#10b981' : '#94a3b8'} />
-            Auto-Heartbeat (10s)
+            <span className={autoRefresh ? 'phosphor-beacon' : ''} style={{ width: '6px', height: '6px' }} />
+            <span>Heartbeat: 10s</span>
           </label>
 
           <button
@@ -208,7 +221,8 @@ export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
             disabled={loading}
             style={{ fontSize: '0.78rem' }}
           >
-            <RefreshCw size={14} className={loading ? 'spin' : ''} /> Refresh Now
+            <RefreshCw size={13} className={loading ? 'spin' : ''} />
+            <span>Refresh</span>
           </button>
         </div>
       </div>
@@ -216,138 +230,179 @@ export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
       {/* OVERALL SYSTEM STATUS ALERT BANNER */}
       {healthData && (
         <div style={{
-          background: healthData.status === 'HEALTHY' ? '#ecfdf5' : '#fef2f2',
-          border: `1px solid ${healthData.status === 'HEALTHY' ? '#a7f3d0' : '#fecaca'}`,
-          borderRadius: '8px',
-          padding: '0.85rem 1.25rem',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1rem 1.25rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '0.5rem'
+          gap: '0.75rem',
+          boxShadow: 'var(--shadow-card)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            {healthData.status === 'HEALTHY' ? (
-              <CheckCircle size={22} color="#059669" />
-            ) : (
-              <AlertTriangle size={22} color="#dc2626" />
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span className="phosphor-beacon" style={{ width: '8px', height: '8px' }} />
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: healthData.status === 'HEALTHY' ? '#065f46' : '#991b1b' }}>
-                System Telemetry: {healthData.status} (Telemetry Query: {healthData.responseTimeMs}ms)
+              <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>Status:</span>
+                <span style={{ color: healthData.status === 'HEALTHY' ? 'var(--accent-green)' : 'var(--danger)', fontWeight: 700 }}>
+                  {healthData.status}
+                </span>
+                <span style={{ color: 'var(--text-tertiary)' }}>&bull;</span>
+                <span>Response Latency:</span>
+                <span className="font-mono-tabular" style={{ fontWeight: 600 }}>{healthData.responseTimeMs}ms</span>
               </div>
-              <div style={{ fontSize: '0.75rem', color: healthData.status === 'HEALTHY' ? '#047857' : '#b91c1c' }}>
-                All core operational databases & services responding within baseline tolerances.
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                All telemetry sockets responding within calibrated tolerances.
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            <Clock size={14} /> Process Uptime: <strong>{healthData.runtime.uptimeFormatted}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+            <Clock size={14} />
+            <span>Uptime:</span>
+            <strong className="font-mono-tabular" style={{ color: 'var(--text-main)' }}>{healthData.runtime.uptimeFormatted}</strong>
           </div>
         </div>
       )}
 
-      {/* HEARTBEAT LATENCY CLUSTERS GRID */}
+      {/* BENTO TELEMETRY CARDS GRID */}
       {healthData && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-          {/* POSTGRES CARD */}
-          <div className="card" style={{ borderTop: '3px solid #3b82f6' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Database size={18} color="#3b82f6" />
-                <strong style={{ fontSize: '0.9rem' }}>PostgreSQL 16 Engine</strong>
+        <div className="bento-grid">
+          {/* POSTGRESQL CARD */}
+          <div className="bento-card bento-span-3">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Database size={16} color="var(--accent-blue)" />
+                <strong style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>PostgreSQL 16</strong>
               </div>
               {getStatusBadge(healthData.heartbeats.postgres.status)}
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-              Primary multi-tenant relational store for companies, users, roles, and pricing tiers.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: '6px' }}>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Heartbeat Latency</span>
-              <strong style={{ fontSize: '0.85rem', color: healthData.heartbeats.postgres.latencyMs < 50 ? '#059669' : '#d97706' }}>
-                ⚡ {healthData.heartbeats.postgres.latencyMs} ms
-              </strong>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Role</span>
+                <span style={{ fontWeight: 500 }}>Relational Store</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Latency</span>
+                <strong className="font-mono-tabular" style={{ color: healthData.heartbeats.postgres.latencyMs < 50 ? 'var(--accent-green)' : 'var(--warning)', fontSize: '0.875rem' }}>
+                  {healthData.heartbeats.postgres.latencyMs} ms
+                </strong>
+              </div>
+              <div style={{ marginTop: '0.25rem' }}>
+                <div style={{ height: '4px', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, Math.max(15, healthData.heartbeats.postgres.latencyMs * 2))}%`, background: 'var(--accent-green)', borderRadius: 'var(--radius-full)' }} />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* MONGO CARD */}
-          <div className="card" style={{ borderTop: '3px solid #10b981' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Server size={18} color="#10b981" />
-                <strong style={{ fontSize: '0.9rem' }}>MongoDB 7 Audit Log Cluster</strong>
+          {/* MONGODB AUDIT CLUSTER CARD */}
+          <div className="bento-card bento-span-3">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Server size={16} color="var(--accent-green)" />
+                <strong style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>MongoDB Audit</strong>
               </div>
               {getStatusBadge(healthData.heartbeats.mongo.status)}
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-              High-throughput immutable compliance audit logs, change diffs, and DLQ persistence.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: '6px' }}>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Heartbeat Latency</span>
-              <strong style={{ fontSize: '0.85rem', color: healthData.heartbeats.mongo.latencyMs < 50 ? '#059669' : '#d97706' }}>
-                ⚡ {healthData.heartbeats.mongo.latencyMs} ms
-              </strong>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Role</span>
+                <span style={{ fontWeight: 500 }}>Immutable Trail</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Latency</span>
+                <strong className="font-mono-tabular" style={{ color: healthData.heartbeats.mongo.latencyMs < 50 ? 'var(--accent-green)' : 'var(--warning)', fontSize: '0.875rem' }}>
+                  {healthData.heartbeats.mongo.latencyMs} ms
+                </strong>
+              </div>
+              <div style={{ marginTop: '0.25rem' }}>
+                <div style={{ height: '4px', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, Math.max(15, healthData.heartbeats.mongo.latencyMs * 2))}%`, background: 'var(--accent-green)', borderRadius: 'var(--radius-full)' }} />
+                </div>
+              </div>
             </div>
           </div>
 
           {/* ETMS GATEWAY CARD */}
-          <div className="card" style={{ borderTop: '3px solid #8b5cf6' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Send size={18} color="#8b5cf6" />
-                <strong style={{ fontSize: '0.9rem' }}>ETMS Outbound Sync Gateway</strong>
+          <div className="bento-card bento-span-3">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Send size={16} color="var(--accent-yellow)" />
+                <strong style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>ETMS Gateway</strong>
               </div>
               {getStatusBadge(healthData.heartbeats.etmsGateway.status)}
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-              Cryptographically signed HMAC webhook synchronization for job-work production updates.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: '6px' }}>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Gateway Latency</span>
-              <strong style={{ fontSize: '0.85rem', color: '#6366f1' }}>
-                {healthData.heartbeats.etmsGateway.latencyMs >= 0 ? `⚡ ${healthData.heartbeats.etmsGateway.latencyMs} ms` : 'Local Standalone'}
-              </strong>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Sync Protocol</span>
+                <span style={{ fontWeight: 500 }}>HMAC-SHA256</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Socket Link</span>
+                <strong className="font-mono-tabular" style={{ color: 'var(--text-main)' }}>
+                  {healthData.heartbeats.etmsGateway.latencyMs >= 0 ? `${healthData.heartbeats.etmsGateway.latencyMs} ms` : 'Local Standalone'}
+                </strong>
+              </div>
+              <div style={{ marginTop: '0.25rem' }}>
+                <div style={{ height: '4px', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: '100%', background: 'var(--accent-yellow)', borderRadius: 'var(--radius-full)' }} />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* RUNTIME & MEMORY CARD */}
-          <div className="card" style={{ borderTop: '3px solid #f59e0b' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Cpu size={18} color="#f59e0b" />
-                <strong style={{ fontSize: '0.9rem' }}>Node.js Runtime Telemetry</strong>
+          {/* NODE RUNTIME & MEMORY CARD */}
+          <div className="bento-card bento-span-3">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Cpu size={16} color="var(--accent-red)" />
+                <strong style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>Node.js Runtime</strong>
               </div>
-              <span className="badge badge-seed" style={{ fontSize: '0.7rem' }}>{healthData.runtime.nodeVersion}</span>
+              <span className="badge badge-seed">{healthData.runtime.nodeVersion}</span>
             </div>
-            <div style={{ fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem' }}>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.78rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Heap Memory Used:</span>
-                <strong>{healthData.runtime.memory.heapUsedMB} MB / {healthData.runtime.memory.heapTotalMB} MB</strong>
+                <span style={{ color: 'var(--text-muted)' }}>Heap Memory</span>
+                <strong className="font-mono-tabular">{healthData.runtime.memory.heapUsedMB} MB / {healthData.runtime.memory.heapTotalMB} MB</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Resident Set Size (RSS):</span>
-                <strong>{healthData.runtime.memory.rssMB} MB</strong>
+                <span style={{ color: 'var(--text-muted)' }}>PID / Platform</span>
+                <span className="font-mono-tabular" style={{ color: 'var(--text-main)' }}>{healthData.runtime.processId} ({healthData.runtime.platform})</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>PID / OS:</span>
-                <strong>{healthData.runtime.processId} ({healthData.runtime.platform})</strong>
+              <div style={{ marginTop: '0.25rem' }}>
+                <div style={{ height: '4px', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${Math.min(100, Math.round((healthData.runtime.memory.heapUsedMB / Math.max(1, healthData.runtime.memory.heapTotalMB)) * 100))}%`,
+                      background: 'var(--primary)',
+                      borderRadius: 'var(--radius-full)'
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* OUTBOUND SYNC DEAD-LETTER QUEUE (DLQ) SECTION (SCRUM-83) */}
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      {/* OUTBOUND SYNC DEAD-LETTER QUEUE (DLQ) BENTO SECTION */}
+      <div className="card" style={{ padding: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.85rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Zap size={18} color="#f59e0b" />
-              Outbound Sync Dead-Letter Queue (DLQ) & Event Replay Manager
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.45rem', margin: 0, color: 'var(--text-main)' }}>
+              <Zap size={16} color="var(--accent-yellow)" />
+              Dead-Letter Queue (DLQ) Incident Matrix
             </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.1rem' }}>
-              Events with delivery failures are held with backoff timers for zero-data-loss synchronization.
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0.2rem 0 0 0' }}>
+              Zero-data-loss holding buffer with backoff retry controls
             </p>
           </div>
 
@@ -355,7 +410,8 @@ export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
             <select
               value={dlqStatusFilter}
               onChange={(e) => setDlqStatusFilter(e.target.value)}
-              style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', borderRadius: '5px', border: '1px solid var(--border)', background: 'white' }}
+              className="form-control"
+              style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', width: '180px', borderRadius: 'var(--radius-sm)' }}
             >
               <option value="">All Statuses</option>
               <option value="PENDING_RETRY">Pending Retry ({syncStats?.pendingCount || 0})</option>
@@ -370,7 +426,7 @@ export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
                 disabled={retryingAll}
                 style={{ fontSize: '0.78rem' }}
               >
-                <Play size={13} className={retryingAll ? 'spin' : ''} />
+                <Play size={12} className={retryingAll ? 'spin' : ''} />
                 Replay All Pending ({syncStats.pendingCount})
               </button>
             )}
@@ -379,39 +435,48 @@ export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
               <button
                 className="btn btn-secondary"
                 onClick={handlePurgeReplayed}
-                style={{ fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                style={{ fontSize: '0.78rem' }}
                 title="Clear all successfully replayed events from the queue"
               >
-                <Trash2 size={13} /> Purge Replayed ({syncStats.replayedCount})
+                <Trash2 size={12} />
+                Purge Replayed ({syncStats.replayedCount})
               </button>
             )}
           </div>
         </div>
 
-        {/* DLQ SUMMARY METRIC COUNTERS */}
+        {/* DLQ SUMMARY METRIC BENTO STRIP */}
         {syncStats && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
-            <div style={{ background: '#f8fafc', padding: '0.65rem 0.85rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total DLQ Dispatches</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginTop: '0.1rem' }}>{syncStats.totalCount}</div>
+          <div className="kpi-strip" style={{ marginBottom: '1.25rem' }}>
+            <div className="kpi-card-compact">
+              <div>
+                <div className="kpi-metric-label">Total Dispatches</div>
+                <div className="kpi-metric-value">{syncStats.totalCount}</div>
+              </div>
             </div>
-            <div style={{ background: '#fffbeb', padding: '0.65rem 0.85rem', borderRadius: '6px', border: '1px solid #fef3c7' }}>
-              <div style={{ fontSize: '0.7rem', color: '#b45309', textTransform: 'uppercase', fontWeight: 600 }}>Pending Retries</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#b45309', marginTop: '0.1rem' }}>{syncStats.pendingCount}</div>
+            <div className="kpi-card-compact" style={{ borderLeft: '3px solid var(--accent-yellow)' }}>
+              <div>
+                <div className="kpi-metric-label" style={{ color: 'var(--accent-yellow)' }}>Pending Retries</div>
+                <div className="kpi-metric-value" style={{ color: 'var(--accent-yellow)' }}>{syncStats.pendingCount}</div>
+              </div>
             </div>
-            <div style={{ background: '#ecfdf5', padding: '0.65rem 0.85rem', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
-              <div style={{ fontSize: '0.7rem', color: '#047857', textTransform: 'uppercase', fontWeight: 600 }}>Successfully Replayed</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#047857', marginTop: '0.1rem' }}>{syncStats.replayedCount}</div>
+            <div className="kpi-card-compact" style={{ borderLeft: '3px solid var(--accent-green)' }}>
+              <div>
+                <div className="kpi-metric-label" style={{ color: 'var(--accent-green)' }}>Replayed (ACK)</div>
+                <div className="kpi-metric-value" style={{ color: 'var(--accent-green)' }}>{syncStats.replayedCount}</div>
+              </div>
             </div>
-            <div style={{ background: '#fef2f2', padding: '0.65rem 0.85rem', borderRadius: '6px', border: '1px solid #fecaca' }}>
-              <div style={{ fontSize: '0.7rem', color: '#b91c1c', textTransform: 'uppercase', fontWeight: 600 }}>Dead / Max Retries</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#b91c1c', marginTop: '0.1rem' }}>{syncStats.failedCount}</div>
+            <div className="kpi-card-compact" style={{ borderLeft: '3px solid var(--accent-red)' }}>
+              <div>
+                <div className="kpi-metric-label" style={{ color: 'var(--accent-red)' }}>Dead / Exhausted</div>
+                <div className="kpi-metric-value" style={{ color: 'var(--accent-red)' }}>{syncStats.failedCount}</div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* DLQ TABLE */}
-        <div className="table-container">
+        {/* DLQ HIGH DENSITY TABLE */}
+        <div className="table-container" style={{ borderRadius: 'var(--radius-sm)' }}>
           <table>
             <thead>
               <tr>
@@ -421,65 +486,65 @@ export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
                 <th>Attempts</th>
                 <th>Last Error Message</th>
                 <th>Timestamp</th>
-                <th>Actions</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {dlqItems.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                    {loading ? 'Checking Dead-Letter Queue...' : '✨ Dead-Letter Queue is clean. Zero failed outbound sync events.'}
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                    {loading ? 'Querying DLQ buffer...' : 'DLQ holding buffer is clean &bull; 0 failed events'}
                   </td>
                 </tr>
               ) : (
                 dlqItems.map((item) => (
                   <tr key={item._id}>
                     <td>
-                      <strong style={{ fontSize: '0.82rem', color: '#4f46e5' }}>{item.eventType}</strong>
+                      <strong style={{ fontSize: '0.8125rem', color: 'var(--text-main)' }}>{item.eventType}</strong>
                     </td>
                     <td>
-                      <code style={{ fontSize: '0.75rem', background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                      <span className="font-mono-tabular" style={{ fontSize: '0.75rem', background: 'var(--bg-surface-elevated)', padding: '0.15rem 0.4rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                         /{item.endpoint}
-                      </code>
+                      </span>
                     </td>
                     <td>{getStatusBadge(item.status)}</td>
                     <td>
-                      <span style={{ fontSize: '0.78rem', color: item.attemptCount >= item.maxAttempts ? '#ef4444' : '#64748b', fontWeight: 600 }}>
+                      <span className="font-mono-tabular" style={{ fontSize: '0.78rem', fontWeight: 600, color: item.attemptCount >= item.maxAttempts ? 'var(--danger)' : 'var(--text-main)' }}>
                         {item.attemptCount} / {item.maxAttempts}
                       </span>
                     </td>
                     <td style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#b91c1c' }} title={item.lastError}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--accent-red)' }} title={item.lastError}>
                         {item.lastError || 'None'}
                       </span>
                     </td>
-                    <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <td className="font-mono-tabular" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {new Date(item.createdAt).toLocaleTimeString()}
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
                         <button
                           className="btn btn-secondary"
-                          style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
                           title="Inspect JSON Payload"
                           onClick={() => setSelectedPayload(item)}
                         >
-                          <Eye size={12} />
+                          <Eye size={12} /> View
                         </button>
                         {item.status !== 'REPLAYED' && (
                           <button
                             className="btn btn-primary"
-                            style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
                             title="Replay Event"
                             disabled={retryingId === item._id}
                             onClick={() => handleRetrySingle(item._id)}
                           >
-                            <Play size={12} className={retryingId === item._id ? 'spin' : ''} />
+                            <Play size={12} className={retryingId === item._id ? 'spin' : ''} /> Replay
                           </button>
                         )}
                         <button
                           className="btn btn-secondary"
-                          style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', color: '#ef4444' }}
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--accent-red)' }}
                           title="Dismiss Event"
                           onClick={() => setConfirmDeleteId(item._id)}
                         >
@@ -495,58 +560,65 @@ export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
         </div>
       </div>
 
-      {/* JSON PAYLOAD INSPECTOR MODAL */}
-      {selectedPayload && (
-        <div className="modal-backdrop">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
-                DLQ Event Payload: {selectedPayload.eventType}
-              </h3>
+      {/* JSON PAYLOAD INSPECTOR DRAWER */}
+      <Drawer
+        isOpen={Boolean(selectedPayload)}
+        onClose={() => setSelectedPayload(null)}
+        title={selectedPayload ? `DLQ Packet: ${selectedPayload.eventType}` : 'DLQ Packet Inspector'}
+        subtitle={selectedPayload ? `Target: /${selectedPayload.endpoint} | Attempt: ${selectedPayload.attemptCount}/${selectedPayload.maxAttempts}` : ''}
+        icon={<Terminal size={18} color="var(--accent-red)" />}
+        size="lg"
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', width: '100%' }}>
+            <button className="btn btn-secondary" onClick={() => setSelectedPayload(null)}>
+              Close
+            </button>
+            {selectedPayload && selectedPayload.status !== 'REPLAYED' && (
               <button
-                onClick={() => setSelectedPayload(null)}
-                style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}
+                className="btn btn-primary"
+                onClick={() => {
+                  const id = selectedPayload._id;
+                  setSelectedPayload(null);
+                  handleRetrySingle(id);
+                }}
               >
-                ✕
+                <Play size={13} /> Replay Packet Now
               </button>
+            )}
+          </div>
+        }
+      >
+        {selectedPayload && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              <span>Packet ID: <strong className="font-mono-tabular" style={{ color: 'var(--text-main)' }}>{selectedPayload._id}</strong></span>
+              <span className="font-mono-tabular">{new Date(selectedPayload.createdAt).toISOString()}</span>
             </div>
 
-            <div style={{ marginBottom: '1rem', fontSize: '0.8rem', color: '#64748b' }}>
-              Target Endpoint: <code>/{selectedPayload.endpoint}</code> | Attempt: {selectedPayload.attemptCount}/{selectedPayload.maxAttempts}
-            </div>
+            {selectedPayload.lastError && (
+              <div style={{ background: 'var(--accent-red-bg)', color: 'var(--accent-red)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(159, 47, 45, 0.2)', marginBottom: '1rem', fontSize: '0.8125rem' }}>
+                <strong>Last Transmission Error:</strong>
+                <div style={{ marginTop: '0.25rem' }}>{selectedPayload.lastError}</div>
+              </div>
+            )}
 
             <pre style={{
-              background: '#0f172a',
-              color: '#f8fafc',
+              background: 'var(--bg-surface-elevated)',
+              color: 'var(--text-main)',
               padding: '1rem',
-              borderRadius: '6px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border)',
               fontSize: '0.78rem',
+              fontFamily: 'var(--font-mono)',
               overflowX: 'auto',
-              maxHeight: '350px'
+              maxHeight: '400px',
+              lineHeight: 1.5,
             }}>
               {JSON.stringify(selectedPayload.payload, null, 2)}
             </pre>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem', gap: '0.5rem' }}>
-              <button className="btn btn-secondary" onClick={() => setSelectedPayload(null)}>
-                Close
-              </button>
-              {selectedPayload.status !== 'REPLAYED' && (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => {
-                    const id = selectedPayload._id;
-                    setSelectedPayload(null);
-                    handleRetrySingle(id);
-                  }}
-                >
-                  <Play size={14} /> Replay Now
-                </button>
-              )}
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Drawer>
 
       {/* DISMISS CONFIRMATION MODAL */}
       <ConfirmModal
@@ -561,3 +633,4 @@ export default function SystemHealthMonitor({ apiBase = API_BASE, onRefresh }) {
     </div>
   );
 }
+

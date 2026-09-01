@@ -537,7 +537,7 @@ router.post('/impersonate/:userId', authenticateJWT, async (req, res) => {
             const body = await response.json();
             if (body.success && body.data) {
               const ssoData = Buffer.from(JSON.stringify(body.data)).toString('base64');
-              const etmsFePort = process.env.ETMS_FE_PORT || '3002';
+              const etmsFePort = process.env.ETMS_FE_PORT || '3000';
               etmsLaunchUrl = `http://localhost:${etmsFePort}/sso.html?data=${encodeURIComponent(ssoData)}`;
               break;
             }
@@ -682,7 +682,7 @@ router.post('/launch-etms/:userId', authenticateJWT, async (req, res) => {
 
     // Encode authData to base64 for SSO handover
     const ssoData = Buffer.from(JSON.stringify(authData)).toString('base64');
-    const etmsFePort = process.env.ETMS_FE_PORT || '3002';
+    const etmsFePort = process.env.ETMS_FE_PORT || '3000';
     const launchUrl = `http://localhost:${etmsFePort}/sso.html?data=${encodeURIComponent(ssoData)}`;
 
     // Log audit event in MongoDB

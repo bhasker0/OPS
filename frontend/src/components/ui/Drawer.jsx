@@ -49,13 +49,12 @@ export default function Drawer({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.55)',
-        backdropFilter: 'blur(2px)',
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
         zIndex: 1300,
         display: 'flex',
         justifyContent: direction === 'left' ? 'flex-start' : 'flex-end',
         alignItems: 'stretch',
-        animation: 'drawerFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        animation: 'drawerFadeIn 0.15s ease',
       }}
     >
       <div
@@ -68,11 +67,10 @@ export default function Drawer({
           maxWidth,
           height: '100vh',
           backgroundColor: 'var(--bg-surface)',
-          borderLeft: '1px solid var(--border)',
-          boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.2)',
+          borderLeft: '1px solid var(--border-strong)',
           display: 'flex',
           flexDirection: 'column',
-          animation: direction === 'left' ? 'slideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          animation: direction === 'left' ? 'slideInLeft 0.2s ease' : 'slideInRight 0.2s ease',
           position: 'relative',
         }}
       >
@@ -80,25 +78,25 @@ export default function Drawer({
         <div
           className="drawer-header"
           style={{
-            padding: '1.25rem 1.5rem',
+            padding: '1rem 1.25rem',
             borderBottom: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-surface)',
+            backgroundColor: 'var(--bg-surface-elevated)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '1rem',
+            gap: '0.75rem',
             flexShrink: 0,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
             {icon && (
               <div
                 style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--primary-light)',
-                  color: 'var(--primary)',
+                  width: '32px',
+                  height: '32px',
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--bg-canvas)',
+                  color: 'var(--accent-red)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -111,14 +109,16 @@ export default function Drawer({
             <div style={{ minWidth: 0 }}>
               <h3
                 style={{
-                  fontSize: '1.05rem',
-                  fontWeight: 800,
+                  fontSize: '0.95rem',
+                  fontWeight: 900,
+                  fontFamily: 'var(--font-sans)',
                   color: 'var(--text-main)',
                   margin: 0,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  letterSpacing: '-0.01em',
+                  textTransform: 'uppercase',
+                  letterSpacing: '-0.02em',
                 }}
               >
                 {title}
@@ -126,9 +126,10 @@ export default function Drawer({
               {subtitle && (
                 <p
                   style={{
-                    fontSize: '0.75rem',
+                    fontSize: '0.72rem',
+                    fontFamily: 'var(--font-mono)',
                     color: 'var(--text-muted)',
-                    margin: '0.15rem 0 0 0',
+                    margin: '0.1rem 0 0 0',
                     lineHeight: 1.3,
                   }}
                 >
@@ -143,28 +144,18 @@ export default function Drawer({
             className="drawer-close-btn"
             style={{
               background: 'transparent',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '0.4rem',
+              border: '1px solid var(--border)',
+              padding: '0.3rem',
               color: 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'background-color 0.15s, color 0.15s',
               flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--border-subtle)';
-              e.currentTarget.style.color = 'var(--text-main)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--text-muted)';
             }}
             aria-label="Close drawer"
           >
-            <X size={18} />
+            <X size={15} />
           </button>
         </div>
 
@@ -174,7 +165,7 @@ export default function Drawer({
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '1.5rem',
+            padding: '1.25rem',
             backgroundColor: 'var(--bg-surface)',
           }}
         >
@@ -186,13 +177,13 @@ export default function Drawer({
           <div
             className="drawer-footer"
             style={{
-              padding: '1rem 1.5rem',
+              padding: '0.85rem 1.25rem',
               borderTop: '1px solid var(--border)',
               backgroundColor: 'var(--bg-canvas)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'flex-end',
-              gap: '0.75rem',
+              gap: '0.65rem',
               flexShrink: 0,
             }}
           >

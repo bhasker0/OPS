@@ -100,7 +100,7 @@ export default function CreateInvoiceModal({
 
   const footerContent = (
     <>
-      <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
+      <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading} style={{ fontSize: '0.78rem' }}>
         Cancel
       </button>
       <button
@@ -108,6 +108,7 @@ export default function CreateInvoiceModal({
         className="btn btn-primary"
         onClick={handleSubmit}
         disabled={loading}
+        style={{ fontSize: '0.78rem' }}
       >
         {loading ? 'Generating...' : 'Issue & Generate Invoice'}
       </button>
@@ -120,14 +121,14 @@ export default function CreateInvoiceModal({
       onClose={onClose}
       title="Issue Subscription Tax Invoice"
       subtitle="B2B Software & SaaS Platform Billing (SAC 9983)"
-      icon={<FileText size={18} />}
+      icon={<FileText size={18} color="var(--accent-red)" />}
       size="md"
       footer={footerContent}
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.85rem' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
           <div className="form-group">
-            <label>Select Tenant Company *</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Select Tenant Company *</label>
             <select
               className="form-control"
               value={companyId}
@@ -143,7 +144,7 @@ export default function CreateInvoiceModal({
           </div>
 
           <div className="form-group">
-            <label>Subscription Tier *</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Subscription Tier *</label>
             <select
               className="form-control"
               value={planId}
@@ -159,9 +160,9 @@ export default function CreateInvoiceModal({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div className="form-group">
-            <label>Base Price (₹) *</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Base Price (₹) *</label>
             <input
               type="number"
               step="0.01"
@@ -172,7 +173,7 @@ export default function CreateInvoiceModal({
             />
           </div>
           <div className="form-group">
-            <label>Payment Due Date *</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Payment Due Date *</label>
             <input
               type="date"
               required
@@ -183,9 +184,9 @@ export default function CreateInvoiceModal({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div className="form-group">
-            <label>Period Start Date *</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Period Start Date *</label>
             <input
               type="date"
               required
@@ -195,7 +196,7 @@ export default function CreateInvoiceModal({
             />
           </div>
           <div className="form-group">
-            <label>Period End Date *</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Period End Date *</label>
             <input
               type="date"
               required
@@ -209,11 +210,11 @@ export default function CreateInvoiceModal({
         {/* LIVE GST SAC 9983 PREVIEW CARD */}
         <div
           style={{
-            background: 'var(--bg-canvas)',
+            background: 'var(--bg-surface-elevated)',
             border: '1px solid var(--border)',
-            borderRadius: '8px',
-            padding: '1rem',
-            fontSize: '0.8rem',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.85rem',
+            fontSize: '0.78rem',
             marginTop: '0.25rem',
           }}
         >
@@ -222,36 +223,39 @@ export default function CreateInvoiceModal({
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              fontWeight: 700,
+              fontWeight: 600,
               color: 'var(--text-main)',
-              marginBottom: '0.65rem',
+              marginBottom: '0.5rem',
+              borderBottom: '1px solid var(--border)',
+              paddingBottom: '0.35rem',
             }}
           >
-            <Calculator size={15} color="var(--primary)" /> Indian GST Tax Calculation Summary (SAC 9983)
+            <Calculator size={14} color="var(--accent-blue)" />
+            <span>GST Calculation Breakdown (SAC 9983)</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Tax Jurisdiction:</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Jurisdiction:</span>
             <strong>{isGujarat ? 'Intra-State Gujarat (CGST 9% + SGST 9%)' : 'Inter-State (IGST 18%)'}</strong>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Taxable Base Amount:</span>
-            <span>₹{basePrice.toFixed(2)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Taxable Base:</span>
+            <span className="font-mono-tabular">₹{basePrice.toFixed(2)}</span>
           </div>
           {isGujarat ? (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>CGST (9%):</span>
-                <span>+ ₹{cgst.toFixed(2)}</span>
+                <span className="font-mono-tabular">+ ₹{cgst.toFixed(2)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>SGST (9%):</span>
-                <span>+ ₹{sgst.toFixed(2)}</span>
+                <span className="font-mono-tabular">+ ₹{sgst.toFixed(2)}</span>
               </div>
             </>
           ) : (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
               <span style={{ color: 'var(--text-muted)' }}>IGST (18%):</span>
-              <span>+ ₹{igst.toFixed(2)}</span>
+              <span className="font-mono-tabular">+ ₹{igst.toFixed(2)}</span>
             </div>
           )}
           <div
@@ -261,15 +265,16 @@ export default function CreateInvoiceModal({
               marginTop: '0.5rem',
               display: 'flex',
               justifyContent: 'space-between',
-              fontWeight: 800,
-              fontSize: '0.95rem',
+              fontWeight: 700,
+              fontSize: '0.875rem',
             }}
           >
-            <span>Total Payable Amount:</span>
-            <span style={{ color: 'var(--primary)' }}>₹{grandTotal.toFixed(2)}</span>
+            <span>Total Payable:</span>
+            <span className="font-mono-tabular" style={{ color: 'var(--accent-green)' }}>₹{grandTotal.toFixed(2)}</span>
           </div>
         </div>
       </form>
     </Drawer>
   );
 }
+

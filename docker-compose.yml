@@ -50,6 +50,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@ops-postgres:5432/ops_db?schema=public
       - MONGO_URI=mongodb://ops-mongo:27017/ops_audit_db
       - ETMS_BACKEND_URL=http://etms-backend:4000
+      - ETMS_FE_PORT=3000
     depends_on:
       ops-postgres:
         condition: service_healthy
@@ -63,10 +64,17 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: development
     container_name: ops-frontend
     restart: unless-stopped
     ports:
-      - "5173:80"
+      - "5173:5173"
+    environment:
+      - VITE_BACKEND_URL=http://ops-backend:5000
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       - ops-backend
     networks:

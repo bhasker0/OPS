@@ -48,6 +48,7 @@ import TenantReconciliationModal from './components/TenantReconciliationModal';
 import Drawer from './components/ui/Drawer';
 import ThemeToggle from './components/ThemeToggle';
 import KpiStrip from './components/KpiStrip';
+import { useToast } from './context/ToastContext';
 import { API_BASE } from './config/api';
 
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
@@ -612,13 +613,13 @@ export default function App() {
 
   if (!isLoggedIn) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc' }}>
-        <div style={{ background: 'white', padding: '2.25rem', borderRadius: '10px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg-canvas)' }}>
+        <div style={{ background: 'var(--bg-surface)', padding: '2.25rem', borderRadius: 'var(--radius-md)', width: '100%', maxWidth: '400px', boxShadow: 'var(--shadow-subtle)', border: '1px solid var(--border)' }}>
           <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'inline-flex', background: '#eef2ff', padding: '0.75rem', borderRadius: '50%', color: '#4f46e5', marginBottom: '0.65rem' }}>
+            <div style={{ display: 'inline-flex', background: 'var(--primary-light)', padding: '0.75rem', borderRadius: '50%', color: 'var(--primary)', marginBottom: '0.65rem', border: '1px solid var(--border)' }}>
               <Shield size={32} />
             </div>
-            <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>OPS Super Admin</h1>
+            <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)' }}>OPS Super Admin</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.2rem' }}>
               {requires2FA ? 'Two-Factor Verification Required' : 'Production JWT Secure Control Plane'}
             </p>
@@ -628,7 +629,7 @@ export default function App() {
             {!requires2FA ? (
               <>
                 <div className="form-group">
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>OPS Admin Email</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>OPS Admin Email</label>
                   <input
                     type="email"
                     required
@@ -638,7 +639,7 @@ export default function App() {
                   />
                 </div>
                 <div className="form-group">
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Password</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>Password</label>
                   <input
                     type="password"
                     required
@@ -650,7 +651,7 @@ export default function App() {
               </>
             ) : (
               <div className="form-group">
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>
                   Enter 6-Digit Authenticator Code (TOTP)
                 </label>
                 <input
@@ -693,350 +694,370 @@ export default function App() {
   }
 
   return (
-    <div className="app-container">
-      {/* RESPONSIVE COLLAPSIBLE SIDEBAR (SCRUM-93) */}
-      <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-title">
-            <Shield size={20} />
-            <span>OPS Super Admin</span>
-          </div>
-          <button
-            type="button"
-            className="sidebar-collapse-btn"
-            onClick={toggleSidebar}
-            title={isSidebarCollapsed ? "Expand Sidebar (Ctrl+B)" : "Collapse Sidebar (Ctrl+B)"}
-          >
-            {isSidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-          </button>
+    <div className="app-container" style={{ flexDirection: 'column' }}>
+      {/* MINIMALIST TOPBAR TELEMETRY STRIP */}
+      <div className="telemetry-strip">
+        <div className="telemetry-strip-item">
+          <span className="phosphor-beacon" />
+          <span>System: Nominal</span>
         </div>
-
-        {operatingCompany ? (
-          <div style={{ background: 'var(--primary-light)', padding: '0.5rem 0.65rem', borderRadius: '6px', fontSize: '0.78rem', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: 'var(--primary)' }}>
-              <Headphones size={14} /> {!isSidebarCollapsed && <span>Support Mode</span>}
-            </div>
-            {!isSidebarCollapsed && (
-              <div style={{ color: 'var(--text-main)', fontSize: '0.75rem', marginTop: '0.1rem', fontWeight: 600 }}>
-                {operatingCompany.name} ({operatingCompany.code})
-              </div>
-            )}
-          </div>
-        ) : (
-          !isSidebarCollapsed && (
-            <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-              🌐 Global Super Admin View
-            </div>
-          )
-        )}
-
-        {/* COMMAND PALETTE QUICK SEARCH BUTTON (SCRUM-79) */}
-        <button
-          type="button"
-          onClick={() => setShowCommandPalette(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-            padding: isSidebarCollapsed ? '0.5rem 0' : '0.45rem 0.65rem',
-            borderRadius: '6px',
-            border: '1px solid var(--border)',
-            background: 'var(--bg-canvas)',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            fontSize: '0.78rem',
-            width: '100%',
-            transition: 'all 0.15s ease',
-          }}
-          title="Open Command Palette (Ctrl+K)"
-        >
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Search size={13} color="var(--text-muted)" /> {!isSidebarCollapsed && 'Quick jump...'}
-          </span>
-          {!isSidebarCollapsed && (
-            <kbd style={{
-              fontSize: '0.65rem',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-strong)',
-              borderRadius: '3px',
-              padding: '0.1rem 0.3rem',
-              fontFamily: 'var(--font-mono)',
-              color: 'var(--text-secondary)'
-            }}>Ctrl K</kbd>
-          )}
-        </button>
-
-        <div className="nav-menu">
-          {!operatingCompany ? (
-            <>
-              {/* SECTION: PLATFORM GOVERNANCE */}
-              {!isSidebarCollapsed && <div className="nav-section-label">🏛️ Governance</div>}
-              <button className={`nav-item ${activeTab === 'global_dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('global_dashboard')} title="Global Dashboard">
-                <TrendingUp size={16} /> <span>Dashboard</span>
-              </button>
-              <button className={`nav-item ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')} title="Registered Companies">
-                <Building size={16} /> <span>Companies</span>
-                <span className="badge badge-system nav-counter-badge">{companies.length}</span>
-              </button>
-              <button className={`nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`} onClick={() => setActiveTab('subscriptions')} title="Subscriptions & Billing">
-                <CreditCard size={16} /> <span>Subscriptions</span>
-              </button>
-
-              {/* SECTION: SECURITY & ACCESS */}
-              {!isSidebarCollapsed && <div className="nav-section-label">🛡️ Security & Access</div>}
-              <button className={`nav-item ${activeTab === 'all_users' ? 'active' : ''}`} onClick={() => setActiveTab('all_users')} title="User Directory">
-                <Users size={16} /> <span>Users</span>
-                <span className="badge badge-seed nav-counter-badge">{users.length}</span>
-              </button>
-              <button className={`nav-item ${activeTab === 'roles' ? 'active' : ''}`} onClick={() => { fetchRoles(); setActiveTab('roles'); }} title="RBAC Roles">
-                <Lock size={16} /> <span>RBAC Roles</span>
-                <span className="badge badge-system nav-counter-badge">{roles.length}</span>
-              </button>
-              <button className={`nav-item ${activeTab === 'global_audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(); setActiveTab('global_audit'); }} title="Audit Trail">
-                <FileText size={16} /> <span>Audit Trail</span>
-              </button>
-
-              {/* SECTION: INFRASTRUCTURE & HEALTH */}
-              {!isSidebarCollapsed && <div className="nav-section-label">⚡ Infrastructure</div>}
-              <button className={`nav-item ${activeTab === 'system_health' ? 'active' : ''}`} onClick={() => setActiveTab('system_health')} title="Telemetry & Sync DLQ">
-                <Activity size={16} /> <span>Telemetry & DLQ</span>
-              </button>
-              <button
-                className={`nav-item ${activeTab === 'reconcile' ? 'active' : ''}`}
-                onClick={() => {
-                  checkUntrackedTenants();
-                  setShowReconcileModal(true);
-                }}
-                style={{
-                  background: untrackedCount > 0 ? 'var(--warning-light)' : 'transparent',
-                  color: untrackedCount > 0 ? 'var(--warning)' : 'inherit',
-                  fontWeight: untrackedCount > 0 ? 700 : 'normal',
-                }}
-                title="Scan and Reconcile unmanaged ETMS tenants into OPS Master"
-              >
-                <Shield size={16} color={untrackedCount > 0 ? 'var(--warning)' : 'var(--primary)'} />
-                <span>Reconcile ETMS</span>
-                {untrackedCount > 0 && (
-                  <span
-                    className="nav-counter-badge"
-                    style={{
-                      background: 'var(--danger)',
-                      color: '#ffffff',
-                    }}
-                  >
-                    {untrackedCount}
-                  </span>
-                )}
-              </button>
-            </>
-          ) : (
-            <>
-              {!isSidebarCollapsed && <div className="nav-section-label">🎧 Support Workspace</div>}
-              <button className={`nav-item ${companySubTab === 'overview' ? 'active' : ''}`} onClick={() => setCompanySubTab('overview')} title="Company Overview">
-                <TrendingUp size={16} /> <span>Overview</span>
-              </button>
-              <button className={`nav-item ${companySubTab === 'users' ? 'active' : ''}`} onClick={() => setCompanySubTab('users')} title="Tenant Users">
-                <Users size={16} /> <span>Users</span>
-              </button>
-              <button className={`nav-item ${companySubTab === 'features' ? 'active' : ''}`} onClick={() => setCompanySubTab('features')} title="Parameters & Rules">
-                <Settings size={16} /> <span>Parameters</span>
-              </button>
-              <button className={`nav-item ${companySubTab === 'roles' ? 'active' : ''}`} onClick={() => setCompanySubTab('roles')} title="System Roles">
-                <Lock size={16} /> <span>Roles</span>
-              </button>
-              <button className={`nav-item ${companySubTab === 'transactions' ? 'active' : ''}`} onClick={() => setCompanySubTab('transactions')} title="Billing Transactions">
-                <CreditCard size={16} /> <span>Transactions</span>
-              </button>
-              <button className={`nav-item ${companySubTab === 'audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(operatingCompany.id); setCompanySubTab('audit'); }} title="Tenant Audit">
-                <FileText size={16} /> <span>Audit Trail</span>
-              </button>
-            </>
-          )}
+        <div className="telemetry-strip-item">
+          <span>Cluster: <span className="telemetry-strip-value">Prod-01</span></span>
         </div>
-
-        <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-          <button
-            className="btn btn-secondary"
-            style={{ width: '100%', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'center', gap: '0.35rem' }}
-            onClick={() => setShowSecurityModal(true)}
-            title="Manage 2FA and JWT security credentials"
-          >
-            <Shield size={13} color="var(--primary)" /> {!isSidebarCollapsed && 'Security & 2FA'}
-          </button>
-
-          {operatingCompany ? (
-            <button className="btn btn-secondary" style={{ width: '100%', fontSize: '0.78rem' }} onClick={exitCompanyOperationalMode} title="Exit Support Mode">
-              <ArrowLeft size={14} /> {!isSidebarCollapsed && 'Exit Support'}
-            </button>
-          ) : (
-            <button
-              className="btn btn-secondary"
-              style={{ width: '100%', fontSize: '0.78rem' }}
-              onClick={() => {
-                localStorage.removeItem('ops_access_token');
-                localStorage.removeItem('ops_refresh_token');
-                setIsLoggedIn(false);
-                toast.info('Logged out of Super Admin.');
-              }}
-              title="Logout Admin"
-            >
-              <LogOut size={14} /> {!isSidebarCollapsed && 'Logout Admin'}
-            </button>
-          )}
+        <div className="telemetry-strip-item">
+          <span>PostgreSQL: <span className="telemetry-status-ok">Connected</span></span>
+        </div>
+        <div className="telemetry-strip-item">
+          <span>MongoDB: <span className="telemetry-status-ok">Connected</span></span>
+        </div>
+        <div className="telemetry-strip-item">
+          <span>Tenants: <span className="telemetry-strip-value">{companies.length}</span></span>
+        </div>
+        <div className="telemetry-strip-item">
+          <span>Users: <span className="telemetry-strip-value">{users.length}</span></span>
+        </div>
+        <div className="telemetry-strip-item" style={{ marginLeft: 'auto' }}>
+          <span>Operator: <span className="telemetry-strip-value">{currentUser?.email || 'admin@ops.saas'}</span></span>
         </div>
       </div>
 
-      {/* MAIN CONTENT AREA */}
-      <div className="main-content">
-        {/* TOP INTEGRATED HEADER & BREADCRUMBS BAR (SCRUM-97 & SCRUM-98) */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', gap: '1rem' }}>
-          <div className="breadcrumbs" style={{ margin: 0 }}>
-            <span className="breadcrumb-item" onClick={() => { exitCompanyOperationalMode(); setActiveTab('global_dashboard'); }}>
-              Global Control Plane
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        {/* MINIMALIST COLLAPSIBLE SIDEBAR */}
+        <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+          <div className="sidebar-header">
+            <div className="sidebar-title">
+              <Shield size={16} color="var(--accent-red)" />
+              <span>OPS Console</span>
+            </div>
+            <button
+              type="button"
+              className="sidebar-collapse-btn"
+              onClick={toggleSidebar}
+              title={isSidebarCollapsed ? "Expand Sidebar (Ctrl+B)" : "Collapse Sidebar (Ctrl+B)"}
+            >
+              {isSidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+            </button>
+          </div>
+
+          {operatingCompany ? (
+            <div style={{ background: 'var(--accent-red-bg)', padding: '0.5rem 0.65rem', border: '1px solid transparent', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.75rem', color: 'var(--accent-red)', fontFamily: 'var(--font-sans)' }}>
+                <Headphones size={13} /> {!isSidebarCollapsed && <span>Support Active</span>}
+              </div>
+              {!isSidebarCollapsed && (
+                <div style={{ color: 'var(--text-main)', fontSize: '0.75rem', marginTop: '0.15rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {operatingCompany.name}
+                </div>
+              )}
+            </div>
+          ) : (
+            !isSidebarCollapsed && (
+              <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.35rem 0.6rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                Global Control Plane
+              </div>
+            )
+          )}
+
+          {/* QUICK SEARCH PALETTE TRIGGER */}
+          <button
+            type="button"
+            onClick={() => setShowCommandPalette(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+              padding: isSidebarCollapsed ? '0.45rem 0' : '0.45rem 0.65rem',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-surface)',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '0.78rem',
+              width: '100%',
+              transition: 'all 0.15s ease',
+              boxShadow: 'var(--shadow-card)',
+            }}
+            title="Open Command Palette (Ctrl+K)"
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+              <Search size={13} color="var(--text-muted)" /> {!isSidebarCollapsed && 'Quick Search...'}
             </span>
-            <ChevronRight size={12} />
-            {operatingCompany ? (
+            {!isSidebarCollapsed && (
+              <kbd>⌘K</kbd>
+            )}
+          </button>
+
+          <div className="nav-menu">
+            {!operatingCompany ? (
               <>
-                <span className="breadcrumb-item" onClick={() => { setActiveTab('companies'); }}>
-                  Tenants
-                </span>
-                <ChevronRight size={12} />
-                <span className="breadcrumb-item active">
-                  {operatingCompany.name} ({operatingCompany.code})
-                </span>
-                <ChevronRight size={12} />
-                <span className="breadcrumb-item active" style={{ textTransform: 'capitalize' }}>
-                  {companySubTab}
-                </span>
+                {/* SECTION: PLATFORM GOVERNANCE */}
+                {!isSidebarCollapsed && <div className="nav-section-label">Governance</div>}
+                <button className={`nav-item ${activeTab === 'global_dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('global_dashboard')} title="Global Dashboard">
+                  <TrendingUp size={15} /> <span>Dashboard</span>
+                </button>
+                <button className={`nav-item ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')} title="Registered Companies">
+                  <Building size={15} /> <span>Companies</span>
+                  <span className="badge badge-pastel-blue nav-counter-badge">{companies.length}</span>
+                </button>
+                <button className={`nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`} onClick={() => setActiveTab('subscriptions')} title="Subscriptions & Billing">
+                  <CreditCard size={15} /> <span>Subscriptions</span>
+                </button>
+
+                {/* SECTION: SECURITY & ACCESS */}
+                {!isSidebarCollapsed && <div className="nav-section-label">Security & Access</div>}
+                <button className={`nav-item ${activeTab === 'all_users' ? 'active' : ''}`} onClick={() => setActiveTab('all_users')} title="User Directory">
+                  <Users size={15} /> <span>Users</span>
+                  <span className="badge badge-seed nav-counter-badge">{users.length}</span>
+                </button>
+                <button className={`nav-item ${activeTab === 'roles' ? 'active' : ''}`} onClick={() => { fetchRoles(); setActiveTab('roles'); }} title="RBAC Roles">
+                  <Lock size={15} /> <span>Roles</span>
+                  <span className="badge badge-pastel-yellow nav-counter-badge">{roles.length}</span>
+                </button>
+                <button className={`nav-item ${activeTab === 'global_audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(); setActiveTab('global_audit'); }} title="Audit Trail">
+                  <FileText size={15} /> <span>Audit Trail</span>
+                </button>
+
+                {/* SECTION: INFRASTRUCTURE & HEALTH */}
+                {!isSidebarCollapsed && <div className="nav-section-label">Infrastructure</div>}
+                <button className={`nav-item ${activeTab === 'system_health' ? 'active' : ''}`} onClick={() => setActiveTab('system_health')} title="Telemetry & Sync DLQ">
+                  <Activity size={15} /> <span>System Telemetry</span>
+                </button>
+                <button
+                  className={`nav-item ${activeTab === 'reconcile' ? 'active' : ''}`}
+                  onClick={() => {
+                    checkUntrackedTenants();
+                    setShowReconcileModal(true);
+                  }}
+                  style={{
+                    background: untrackedCount > 0 ? 'var(--accent-yellow-bg)' : 'transparent',
+                    color: untrackedCount > 0 ? 'var(--accent-yellow)' : 'inherit',
+                  }}
+                  title="Scan and Reconcile unmanaged ETMS tenants into OPS Master"
+                >
+                  <Shield size={15} color={untrackedCount > 0 ? 'var(--accent-yellow)' : 'var(--text-muted)'} />
+                  <span>Reconcile Tenants</span>
+                  {untrackedCount > 0 && (
+                    <span
+                      className="nav-counter-badge"
+                      style={{
+                        background: 'var(--accent-red)',
+                        color: '#ffffff',
+                      }}
+                    >
+                      {untrackedCount}
+                    </span>
+                  )}
+                </button>
               </>
             ) : (
-              <span className="breadcrumb-item active" style={{ textTransform: 'capitalize' }}>
-                {activeTab.replace('_', ' ')}
-              </span>
+              <>
+                {!isSidebarCollapsed && <div className="nav-section-label">Support Workspace</div>}
+                <button className={`nav-item ${companySubTab === 'overview' ? 'active' : ''}`} onClick={() => setCompanySubTab('overview')} title="Company Overview">
+                  <TrendingUp size={15} /> <span>Overview</span>
+                </button>
+                <button className={`nav-item ${companySubTab === 'users' ? 'active' : ''}`} onClick={() => setCompanySubTab('users')} title="Tenant Users">
+                  <Users size={15} /> <span>Tenant Users</span>
+                </button>
+                <button className={`nav-item ${companySubTab === 'features' ? 'active' : ''}`} onClick={() => setCompanySubTab('features')} title="Parameters & Rules">
+                  <Settings size={15} /> <span>Parameters</span>
+                </button>
+                <button className={`nav-item ${companySubTab === 'roles' ? 'active' : ''}`} onClick={() => setCompanySubTab('roles')} title="System Roles">
+                  <Lock size={15} /> <span>System Roles</span>
+                </button>
+                <button className={`nav-item ${companySubTab === 'transactions' ? 'active' : ''}`} onClick={() => setCompanySubTab('transactions')} title="Billing Transactions">
+                  <CreditCard size={15} /> <span>Transactions</span>
+                </button>
+                <button className={`nav-item ${companySubTab === 'audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(operatingCompany.id); setCompanySubTab('audit'); }} title="Tenant Audit">
+                  <FileText size={15} /> <span>Audit Trail</span>
+                </button>
+              </>
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            {/* PERSISTENT QUICK-SWITCH TENANT SELECTOR (SCRUM-97) */}
-            <select
-              className="form-control"
-              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', width: '170px' }}
-              value={operatingCompany?.id || ''}
-              onChange={(e) => {
-                const cId = e.target.value;
-                if (!cId) {
-                  exitCompanyOperationalMode();
-                } else {
-                  const targetComp = companies.find((c) => c.id === cId);
-                  if (targetComp) enterCompanyOperationalMode(targetComp);
-                }
-              }}
+          <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <button
+              className="btn btn-secondary"
+              style={{ width: '100%', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'center', gap: '0.4rem' }}
+              onClick={() => setShowSecurityModal(true)}
+              title="Manage 2FA and JWT security credentials"
             >
-              <option value="">-- Jump to tenant... --</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
-              ))}
-            </select>
+              <Shield size={13} color="var(--accent-red)" /> {!isSidebarCollapsed && 'Security & 2FA'}
+            </button>
 
-            {/* THEME TOGGLE (SCRUM-98) */}
-            <ThemeToggle />
+            {operatingCompany ? (
+              <button className="btn btn-secondary" style={{ width: '100%', fontSize: '0.75rem' }} onClick={exitCompanyOperationalMode} title="Exit Support Mode">
+                <ArrowLeft size={13} /> {!isSidebarCollapsed && 'Exit Support'}
+              </button>
+            ) : (
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%', fontSize: '0.75rem' }}
+                onClick={() => {
+                  localStorage.removeItem('ops_access_token');
+                  localStorage.removeItem('ops_refresh_token');
+                  setIsLoggedIn(false);
+                  toast.info('Logged out of Super Admin.');
+                }}
+                title="Logout Admin"
+              >
+                <LogOut size={13} /> {!isSidebarCollapsed && 'Logout'}
+              </button>
+            )}
           </div>
         </div>
-        {/* SUPPORT IMPERSONATION ACTIVE BANNER (SCRUM-87) */}
-        {impersonationContext && (
-          <div
-            style={{
-              background: 'linear-gradient(90deg, #b45309, #d97706, #b45309)',
-              color: '#ffffff',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '6px',
-              marginBottom: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)',
-              border: '1px solid #f59e0b',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+
+        {/* MAIN CONTENT AREA */}
+        <div className="main-content">
+          {/* BENTO TOPBAR & BREADCRUMBS HUD */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+            <div className="breadcrumbs" style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: '0.8125rem' }}>
+              <span className="breadcrumb-item" onClick={() => { exitCompanyOperationalMode(); setActiveTab('global_dashboard'); }}>
+                Control Plane
+              </span>
+              <ChevronRight size={13} color="var(--text-tertiary)" />
+              {operatingCompany ? (
+                <>
+                  <span className="breadcrumb-item" onClick={() => { setActiveTab('companies'); }}>
+                    Tenants
+                  </span>
+                  <ChevronRight size={13} color="var(--text-tertiary)" />
+                  <span className="breadcrumb-item active">
+                    {operatingCompany.name} ({operatingCompany.code})
+                  </span>
+                  <ChevronRight size={13} color="var(--text-tertiary)" />
+                  <span className="breadcrumb-item active" style={{ textTransform: 'capitalize' }}>
+                    {companySubTab}
+                  </span>
+                </>
+              ) : (
+                <span className="breadcrumb-item active" style={{ textTransform: 'capitalize' }}>
+                  {activeTab.replace('_', ' ')}
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* PERSISTENT QUICK-SWITCH TENANT SELECTOR */}
+              <select
+                className="form-control"
+                style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', width: '200px', fontFamily: 'var(--font-sans)', borderRadius: 'var(--radius-sm)' }}
+                value={operatingCompany?.id || ''}
+                onChange={(e) => {
+                  const cId = e.target.value;
+                  if (!cId) {
+                    exitCompanyOperationalMode();
+                  } else {
+                    const targetComp = companies.find((c) => c.id === cId);
+                    if (targetComp) startOperatingAsCompany(targetComp);
+                  }
+                }}
+              >
+                <option value="">Jump to Tenant...</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                ))}
+              </select>
+
+              {/* THEME TOGGLE */}
+              <ThemeToggle />
+            </div>
+          </div>
+
+          {/* WASHED PASTEL IMPERSONATION ACTIVE BANNER */}
+          {impersonationContext && (
+            <div
+              style={{
+                padding: '0.85rem 1.25rem',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'var(--accent-yellow-bg)',
+                border: '1px solid rgba(149, 100, 0, 0.25)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-subtle)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <span style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', color: 'var(--accent-yellow)' }}>
+                  <Shield size={20} />
+                </span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-yellow)', letterSpacing: '-0.01em', fontFamily: 'var(--font-sans)' }}>
+                    Tenant Impersonation Active &bull; {impersonationContext.targetUser?.name} ({impersonationContext.targetUser?.email})
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--accent-yellow)', opacity: 0.85, marginTop: '2px', fontFamily: 'var(--font-sans)' }}>
+                    Tenant: {impersonationContext.targetUser?.company?.name || 'Internal Workspace'} &bull; Operator: {impersonationContext.originalUser?.name || 'Super Admin'} &bull; 15m Ephemeral Session
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleLaunchEtms(impersonationContext.targetUser)}
+                  style={{
+                    fontSize: '0.78rem',
+                    padding: '0.4rem 0.8rem',
+                  }}
+                  title={`Open ETMS Factory Portal as ${impersonationContext.targetUser?.name}`}
+                >
+                  <ExternalLink size={13} /> Open ETMS Portal ↗
+                </button>
+
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleExitImpersonation}
+                  style={{
+                    fontSize: '0.78rem',
+                    padding: '0.4rem 0.8rem',
+                    borderColor: 'rgba(149, 100, 0, 0.35)',
+                    color: 'var(--accent-red)',
+                  }}
+                >
+                  <LogOut size={13} /> Exit Impersonation
+                </button>
+              </div>
+            </div>
+          )}
+
+          {message && (
+            <div className={`alert alert-${message.type === 'error' ? 'error' : 'info'}`}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{message.text}</span>
+                <button onClick={() => setMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+              </div>
+            </div>
+          )}
+
+          {/* SUPPORT OPERATIONAL MODE TOP BANNER */}
+          {operatingCompany && (
+            <div
+              style={{
+                background: 'var(--bg-surface-elevated)',
+                border: '1px solid var(--border-strong)',
+                borderLeft: '4px solid var(--accent-red)',
+                padding: '0.75rem 1rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
               <div>
-                <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>
-                  TENANT IMPERSONATION ACTIVE: Operating as {impersonationContext.targetUser?.name} ({impersonationContext.targetUser?.email})
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', color: 'var(--accent-red)', fontWeight: 800, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <Headphones size={14} /> [SUPPORT OPERATING MODE ACTIVE]
                 </div>
-                <div style={{ fontSize: '0.74rem', opacity: 0.9 }}>
-                  Tenant: <strong>{impersonationContext.targetUser?.company?.name || 'Internal'}</strong> &bull; Super Admin: <em>{impersonationContext.originalUser?.name}</em> &bull; Ephemeral Token (15m TTL)
-                </div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, marginTop: '0.2rem', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', letterSpacing: '-0.02em' }}>
+                  {operatingCompany.name} <samp style={{ fontSize: '0.85rem', border: '1px solid var(--border)', padding: '0.1rem 0.4rem', background: 'var(--bg-canvas)' }}>{operatingCompany.code}</samp>
+                </h2>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
-                className="btn"
-                onClick={() => handleLaunchEtms(impersonationContext.targetUser)}
-                style={{
-                  background: '#065f46',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  padding: '0.35rem 0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                }}
-                title={`Open ETMS Factory Portal as ${impersonationContext.targetUser?.name}`}
-              >
-                <ExternalLink size={13} /> Open ETMS Factory Portal ↗
-              </button>
-
-              <button
-                className="btn"
-                onClick={handleExitImpersonation}
-                style={{
-                  background: '#ffffff',
-                  color: '#9a3412',
-                  border: 'none',
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  padding: '0.35rem 0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                }}
-              >
-                <LogOut size={13} /> Exit Support Mode
+              <button className="btn btn-secondary" onClick={exitCompanyOperationalMode} style={{ fontSize: '0.76rem' }}>
+                <ArrowLeft size={13} /> [ EXIT TO GLOBAL HUD ]
               </button>
             </div>
-          </div>
-        )}
-
-        {message && (
-          <div className={`alert alert-${message.type === 'error' ? 'error' : 'info'}`}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>{message.text}</span>
-              <button onClick={() => setMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
-            </div>
-          </div>
-        )}
-
-        {/* SUPPORT OPERATIONAL MODE TOP BANNER */}
-        {operatingCompany && (
-          <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: '#4338ca', fontWeight: 600, textTransform: 'uppercase' }}>
-                <Headphones size={15} /> Support Operating Mode Active
-              </div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e1b4b', marginTop: '0.1rem' }}>
-                {operatingCompany.name} <code style={{ fontSize: '0.9rem', background: '#e0e7ff', padding: '0.1rem 0.4rem', borderRadius: '4px', color: '#3730a3' }}>{operatingCompany.code}</code>
-              </h2>
-            </div>
-            <button className="btn btn-secondary" onClick={exitCompanyOperationalMode} style={{ fontSize: '0.78rem' }}>
-              <ArrowLeft size={14} /> Exit to Global View
-            </button>
-          </div>
-        )}
+          )}
 
         {/* GLOBAL DASHBOARD */}
         {activeTab === 'global_dashboard' && !operatingCompany && (
@@ -1045,20 +1066,20 @@ export default function App() {
             {untrackedCount > 0 && (
               <div
                 style={{
-                  background: 'linear-gradient(90deg, #fffbeb, #fef3c7)',
-                  border: '1px solid #fde68a',
-                  borderRadius: '8px',
+                  background: 'var(--accent-yellow-bg)',
+                  border: '1px solid var(--warning)',
+                  borderRadius: 'var(--radius-md)',
                   padding: '0.85rem 1.25rem',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  boxShadow: '0 1px 4px rgba(217, 119, 6, 0.1)',
+                  boxShadow: 'var(--shadow-card)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div
                     style={{
-                      background: '#f59e0b',
+                      background: 'var(--warning)',
                       color: '#ffffff',
                       borderRadius: '50%',
                       width: '32px',
@@ -1073,10 +1094,10 @@ export default function App() {
                     !
                   </div>
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#92400e' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-main)' }}>
                       {untrackedCount} Untracked Tenant(s) Detected in ETMS!
                     </div>
-                    <div style={{ fontSize: '0.76rem', color: '#78350f' }}>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
                       ETMS contains unmanaged factory companies and mobile accounts. Adopt and standardize them into OPS Master now.
                     </div>
                   </div>
@@ -1106,12 +1127,12 @@ export default function App() {
                 <h3 style={{ fontSize: '0.95rem' }}>Registered Companies Directory</h3>
 
                 {/* SEARCH FILTER BOX */}
-                <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: '5px', padding: '0.2rem 0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-canvas)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '0.2rem 0.5rem' }}>
                   <Search size={14} color="var(--text-muted)" style={{ marginRight: '0.3rem' }} />
                   <input
                     type="text"
                     placeholder="Filter by name, GSTIN, code..."
-                    style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', width: '200px' }}
+                    style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', width: '200px', color: 'var(--text-main)' }}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -1139,14 +1160,14 @@ export default function App() {
                               <img src={company.logoUrl} alt="Logo" style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover' }} />
                             )}
                             <div>
-                              <strong>{company.name}</strong> <code style={{ fontSize: '0.75rem', color: '#4f46e5' }}>{company.code}</code>
+                              <strong>{company.name}</strong> <code style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>{company.code}</code>
                               {company.isSeed && <span className="badge badge-seed" style={{ marginLeft: '0.3rem' }}>000 SEED</span>}
                             </div>
                           </div>
                         </td>
                         <td>
                           {company.gstin ? (
-                            <code className="mono" style={{ background: '#f1f5f9', padding: '0.1rem 0.3rem', borderRadius: '3px', color: '#1e40af', fontSize: '0.75rem' }}>
+                            <code className="mono" style={{ background: 'var(--accent-blue-bg)', padding: '0.1rem 0.3rem', borderRadius: '3px', color: 'var(--accent-blue)', fontSize: '0.75rem' }}>
                               {company.gstin}
                             </code>
                           ) : (
@@ -1279,27 +1300,27 @@ export default function App() {
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
-                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+                    <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
                         <FileSpreadsheet size={15} /> Indian Tax & Compliance
                       </div>
-                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>GSTIN: <code className="mono" style={{ color: '#2563eb', fontWeight: 600 }}>{operatingCompany.gstin || 'N/A'}</code></div>
+                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>GSTIN: <code className="mono" style={{ color: 'var(--primary)', fontWeight: 600 }}>{operatingCompany.gstin || 'N/A'}</code></div>
                       <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Contact Person: <strong>{operatingCompany.contactPerson || 'N/A'}</strong></div>
                       <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Mobile Phone: <strong>{operatingCompany.mobile || 'N/A'}</strong></div>
                       <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Billing Email: <strong>{operatingCompany.email || 'N/A'}</strong></div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+                    <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
                         <MapPin size={15} /> Billing Address
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>
                         {operatingCompany.address || 'No billing address recorded.'}
                       </div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+                    <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
                         <Globe size={15} /> Utility Parameters
                       </div>
                       <div style={{ margin: '0.15rem 0', fontSize: '0.75rem' }}>Time Zone: <strong>{operatingCompany.parameters?.find(p => p.key === 'timezone')?.value || 'Asia/Kolkata'}</strong></div>
@@ -1311,7 +1332,7 @@ export default function App() {
                 </div>
 
                 <div className="card">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: '#92400e', fontSize: '0.82rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: 'var(--warning)', fontSize: '0.82rem' }}>
                     <Lock size={15} /> System-Defined Role Guard
                   </div>
                   <p style={{ fontSize: '0.78rem', marginTop: '0.2rem', color: 'var(--text-muted)' }}>
@@ -1357,7 +1378,7 @@ export default function App() {
                         <td>
                           <div>{u.email}</div>
                           {u.mobile && (
-                            <div style={{ fontSize: '0.7rem', color: '#4338ca', fontWeight: 600 }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>
                               📱 {u.mobile}
                             </div>
                           )}
@@ -1365,11 +1386,11 @@ export default function App() {
                         <td><span className="badge badge-active">{u.status || 'ACTIVE'}</span></td>
                         <td>
                           {u.role?.name?.toLowerCase().includes('admin') ? (
-                            <span style={{ background: '#dbeafe', color: '#1e40af', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
+                            <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, border: '1px solid var(--border)' }}>
                               ⭐ {u.role.name}
                             </span>
                           ) : (
-                            <span style={{ background: '#f0fdf4', color: '#166534', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>
+                            <span style={{ background: 'var(--bg-surface-elevated)', color: 'var(--text-main)', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, border: '1px solid var(--border)' }}>
                               🏭 {u.role ? u.role.name : 'Staff'}
                             </span>
                           )}
@@ -1402,7 +1423,7 @@ export default function App() {
                     {operatingCompany.parameters?.map((p) => (
                       <tr key={p.id}>
                         <td><code>{p.key}</code></td>
-                        <td><span style={{ background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>{p.value}</span></td>
+                        <td><span style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>{p.value}</span></td>
                         <td><small style={{ color: 'var(--text-muted)' }}>{p.description}</small></td>
                         <td>
                           {p.key.startsWith('feature_') ? (
@@ -1421,6 +1442,7 @@ export default function App() {
             )}
           </div>
         )}
+      </div>
       </div>
 
       {/* MODAL: ONBOARDING WIZARD */}
@@ -1584,10 +1606,11 @@ export default function App() {
         {selectedAuditLog && (
           <pre
             style={{
-              background: '#0f172a',
-              color: '#38bdf8',
+              background: 'var(--bg-canvas)',
+              color: 'var(--accent-blue)',
+              border: '1px solid var(--border)',
               padding: '1rem',
-              borderRadius: '8px',
+              borderRadius: 'var(--radius-sm)',
               overflowX: 'auto',
               fontSize: '0.78rem',
               lineHeight: 1.45,

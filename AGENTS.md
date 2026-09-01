@@ -46,6 +46,18 @@ Usage notes:
 <location>.agent/skills/ops-operations-guide/SKILL.md</location>
 </skill>
 
+<skill>
+<name>minimalist-ui</name>
+<description>Clean editorial-style interfaces. Warm monochrome palette, typographic contrast, flat bento grids, muted pastels. No gradients, no heavy shadows.</description>
+<location>.agent/skills/minimalist-skill/SKILL.md</location>
+</skill>
+
+<skill>
+<name>redesign-existing-projects</name>
+<description>Upgrades existing websites and apps to premium quality. Audits current design, identifies generic AI patterns, and applies high-end design standards without breaking functionality. Works with any CSS framework or vanilla CSS.</description>
+<location>.agent/skills/redesign-skill/SKILL.md</location>
+</skill>
+
 </available_skills>
 <!-- SKILLS_TABLE_END -->
 

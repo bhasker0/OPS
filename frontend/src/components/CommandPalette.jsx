@@ -14,7 +14,8 @@ import {
   Sparkles,
   Command,
   ArrowRight,
-  Activity
+  Activity,
+  Terminal
 } from 'lucide-react';
 
 export default function CommandPalette({
@@ -63,16 +64,14 @@ export default function CommandPalette({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   // Build searchable items
   const navigationItems = [
     {
       id: 'nav-dashboard',
       category: 'Navigation',
       title: 'Global Analytics Dashboard',
-      subtitle: 'Executive metrics, revenue ledger, and system health',
-      icon: <TrendingUp size={16} color="#4f46e5" />,
+      subtitle: 'Executive metrics, ARR ledger, and system health',
+      icon: <TrendingUp size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('global_dashboard');
         onClose();
@@ -81,9 +80,9 @@ export default function CommandPalette({
     {
       id: 'nav-companies',
       category: 'Navigation',
-      title: 'Companies Directory',
+      title: 'Tenant Directory & Registry',
       subtitle: `Browse all ${companies.length} tenant organizations`,
-      icon: <Building size={16} color="#4f46e5" />,
+      icon: <Building size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('companies');
         onClose();
@@ -92,9 +91,9 @@ export default function CommandPalette({
     {
       id: 'nav-users',
       category: 'Navigation',
-      title: 'User Management',
+      title: 'User Management & Lifecycle',
       subtitle: `Manage ${users.length} user accounts & security roles`,
-      icon: <Users size={16} color="#4f46e5" />,
+      icon: <Users size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('all_users');
         onClose();
@@ -105,7 +104,7 @@ export default function CommandPalette({
       category: 'Navigation',
       title: 'RBAC Roles & Permissions Matrix',
       subtitle: 'Configure granular module permissions and security rules',
-      icon: <Lock size={16} color="#4f46e5" />,
+      icon: <Lock size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('roles');
         onClose();
@@ -114,9 +113,9 @@ export default function CommandPalette({
     {
       id: 'nav-subscriptions',
       category: 'Navigation',
-      title: 'Subscription Tiers & Tenant Quotas',
-      subtitle: 'Manage pricing tiers, machine & user seat quotas, and plan assignments',
-      icon: <TrendingUp size={16} color="#4f46e5" />,
+      title: 'Subscription Ledger & Quotas',
+      subtitle: 'Manage pricing tiers, machine & user quotas, and invoices',
+      icon: <TrendingUp size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('subscriptions');
         onClose();
@@ -125,9 +124,9 @@ export default function CommandPalette({
     {
       id: 'nav-health',
       category: 'Navigation',
-      title: 'System Health Telemetry & Sync DLQ',
-      subtitle: 'Real-time database latency heartbeats, memory usage, and failed event replays',
-      icon: <Activity size={16} color="#10b981" />,
+      title: 'System Telemetry & Sync DLQ',
+      subtitle: 'Real-time database latency heartbeats and failed event replays',
+      icon: <Activity size={15} color="var(--accent-green)" />,
       action: () => {
         onNavigateTab('system_health');
         onClose();
@@ -136,9 +135,9 @@ export default function CommandPalette({
     {
       id: 'nav-audit',
       category: 'Navigation',
-      title: 'Audit Trail Logs',
+      title: 'Forensic Audit Trail Inspector',
       subtitle: 'MongoDB real-time change data & compliance events',
-      icon: <FileText size={16} color="#4f46e5" />,
+      icon: <FileText size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('global_audit');
         onClose();
@@ -149,10 +148,10 @@ export default function CommandPalette({
   const quickActions = [
     {
       id: 'act-register-company',
-      category: 'Quick Actions',
+      category: 'Actions',
       title: 'Provision New Tenant Company',
       subtitle: 'Launch 4-step onboarding wizard with GSTIN validation',
-      icon: <Plus size={16} color="#10b981" />,
+      icon: <Plus size={15} color="var(--accent-green)" />,
       action: () => {
         if (onRegisterCompany) onRegisterCompany();
         onClose();
@@ -160,10 +159,10 @@ export default function CommandPalette({
     },
     {
       id: 'act-create-user',
-      category: 'Quick Actions',
-      title: 'Create User Account',
+      category: 'Actions',
+      title: 'Provision User Account',
       subtitle: 'Provision a new tenant operator or ops super admin',
-      icon: <Users size={16} color="#10b981" />,
+      icon: <Users size={15} color="var(--accent-green)" />,
       action: () => {
         if (onCreateUser) onCreateUser();
         onClose();
@@ -173,11 +172,11 @@ export default function CommandPalette({
 
   const companyItems = companies.map((c) => ({
     id: `comp-${c.id}`,
-    category: 'Tenants & Companies',
+    category: 'Tenants',
     title: c.name,
-    subtitle: `Code: ${c.code} • GSTIN: ${c.gstin || 'N/A'} • Status: ${c.status || 'ACTIVE'}`,
-    icon: <Headphones size={16} color="#4338ca" />,
-    badge: c.isSeed ? '000 SEED' : c.status || 'ACTIVE',
+    subtitle: `Code: ${c.code} • GSTIN: ${c.gstin || 'N/A'}`,
+    icon: <Building size={15} color="var(--primary)" />,
+    badge: c.isSeed ? 'Master Seed' : (c.status || 'ACTIVE'),
     action: () => {
       if (onSelectCompany) onSelectCompany(c);
       onClose();
@@ -188,9 +187,9 @@ export default function CommandPalette({
     id: `user-${u.id}`,
     category: 'Users',
     title: u.name,
-    subtitle: `${u.email} • ${u.company ? u.company.name : 'Global Admin'} • Role: ${u.role ? u.role.name : 'Default'}`,
-    icon: <Users size={16} color="#64748b" />,
-    badge: u.isInternalOps ? 'OPS ADMIN' : 'TENANT',
+    subtitle: `${u.email} • Tenant: ${u.company ? u.company.name : 'Global Admin'}`,
+    icon: <Users size={15} color="var(--text-muted)" />,
+    badge: u.isInternalOps ? 'Super Admin' : 'Staff',
     action: () => {
       onNavigateTab('all_users');
       onClose();
@@ -235,45 +234,56 @@ export default function CommandPalette({
     }
   }, [selectedIndex]);
 
+  if (!isOpen) return null;
+
   return (
-    <div className="modal-backdrop command-palette-backdrop" onClick={onClose}>
+    <div className="modal-backdrop command-palette-backdrop" onClick={onClose} style={{ zIndex: 1300 }}>
       <div
         className="command-palette-container"
         onClick={(e) => e.stopPropagation()}
         role="combobox"
         aria-expanded="true"
+        style={{
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-modal)',
+          background: 'var(--bg-surface)',
+          overflow: 'hidden',
+          maxWidth: '560px'
+        }}
       >
         {/* SEARCH BAR */}
-        <div className="command-palette-search-bar">
-          <Search size={18} className="command-search-icon" />
+        <div className="command-palette-search-bar" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)', padding: '0.85rem 1rem' }}>
+          <Search size={16} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
           <input
             ref={inputRef}
             type="text"
             className="command-search-input"
-            placeholder="Type a command, jump to company, user, or page..."
+            placeholder="Type a command, tenant, or user..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
             onKeyDown={handleKeyDown}
+            style={{ fontSize: '0.875rem' }}
           />
           {query ? (
             <button className="command-clear-btn" onClick={() => setQuery('')}>
               <X size={14} />
             </button>
           ) : (
-            <kbd className="command-kbd-badge">ESC</kbd>
+            <kbd style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', borderRadius: '3px', color: 'var(--text-muted)' }}>Esc</kbd>
           )}
         </div>
 
         {/* RESULTS LIST */}
-        <div className="command-results-list" ref={listRef}>
+        <div className="command-results-list" ref={listRef} style={{ maxHeight: '360px', padding: '0.5rem' }}>
           {filteredItems.length === 0 ? (
-            <div className="command-no-results">
-              <Sparkles size={24} color="#94a3b8" />
-              <p>No results found for &ldquo;{query}&rdquo;</p>
-              <small>Try searching by company name, code, user email, or page name.</small>
+            <div className="command-no-results" style={{ padding: '2.5rem 1rem', textAlign: 'center' }}>
+              <Terminal size={22} color="var(--text-muted)" style={{ margin: '0 auto 0.5rem auto' }} />
+              <p style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)', margin: '0 0 0.25rem 0' }}>No matching results for &ldquo;{query}&rdquo;</p>
+              <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Search across tenants, users, roles, or navigation routes.</small>
             </div>
           ) : (
             filteredItems.map((item, index) => {
@@ -285,26 +295,39 @@ export default function CommandPalette({
                   className={`command-item ${isSelected ? 'command-item-active' : ''}`}
                   onClick={() => item.action()}
                   onMouseEnter={() => setSelectedIndex(index)}
+                  style={{
+                    borderRadius: 'var(--radius-sm)',
+                    background: isSelected ? 'var(--bg-surface-elevated)' : 'transparent',
+                    padding: '0.6rem 0.75rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    transition: 'all 0.1s ease'
+                  }}
                 >
-                  <div className="command-item-icon">{item.icon}</div>
-                  <div className="command-item-text">
-                    <div className="command-item-title-row">
-                      <span className="command-item-title">{item.title}</span>
-                      {item.badge && (
-                        <span className="command-item-badge">{item.badge}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0 }}>
+                    <div style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>{item.icon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-main)' }}>{item.title}</span>
+                        {item.badge && (
+                          <span className="badge badge-pastel-blue" style={{ fontSize: '0.62rem' }}>{item.badge}</span>
+                        )}
+                      </div>
+                      {item.subtitle && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '0.1rem' }}>{item.subtitle}</div>
                       )}
                     </div>
-                    {item.subtitle && (
-                      <div className="command-item-subtitle">{item.subtitle}</div>
-                    )}
                   </div>
-                  <div className="command-item-action-hint">
+                  <div style={{ flexShrink: 0 }}>
                     {isSelected ? (
-                      <span className="command-enter-hint">
-                        Select <CornerDownLeft size={11} />
-                      </span>
+                      <kbd style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '3px', color: 'var(--primary)' }}>
+                        ↵ Enter
+                      </kbd>
                     ) : (
-                      <span className="command-category-tag">{item.category}</span>
+                      <span className="badge" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', background: 'var(--bg-surface-elevated)' }}>{item.category}</span>
                     )}
                   </div>
                 </div>
@@ -314,23 +337,18 @@ export default function CommandPalette({
         </div>
 
         {/* FOOTER SHORTCUTS */}
-        <div className="command-palette-footer">
-          <div className="command-shortcut-group">
-            <span className="command-shortcut-pill">
-              <kbd>↑</kbd> <kbd>↓</kbd> Navigate
-            </span>
-            <span className="command-shortcut-pill">
-              <kbd>↵</kbd> Select
-            </span>
-            <span className="command-shortcut-pill">
-              <kbd>ESC</kbd> Close
-            </span>
+        <div className="command-palette-footer" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-surface-elevated)', padding: '0.5rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <span><kbd style={{ padding: '0.05rem 0.3rem', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '3px' }}>↑</kbd> <kbd style={{ padding: '0.05rem 0.3rem', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '3px' }}>↓</kbd> Navigate</span>
+            <span><kbd style={{ padding: '0.05rem 0.3rem', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '3px' }}>↵</kbd> Select</span>
+            <span><kbd style={{ padding: '0.05rem 0.3rem', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '3px' }}>Esc</kbd> Close</span>
           </div>
-          <div className="command-footer-brand">
-            OPS SaaS Quick Jump
+          <div style={{ fontWeight: 600, color: 'var(--text-muted)' }}>
+            OPS Super Admin
           </div>
         </div>
       </div>
     </div>
   );
 }
+

@@ -436,46 +436,67 @@ export default function UserManagement({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* HEADER & ACTIONS */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.85rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Users size={22} style={{ color: '#4f46e5' }} />
-            User Account & Access Management
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0.15rem 0 0 0' }}>
-            Multi-tenant user administration, RBAC role assignment, and security credentials.
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Users size={18} color="var(--accent-red)" />
+            User Directory & Identity Lifecycle
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
+            Multi-tenant operator credentials, RBAC roles & emergency session management
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className="btn btn-secondary"
             onClick={onRefresh}
-            style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{ fontSize: '0.78rem' }}
           >
             <RefreshCw size={13} /> Refresh
           </button>
           <button
             className="btn btn-primary"
             onClick={() => setShowCreateModal(true)}
-            style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            style={{ fontSize: '0.78rem' }}
           >
-            <Plus size={14} /> Create User
+            <Plus size={14} /> Provision User
           </button>
         </div>
       </div>
 
+      {/* TELEMETRY READOUT BAR */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          background: 'var(--bg-surface-elevated)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.65rem 1rem',
+          fontSize: '0.78rem',
+        }}
+      >
+        <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Identity Telemetry:</span>
+        <span style={{ color: 'var(--text-main)' }}>Total: <strong className="font-mono-tabular">{users.length}</strong></span>
+        <span style={{ color: 'var(--accent-green)' }}>Active: <strong className="font-mono-tabular">{users.filter(u => (u.status || 'ACTIVE') === 'ACTIVE').length}</strong></span>
+        <span style={{ color: 'var(--accent-blue)' }}>Super Admins: <strong className="font-mono-tabular">{users.filter(u => u.isInternalOps).length}</strong></span>
+        <span style={{ color: 'var(--accent-yellow)' }}>Killswitch: <strong>Armed</strong></span>
+      </div>
+
       {/* FILTER TOOLBAR */}
-      <div className="card" style={{ padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '280px', flexWrap: 'wrap' }}>
+      <div className="card" style={{ padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '280px', flexWrap: 'wrap' }}>
           {/* Search Box */}
           <div style={{ position: 'relative', flex: 1, minWidth: '220px', maxWidth: '320px' }}>
-            <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               placeholder="Search user name or email..."
               className="form-control"
-              style={{ paddingLeft: '2.1rem', fontSize: '0.8rem' }}
+              style={{ paddingLeft: '2.2rem', fontSize: '0.78rem', borderRadius: 'var(--radius-sm)' }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -483,10 +504,10 @@ export default function UserManagement({
 
           {/* Company Filter Dropdown */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Building size={13} style={{ color: '#64748b' }} />
+            <Building size={13} color="var(--text-muted)" />
             <select
               className="form-control"
-              style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem' }}
+              style={{ fontSize: '0.78rem', padding: '0.3rem 0.5rem', borderRadius: 'var(--radius-sm)' }}
               value={selectedCompanyId}
               onChange={(e) => setSelectedCompanyId(e.target.value)}
             >
@@ -499,10 +520,10 @@ export default function UserManagement({
 
           {/* Status Filter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Filter size={13} style={{ color: '#64748b' }} />
+            <Filter size={13} color="var(--text-muted)" />
             <select
               className="form-control"
-              style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem' }}
+              style={{ fontSize: '0.78rem', padding: '0.3rem 0.5rem', borderRadius: 'var(--radius-sm)' }}
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
             >
@@ -515,8 +536,8 @@ export default function UserManagement({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <TableDensityControl density={tableDensity} onDensityChange={handleDensityChange} />
-          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
-            Showing {filteredUsers.length} of {users.length} Users
+          <span className="font-mono-tabular" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Showing {filteredUsers.length} of {users.length} users
           </span>
         </div>
       </div>
@@ -526,7 +547,7 @@ export default function UserManagement({
         <table className={`table-${tableDensity}`}>
           <thead>
             <tr>
-              <th>User Name & Email</th>
+              <th>User Identity & Email</th>
               <th>Company Tenant</th>
               <th>Account Type</th>
               <th>RBAC Role</th>
@@ -541,19 +562,19 @@ export default function UserManagement({
               const rowActions = [
                 {
                   label: 'Launch ETMS Portal ↗',
-                  icon: <ExternalLink size={13} color="#059669" />,
+                  icon: <ExternalLink size={12} color="var(--accent-green)" />,
                   hidden: u.isInternalOps || !isActive,
                   onClick: () => handleLaunchEtms(u)
                 },
                 {
-                  label: 'Impersonate as User',
-                  icon: <UserCheck size={13} color="#4f46e5" />,
+                  label: 'Impersonate User',
+                  icon: <UserCheck size={12} color="var(--primary)" />,
                   hidden: u.isInternalOps || !isActive,
                   onClick: () => setImpersonateTargetUser(u)
                 },
                 {
                   label: 'Edit User Details',
-                  icon: <Edit2 size={13} />,
+                  icon: <Edit2 size={12} />,
                   onClick: () => {
                     setSelectedUser(u);
                     setEditUser({
@@ -570,7 +591,7 @@ export default function UserManagement({
                 },
                 {
                   label: 'Reset Password',
-                  icon: <Key size={13} color="#d97706" />,
+                  icon: <Key size={12} color="var(--accent-yellow)" />,
                   onClick: () => {
                     setSelectedUser(u);
                     setShowPasswordModal(true);
@@ -578,12 +599,12 @@ export default function UserManagement({
                 },
                 {
                   label: isActive ? 'Suspend User' : 'Activate User',
-                  icon: <RefreshCw size={13} />,
+                  icon: <RefreshCw size={12} />,
                   onClick: () => handleStatusTogglePrompt(u)
                 },
                 {
-                  label: 'Killswitch (Revoke Sessions)',
-                  icon: <LogOut size={13} />,
+                  label: 'Revoke User Sessions (Killswitch)',
+                  icon: <LogOut size={12} />,
                   danger: true,
                   onClick: () => setKillswitchUser(u)
                 }
@@ -593,11 +614,11 @@ export default function UserManagement({
                 <tr key={u.id}>
                   <td>
                     <div>
-                      <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{u.name}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.1rem' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{u.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.1rem' }}>
                         <span>{u.email}</span>
                         {u.mobile && (
-                          <span style={{ color: 'var(--primary)', fontWeight: 700, background: 'var(--primary-light)', padding: '0.05rem 0.35rem', borderRadius: '3px' }}>
+                          <span className="font-mono-tabular" style={{ color: 'var(--text-main)', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', padding: '0.05rem 0.35rem', borderRadius: '3px' }}>
                             📱 {u.mobile}
                           </span>
                         )}
@@ -609,76 +630,69 @@ export default function UserManagement({
                     {u.company ? (
                       <div>
                         <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{u.company.name}</div>
-                        <code style={{ fontSize: '0.7rem', color: 'var(--primary)' }}>{u.company.code}</code>
+                        <span className="font-mono-tabular" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>[{u.company.code}]</span>
                       </div>
                     ) : (
-                      <span style={{ color: '#6d28d9', fontSize: '0.75rem', fontWeight: 600 }}>🌐 OPS Global Admin</span>
+                      <span className="badge badge-pastel-red" style={{ fontSize: '0.7rem' }}>OPS Global Admin</span>
                     )}
                   </td>
 
                   <td>
                     {u.isInternalOps ? (
-                      <span style={{ background: '#ede9fe', color: '#5b21b6', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
-                        Internal Ops Super Admin
+                      <span className="badge badge-pastel-blue" style={{ fontSize: '0.7rem' }}>
+                        Super Admin
                       </span>
                     ) : u.role?.name?.toLowerCase().includes('admin') ? (
-                      <span style={{ background: '#dbeafe', color: '#1e40af', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
-                        ⭐ Company Admin (OPS)
+                      <span className="badge badge-pastel-green" style={{ fontSize: '0.7rem' }}>
+                        Company Admin
                       </span>
                     ) : (
-                      <span style={{ background: '#f0fdf4', color: '#166534', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>
-                        🏭 Factory Staff
+                      <span className="badge badge-pastel-yellow" style={{ fontSize: '0.7rem' }}>
+                        Factory Staff
                       </span>
                     )}
                   </td>
 
                   <td>
                     {u.role ? (
-                      <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
+                      <span className="badge badge-pastel-blue" style={{ fontSize: '0.72rem' }}>
                         {u.role.name}
                       </span>
                     ) : (
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: '0.72rem' }}>Default Access</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Default</span>
                     )}
                   </td>
 
                   <td>
                     <button
                       onClick={() => handleStatusTogglePrompt(u)}
+                      className={`badge ${isActive ? 'badge-pastel-green' : 'badge-pastel-red'}`}
                       style={{
-                        background: isActive ? 'var(--success-light)' : 'var(--danger-light)',
-                        color: isActive ? 'var(--success)' : 'var(--danger)',
-                        border: `1px solid ${isActive ? 'var(--success)' : 'var(--danger)'}`,
-                        padding: '0.15rem 0.45rem',
-                        borderRadius: '10px',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '0.25rem'
+                        gap: '0.3rem',
+                        fontSize: '0.72rem'
                       }}
                       title={`Click to toggle status to ${isActive ? 'SUSPENDED' : 'ACTIVE'}`}
                     >
-                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: isActive ? 'var(--success)' : 'var(--danger)' }} />
-                      {u.status || 'ACTIVE'}
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isActive ? 'var(--accent-green)' : 'var(--accent-red)' }} />
+                      {isActive ? 'Active' : 'Suspended'}
                     </button>
                   </td>
 
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
                       {!u.isInternalOps && isActive && (
                         <button
                           className="btn btn-secondary"
                           style={{
-                            padding: '0.15rem 0.45rem',
+                            padding: '0.2rem 0.5rem',
                             fontSize: '0.72rem',
-                            color: '#059669',
-                            borderColor: '#a7f3d0',
-                            background: 'var(--bg-surface)',
+                            color: 'var(--accent-green)',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '0.2rem',
+                            gap: '0.25rem',
                             fontWeight: 600
                           }}
                           onClick={() => handleLaunchEtms(u)}
@@ -906,13 +920,13 @@ export default function UserManagement({
           <div className="modal-content" style={{ maxWidth: '440px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Key size={16} style={{ color: '#d97706' }} />
+                <Key size={16} style={{ color: 'var(--warning)' }} />
                 Reset Password
               </h2>
               <button onClick={() => setShowPasswordModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
             </div>
 
-            <p style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '1rem' }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
               Set a new secure password for <strong>{selectedUser.name}</strong> (<code>{selectedUser.email}</code>).
             </p>
 

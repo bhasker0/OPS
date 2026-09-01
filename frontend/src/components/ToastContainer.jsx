@@ -5,21 +5,33 @@ function ToastItem({ toast, onRemove }) {
   const [isExiting, setIsExiting] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(100);
-  const remainingTimeRef = useRef(toast.duration || 4000);
   const startTimeRef = useRef(Date.now());
-  const timerRef = useRef(null);
 
-  const getIcon = () => {
+  const getStatusBadge = () => {
     switch (toast.type) {
       case 'success':
-        return <CheckCircle2 size={18} className="toast-icon toast-icon-success" />;
+        return <span className="badge badge-pastel-green" style={{ fontSize: '0.65rem' }}>Success</span>;
       case 'error':
-        return <XCircle size={18} className="toast-icon toast-icon-error" />;
+        return <span className="badge badge-pastel-red" style={{ fontSize: '0.65rem' }}>Error</span>;
       case 'warning':
-        return <AlertTriangle size={18} className="toast-icon toast-icon-warning" />;
+        return <span className="badge badge-pastel-yellow" style={{ fontSize: '0.65rem' }}>Warning</span>;
       case 'info':
       default:
-        return <Info size={18} className="toast-icon toast-icon-info" />;
+        return <span className="badge badge-pastel-blue" style={{ fontSize: '0.65rem' }}>Info</span>;
+    }
+  };
+
+  const getAccentColor = () => {
+    switch (toast.type) {
+      case 'success':
+        return 'var(--accent-green)';
+      case 'error':
+        return 'var(--accent-red)';
+      case 'warning':
+        return 'var(--accent-yellow)';
+      case 'info':
+      default:
+        return 'var(--primary)';
     }
   };
 
@@ -27,7 +39,7 @@ function ToastItem({ toast, onRemove }) {
     setIsExiting(true);
     setTimeout(() => {
       onRemove(toast.id);
-    }, 250);
+    }, 200);
   };
 
   useEffect(() => {
@@ -50,35 +62,53 @@ function ToastItem({ toast, onRemove }) {
     return () => clearInterval(progressTimer);
   }, [isPaused, toast.duration]);
 
-  const handleMouseEnter = () => {
-    setIsPaused(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsPaused(false);
-  };
-
   return (
     <div
       className={`toast-item toast-${toast.type} ${isExiting ? 'toast-exit' : 'toast-enter'}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
       role="alert"
+      style={{
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border)',
+        background: 'var(--bg-surface)',
+        boxShadow: 'var(--shadow-modal)',
+        padding: 0,
+        overflow: 'hidden',
+        minWidth: '320px',
+        maxWidth: '400px'
+      }}
     >
-      <div className="toast-content-wrapper">
-        <div className="toast-icon-container">{getIcon()}</div>
-        <div className="toast-text-container">
-          {toast.title && <div className="toast-title">{toast.title}</div>}
-          <div className="toast-message">{toast.message}</div>
+      <div style={{ padding: '0.85rem 1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+          {getStatusBadge()}
+          <button
+            onClick={handleDismiss}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0 0.15rem' }}
+            title="Dismiss"
+          >
+            <X size={14} />
+          </button>
         </div>
-        <button className="toast-close-btn" onClick={handleDismiss} title="Dismiss notification">
-          <X size={14} />
-        </button>
+
+        {toast.title && (
+          <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-main)', marginBottom: '0.2rem' }}>
+            {toast.title}
+          </div>
+        )}
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+          {toast.message}
+        </div>
       </div>
-      <div className="toast-progress-track">
+
+      <div style={{ height: '2px', background: 'var(--bg-surface-elevated)', width: '100%' }}>
         <div
-          className={`toast-progress-bar toast-progress-${toast.type}`}
-          style={{ width: `${progress}%` }}
+          style={{
+            height: '100%',
+            background: getAccentColor(),
+            width: `${progress}%`,
+            transition: 'width 25ms linear'
+          }}
         />
       </div>
     </div>
@@ -89,10 +119,11 @@ export default function ToastContainer({ toasts = [], onRemove }) {
   if (!toasts.length) return null;
 
   return (
-    <div className="toast-container" aria-live="polite">
+    <div className="toast-container" aria-live="polite" style={{ zIndex: 9999, right: '1.5rem', bottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
       ))}
     </div>
   );
 }
+

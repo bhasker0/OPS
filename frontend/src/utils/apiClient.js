@@ -5,7 +5,14 @@ import { API_BASE } from '../config/api';
  */
 export async function apiFetch(endpoint, options = {}) {
   const token = localStorage.getItem('ops_token') || '';
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  let url = endpoint;
+  if (!url.startsWith('http')) {
+    if (API_BASE && url.startsWith(API_BASE)) {
+      url = endpoint;
+    } else {
+      url = `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+    }
+  }
 
   const headers = {
     'Content-Type': 'application/json',
