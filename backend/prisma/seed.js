@@ -174,6 +174,7 @@ async function main() {
     { key: 'feature_audit_logs', value: 'true', description: 'Enable detailed MongoDB security audit logging' },
     { key: 'feature_tally_export', value: 'true', description: 'Enable Tally Prime 4.0 XML voucher export module' },
     { key: 'feature_munim_portal', value: 'true', description: 'Enable Munim Double-Handshake Reconciliation portal' },
+    { key: 'dashboard_card_order', value: 'fleet_status,production_output,sac_billing,inward_lots', description: 'Default dashboard card arrangement order for factory overview' },
   ];
 
   for (const param of defaultParameters) {
