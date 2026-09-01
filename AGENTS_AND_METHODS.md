@@ -30,7 +30,73 @@
 
 ---
 
-## 3. Core Business & Domain Workflows
+## 3. Dynamic i18n & Single-Language Architecture Standard (MANDATORY)
+
+> [!IMPORTANT]
+> **Zero Static Strings & Single Active Language Policy**:
+> Whenever developing any **new feature, new module, new drawer, new modal, new page, new component, new toast alert, or new print slip**, the following standards are strictly enforced:
+
+### Core Localization Rules:
+1. **No Hardcoded Static Text**:
+   - Never write raw text strings directly into JSX/TSX elements.
+   - All titles, subtitles, input labels, placeholders, table headers, status chips, action buttons, tooltips, validation messages, and toast notifications **must** use the dynamic `useI18n()` hook (`const { t, translate, language } = useI18n()`).
+2. **Single Language at a Time (Zero Bilingual Combinations)**:
+   - **Never mix multiple languages in the same element** (e.g. ❌ `"Edit Karigar / Operator (કારીગર સુધારો)"`, ❌ `"Gross Wages (કુલ મજૂરી)"`, ❌ `"Shift / શિફ્ટ"`).
+   - The UI must render strictly in **one single language** at any given moment corresponding to the active setting.
+3. **Exclusively Controlled by Header Language Settings**:
+   - The active language is governed globally by the **Header Language Switcher** (`src/components/molecules/LanguageSwitcher.tsx` in `Navbar.tsx`).
+   - `I18nProvider` (`src/lib/i18n.tsx`) synchronizes state with `localStorage['etms_lang']` and `document.documentElement.lang`.
+   - All drawers, pages, and components must react dynamically to header language changes without page refreshes.
+4. **Mandatory Dictionary Expansion for All 8 Regional Languages**:
+   - When introducing any new key, define it in `src/lib/translations/en.ts` and add translations to all 8 language modules:
+     - English (`en.ts`)
+     - Gujarati (`gu.ts`)
+     - Hindi (`hi.ts`)
+     - Marathi (`mr.ts`)
+     - Tamil (`ta.ts`)
+     - Telugu (`te.ts`)
+     - Kannada (`kn.ts`)
+     - Bengali (`bn.ts`)
+5. **Key Naming Convention**:
+   - Use structured namespacing: `<module>_<feature/section>_<element>` (e.g. `drawer_karigar_title`, `shift_wizard_step1Title`, `party_filter_active`).
+
+### Code Standard Example:
+
+#### ❌ Anti-Patterns (STRICTLY PROHIBITED):
+```tsx
+// ❌ PROHIBITED: Hardcoded English and mixed bilingual strings
+<Drawer
+  title="Add New Karigar / Operator (નવો કારીગર ઉમેરો)"
+  subtitle="કારીગર મૂળભૂત માહિતી અને પગાર/મજૂરી દરો"
+>
+  <label>Mobile Number (મોબાઇલ નંબર)</label>
+  <button>+ Log Shift</button>
+</Drawer>
+```
+
+#### ✅ Correct Pattern (REQUIRED):
+```tsx
+// ✅ REQUIRED: Fully dynamic i18n resolved via header-controlled context
+import { useI18n } from '@/lib/i18n';
+
+export const KarigarDrawerForm = () => {
+  const { t } = useI18n();
+
+  return (
+    <Drawer
+      title={editingItem ? t.karigarDrawer_editTitle : t.karigarDrawer_addTitle}
+      subtitle={editingItem ? t.karigarDrawer_editSubtitle : t.karigarDrawer_addSubtitle}
+    >
+      <label>{t.mobileNumber}</label>
+      <button>{t.navShiftNew}</button>
+    </Drawer>
+  );
+};
+```
+
+---
+
+## 4. Core Business & Domain Workflows
 
 ### A. Karigar Master & Wage Incentive Engine
 - **Per-Meter (`PER_METER`)**: Total meters produced × Rate/meter.

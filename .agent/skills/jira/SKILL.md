@@ -71,32 +71,51 @@ Use `mcp__atlassian__jira_get_all_projects` to:
 - Get available projects if user unsure
 - Confirm project key matches exactly
 
-#### Step 3: Search Available Fields (if needed)
-Use `mcp__atlassian__jira_search_fields` to find custom field names and IDs. See [Custom Field Discovery](references/custom_field_discovery.md) for detailed methodology.
+#### Step 4: Include Mandatory Project Methods & Agent Defaults (AI Ticket Generation)
 
-#### Step 4: Create Issue
-Use `mcp__atlassian__jira_create_issue` with:
+> [!IMPORTANT]
+> **Mandatory Agent Defaults Injection**:
+> Whenever an AI agent creates or drafts a Jira issue (Epic, Story, Task, Bug, Subtask), it **MUST** automatically include the project's standardized engineering methods and agent defaults in the issue `description`:
+
+1. **Dynamic i18n & Single-Language Architecture Standard**:
+   - **Zero Hardcoded Static Strings**: All text, labels, placeholders, buttons, and toast alerts must use `useI18n()`.
+   - **Single Active Language**: Strict enforcement of **one language at a time** (`en`, `gu`, `hi`, `mr`, `ta`, `te`, `kn`, `bn`). Zero bilingual combined strings (e.g. no `"Shift / શિફ્ટ"`).
+   - **Header Synchronization**: All modules and drawers must be controlled by the Header Language Switcher (`Navbar.tsx` -> `LanguageSwitcher.tsx`).
+   - **8-Language Dictionary Coverage**: Keys must be defined across `en.ts`, `gu.ts`, `hi.ts`, `mr.ts`, `ta.ts`, `te.ts`, `kn.ts`, `bn.ts`.
+
+2. **Right Slide-Over Drawer Architecture (Zero Centered Popups)**:
+   - All modal dialogs and centered popups are deprecated in favor of **Right Slide-Over Drawers** (`Drawer` / `AppDrawer`).
+   - Sticky top header, scrollable body, sticky pinned footer actions, ESC key listener, and level-based stacked drawer management.
+
+3. **Multi-Tenant Isolation & Scoping**:
+   - Strict tenant isolation with `x-company-id: <UUID>` headers on API calls and database queries.
+
+4. **Agent Quality Gate & Definition of Done**:
+   - `npm run build` in `OPS/frontend` (Vite) and `next build` in `ETMS-FE` (Next.js) must pass with 0 errors/warnings.
+   - All backend tests (`npm test` / `nest build`) must achieve 100% pass rate.
+   - Chrome DevTools MCP UI inspection for visual responsiveness and error-free console.
+
+#### Step 5: Create Issue
+Use `createJiraIssue` (or `mcp__atlassian__jira_create_issue`) with:
 ```json
 {
-  "project_key": "PROJ",
-  "summary": "Implement user authentication",
+  "project_key": "SCRUM",
+  "summary": "[i18n][Module-XX] Feature Title",
   "issue_type": "Task",
-  "description": "Detailed description in Markdown format",
+  "description": "### 📋 Objective & Scope\n...\n\n### 🏗️ Mandatory Engineering Methods & Architecture\n- **i18n Standard**: Single-language active mode via `useI18n()`, zero static strings, synced to Header Language Switcher.\n- **Drawer Policy**: Standard Right Slide-Over Drawer (`AppDrawer`), zero centered popups.\n- **Tenant Scoping**: Multi-tenant isolation with `x-company-id` header.\n\n### 📝 Step-by-Step Implementation Sub-tasks\n1. ...\n2. ...\n\n### ✅ Acceptance Criteria & Definition of Done\n- [ ] 0 hardcoded strings or bilingual combinations.\n- [ ] Header language toggle updates UI instantly.\n- [ ] `npm run build` passes with 0 errors.",
   "assignee": "user@example.com",
-  "components": "Frontend,API",
   "additional_fields": {
-    "priority": {"name": "High"},
-    "labels": ["security", "authentication"],
-    "parent": "PROJ-123"
+    "priority": {"name": "Medium"},
+    "labels": ["i18n", "frontend", "etms"]
   }
 }
 ```
 
-#### Step 5: Follow-up Actions (if needed)
-- Link to epic: `mcp__atlassian__jira_link_to_epic`
+#### Step 6: Follow-up Actions (if needed)
+- Link to epic: Link to parent epic (e.g. `SCRUM-161`)
 - Add attachments: Include in update or create
-- Add comments: `mcp__atlassian__jira_add_comment`
-- Create issue links: `mcp__atlassian__jira_create_issue_link`
+- Add comments: `addCommentToJiraIssue`
+- Create issue links: `createIssueLink`
 
 ### 2. Issue Search and Management
 

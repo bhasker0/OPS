@@ -1,12 +1,16 @@
 {
   "templates": {
     "basic_task": {
-      "description": "Simple task with minimal fields",
+      "description": "Standard engineering task with mandatory project methods and agent defaults",
       "example": {
-        "project_key": "PROJ",
-        "summary": "Complete user authentication module",
+        "project_key": "SCRUM",
+        "summary": "[i18n][Module-XX] Implement feature module",
         "issue_type": "Task",
-        "description": "Implement JWT-based authentication for the API"
+        "description": "### 📋 Objective & Scope\nImplement the feature module adhering to project methods and agent standards.\n\n### 🏗️ Mandatory Engineering Methods & Architecture\n- **Dynamic i18n Standard**: All text strings must use `useI18n()`. Single active language at a time (`en`, `gu`, `hi`, `mr`, `ta`, `te`, `kn`, `bn`). Zero hardcoded static or bilingual strings. Synced to Header Language Switcher.\n- **Drawer Policy**: Right Slide-Over Drawer (`Drawer` / `AppDrawer`), zero centered popups.\n- **Tenant Isolation**: Explicit `x-company-id: <UUID>` header scoping.\n\n### 📝 Step-by-Step Implementation Sub-tasks\n1. Define module localization keys in `src/lib/translations/*.ts`.\n2. Implement component views and right slide-over drawer.\n3. Verify reactivity when changing header language.\n\n### ✅ Acceptance Criteria & Definition of Done\n- [ ] 0 hardcoded strings or bilingual combinations in JSX/TSX.\n- [ ] UI strictly renders in single selected language.\n- [ ] `npm run build` passes with 0 errors.",
+        "additional_fields": {
+          "priority": {"name": "Medium"},
+          "labels": ["i18n", "frontend", "etms"]
+        }
       }
     },
     "bug_report": {
