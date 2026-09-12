@@ -15,7 +15,8 @@ import {
   Lock,
   X,
   LogOut,
-  ExternalLink
+  ExternalLink,
+  Phone,
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import TableActionMenu from './TableActionMenu';
@@ -618,8 +619,8 @@ export default function UserManagement({
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.1rem' }}>
                         <span>{u.email}</span>
                         {u.mobile && (
-                          <span className="font-mono-tabular" style={{ color: 'var(--text-main)', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', padding: '0.05rem 0.35rem', borderRadius: '3px' }}>
-                            📱 {u.mobile}
+                          <span className="font-mono-tabular" style={{ color: 'var(--text-main)', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', padding: '0.05rem 0.35rem', borderRadius: '3px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <Phone size={10} /> {u.mobile}
                           </span>
                         )}
                       </div>

@@ -1,30 +1,30 @@
 :root {
-  /* 5-COLOR PALETTE FOUNDATION (LIGHT MODE) */
-  --bg-canvas: #eff7ff;
-  --bg-canvas-alt: #f5faff;
+  /* MINIMALIST EDITORIAL MONOCHROME PALETTE */
+  --bg-canvas: #F7F6F3;
+  --bg-canvas-alt: #FBFBFA;
   --bg-surface: #FFFFFF;
-  --bg-surface-elevated: #cee3f8;
-  --border: #c6c6c6;
-  --border-subtle: #dbeaf7;
-  --border-strong: #336699;
-  --text-main: #336699;
-  --text-muted: #5c768d;
-  --text-tertiary: #8fa4b8;
-  --primary: #336699;
-  --primary-hover: #9494ff;
-  --primary-light: #cee3f8;
+  --bg-surface-elevated: #F0EFEA;
+  --border: #E6E4DD;
+  --border-subtle: #EAEAEA;
+  --border-strong: #111111;
+  --text-main: #111111;
+  --text-muted: #666660;
+  --text-tertiary: #999990;
+  --primary: #111111;
+  --primary-hover: #333333;
+  --primary-light: #F0EFEA;
 
-  /* ACCENTS & STATUS */
+  /* MUTED PASTEL ACCENTS */
   --accent-red: #9F2F2D;
   --accent-red-bg: #FDEBEC;
-  --accent-blue: #336699;
-  --accent-blue-bg: #cee3f8;
+  --accent-blue: #1F6C9F;
+  --accent-blue-bg: #E1F3FE;
   --accent-green: #346538;
   --accent-green-bg: #EDF3EC;
   --accent-yellow: #956400;
   --accent-yellow-bg: #FBF3DB;
-  --accent-purple: #9494ff;
-  --accent-purple-bg: rgba(148, 148, 255, 0.15);
+  --accent-purple: #6B5B95;
+  --accent-purple-bg: #F3EFF9;
 
   --danger: #9F2F2D;
   --danger-light: #FDEBEC;
@@ -33,7 +33,7 @@
   --warning: #956400;
   --warning-light: #FBF3DB;
 
-  --sidebar-bg: #eff7ff;
+  --sidebar-bg: #F7F6F3;
   --card-bg: #FFFFFF;
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 68px;
@@ -44,48 +44,48 @@
   --font-serif: 'Newsreader', 'Playfair Display', Georgia, serif;
 
   /* ELEVATION & SHAPES */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
   --radius-full: 9999px;
-  --shadow-subtle: 0 2px 8px rgba(51, 102, 153, 0.06);
-  --shadow-card: 0 1px 3px rgba(51, 102, 153, 0.04);
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 [data-theme="light"] {
-  --bg-canvas: #eff7ff;
-  --bg-canvas-alt: #f5faff;
+  --bg-canvas: #F7F6F3;
+  --bg-canvas-alt: #FBFBFA;
   --bg-surface: #FFFFFF;
-  --bg-surface-elevated: #cee3f8;
-  --border: #c6c6c6;
-  --border-subtle: #dbeaf7;
-  --border-strong: #336699;
-  --text-main: #336699;
-  --text-muted: #5c768d;
-  --text-tertiary: #8fa4b8;
-  --primary: #336699;
-  --primary-hover: #9494ff;
-  --primary-light: #cee3f8;
+  --bg-surface-elevated: #F0EFEA;
+  --border: #E6E4DD;
+  --border-subtle: #EAEAEA;
+  --border-strong: #111111;
+  --text-main: #111111;
+  --text-muted: #666660;
+  --text-tertiary: #999990;
+  --primary: #111111;
+  --primary-hover: #333333;
+  --primary-light: #F0EFEA;
   --accent-red: #9F2F2D;
   --accent-red-bg: #FDEBEC;
-  --accent-blue: #336699;
-  --accent-blue-bg: #cee3f8;
+  --accent-blue: #1F6C9F;
+  --accent-blue-bg: #E1F3FE;
   --accent-green: #346538;
   --accent-green-bg: #EDF3EC;
   --accent-yellow: #956400;
   --accent-yellow-bg: #FBF3DB;
-  --accent-purple: #9494ff;
-  --accent-purple-bg: rgba(148, 148, 255, 0.15);
+  --accent-purple: #6B5B95;
+  --accent-purple-bg: #F3EFF9;
   --danger: #9F2F2D;
   --danger-light: #FDEBEC;
   --success: #346538;
   --success-light: #EDF3EC;
   --warning: #956400;
   --warning-light: #FBF3DB;
-  --sidebar-bg: #eff7ff;
+  --sidebar-bg: #F7F6F3;
   --card-bg: #FFFFFF;
-  --shadow-subtle: 0 2px 8px rgba(51, 102, 153, 0.06);
-  --shadow-card: 0 1px 3px rgba(51, 102, 153, 0.04);
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 [data-theme="dark"] {
@@ -399,10 +399,20 @@ h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
+.font-mono,
+.font-number,
+.font-numeric,
 .font-mono-tabular {
   font-family: var(--font-mono) !important;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'zero' 1, 'cv01' 1, 'ss01' 1;
+  letter-spacing: -0.01em;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+  font-family: var(--font-mono);
 }
 
 .font-body {
@@ -412,18 +422,22 @@ h4, h5, h6 {
 }
 
 .editorial-metric {
-  font-family: var(--font-serif);
+  font-family: var(--font-mono), var(--font-serif);
   font-size: clamp(1.75rem, 3.2vw, 2.5rem);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--text-main);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
 }
 
 /* MICRO-TYPOGRAPHY & DATA TELEMETRY */
 code, pre, .mono, data, samp, output, .micro-telemetry, .telemetry-text {
   font-family: var(--font-mono) !important;
-  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+  letter-spacing: 0.02em;
   font-size: 11px;
 }
 

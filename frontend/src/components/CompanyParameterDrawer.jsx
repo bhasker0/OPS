@@ -24,7 +24,7 @@ import { useToast } from '../context/ToastContext';
 const PARAMETER_CATEGORIES = [
   {
     id: 'textile_production',
-    title: '/// 01_TEXTILE_PRODUCTION_RULES',
+    title: 'Textile & Production Rules',
     description: 'SAC rates, stitching tolerances, decimals, and machine caps',
     icon: <Scissors size={14} />,
     keys: [
@@ -38,7 +38,7 @@ const PARAMETER_CATEGORIES = [
   },
   {
     id: 'karigar_accounting',
-    title: '/// 02_KARIGAR_ACCOUNTING',
+    title: 'Karigar & Job-Work Accounting',
     description: 'Wage deduction, TDS, advance limits, and challan prefixes',
     icon: <DollarSign size={14} />,
     keys: [
@@ -50,7 +50,7 @@ const PARAMETER_CATEGORIES = [
   },
   {
     id: 'integration_governance',
-    title: '/// 03_INTEGRATION_GOVERNANCE',
+    title: 'Integration & Sync Governance',
     description: 'Outbound sync webhooks, retry thresholds, and audit retention',
     icon: <Activity size={14} />,
     keys: [
@@ -63,7 +63,7 @@ const PARAMETER_CATEGORIES = [
   },
   {
     id: 'security_geofence',
-    title: '/// 04_SECURITY_GEOFENCE_GATE',
+    title: 'Security & Geofence Perimeter',
     description: 'Subnet restrictions, factory GPS coordinates, and geofence radius',
     icon: <Lock size={14} />,
     keys: [
@@ -337,7 +337,7 @@ export default function CompanyParameterDrawer({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ color: 'var(--accent-blue)' }}>{cat.icon}</span>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-main)' }}>{cat.title.replace('/// ', '')}</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-main)' }}>{cat.title}</div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{cat.description}</div>
                     </div>
                   </div>

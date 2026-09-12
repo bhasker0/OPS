@@ -598,8 +598,8 @@ export default function SubscriptionManagement({
 
                 {/* CARD FOOTER */}
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    🏢 <strong>{plan.activeTenantsCount}</strong> active tenant(s)
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Building size={12} /> <strong>{plan.activeTenantsCount}</strong> active tenant(s)
                   </span>
                   <div style={{ display: 'flex', gap: '0.35rem' }}>
                     <button
@@ -1312,7 +1312,7 @@ export default function SubscriptionManagement({
               </div>
 
               <div style={{ padding: '0.65rem', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                🛡️ <strong>Automated Dunning Policy:</strong> On renewal failure, retries scheduled for Day 1, 2, and 3. Factory tenant receives WhatsApp SMS alert with 72-hour grace period before access suspension.
+                <strong>Automated Dunning Policy:</strong> On renewal failure, retries scheduled for Day 1, 2, and 3. Factory tenant receives WhatsApp SMS alert with 72-hour grace period before access suspension.
               </div>
             </div>
 

@@ -397,7 +397,7 @@ export default function CompanyOnboardingWizard({
               </div>
 
               <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                ℹ️ <strong>Parameter Inheritance:</strong> 18 standardized seed attributes will automatically attach to this organization.
+                <strong>Parameter Inheritance:</strong> 18 standardized seed attributes will automatically attach to this organization.
               </div>
             </div>
           )}

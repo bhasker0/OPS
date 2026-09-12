@@ -119,24 +119,64 @@ export const KarigarDrawerForm = () => {
 
 ---
 
-## 4. Standardized Sprint & Git Delivery Protocol
+## 4. Standardized AI Agent Operating Method (5-Step Execution Lifecycle)
 
-All agent work follows a rigorous 6-step lifecycle:
+Every AI agent assigned to work on tasks in this repository (OPS or ETMS) must strictly follow this 5-step lifecycle:
 
 ```mermaid
 graph TD
-    A[1. Requirement Review & Jira Story Mapping] --> B[2. Step-by-Step Implementation]
-    B --> C[3. Automated Build & Typecheck Verification]
-    C --> D[4. Browser UI/UX Live Verification]
-    D --> E[5. Jira Issue Transition to Done]
-    E --> F[6. Git Commit & Remote Push]
+    S1["<b>Step 1: Analyze Existing Structure, Issues & Given Task</b><br/>• Codebase & DB schema inspection<br/>• Clarify ambiguities & ask questions<br/>• Identify applicable skills"] --> S2["<b>Step 2: Plan Implementation & Target File Changes</b><br/>• Enforce Right Slide-Over Drawers & Dynamic i18n<br/>• Map specific file changes [NEW/MODIFY/DELETE]<br/>• Define QA acceptance criteria"]
+    S2 --> S3["<b>Step 3: Create Jira Tickets & Subtasks</b><br/>• Generate tickets under SCRUM project<br/>• Inject mandatory engineering defaults<br/>• Establish Definition of Done (DoD)"]
+    S3 --> S4["<b>Step 4: Sequential Incremental Execution</b><br/>• Transition ticket to In Progress<br/>• Surgical, minimal code changes<br/>• Consistent minimalist styling & tokens"]
+    S4 --> S5["<b>Step 5: Rigorous QA & Verification per Ticket</b><br/>• Frontend Vite/Next build (0 errors)<br/>• Backend master QA suite pass<br/>• DevTools UI check ➔ Transition to Done"]
+    S5 -.->|Next Ticket| S4
+    S5 --> R1["<b>Sprint Finalization: Git Remote Release</b><br/>Stage, commit with ticket keys & push"]
 ```
 
-1. **Jira Issue Tracking**: Every task must be mapped to a Jira ticket under project `SCRUM`.
-2. **Code Implementation**: Clean, surgical changes adhering to modular domain architecture.
-3. **Build Quality Gate**:
-   - `npm run build` in `OPS/frontend` (Vite) ➔ Must pass with 0 errors.
-   - `npm run build` in `ETMS-FE` (Next.js) ➔ Must pass all typechecks and generate all static/dynamic routes cleanly.
-4. **Live Verification**: Automated browser inspection via Chrome DevTools MCP verifying interactive states and responsive drawers.
-5. **Jira Closure**: Transition issue to `Done` (transition ID `41`) with detailed release notes.
-6. **Git Release**: Once all sprint tickets are finalized, stage, commit, and push the verified codebase to Git remote.
+---
+
+### Step 1: Analyze Existing Structure, Issues & Task
+- **Structure Audit**: Review folder hierarchies, ORM schemas (`backend/prisma/schema.prisma` or `backend/models`), and API routes.
+- **Root Cause & Scope Analysis**: Pinpoint the precise module, service, or component triggering the task or bug.
+- **Surface Tradeoffs & Clarify Ambiguities**:
+  - Do not guess or make unverified assumptions (*Karpathy Rule #1*).
+  - Stop and ask questions if multiple valid architectural choices exist or requirements conflict with existing features.
+- **Skill Activation**: Engage required skills: `karpathy-guidelines`, `ops-operations-guide`, `jira`, `minimalist-ui`, and `redesign-existing-projects`.
+
+---
+
+### Step 2: Implementation Planning & File Mapping
+- **File Impact Mapping**: List every target file explicitly (`[NEW]`, `[MODIFY]`, `[DELETE]`). Touch only what is strictly required (*Karpathy Rule #3*).
+- **Enforce Core Architecture & Design Standards**:
+  1. **Right Slide-Over Drawer Architecture**: All modals/popups must use `AppDrawer` / `Drawer` from the right with sticky header, scrollable body, and pinned bottom actions. Zero centered dialogs.
+  2. **Dynamic i18n Single-Language Standard**: All strings routed through `useI18n()`. 1 single language active at any time (no mixed `"Shift / શિફ્ટ"`). All 8 languages updated in parallel (`en`, `gu`, `hi`, `mr`, `ta`, `te`, `kn`, `bn`).
+  3. **Multi-Tenant Isolation**: Pass and validate `x-company-id` header in all requests; scope all database queries.
+  4. **Minimalist Editorial Theme**: Warm bone background (`#F7F6F3`), off-black text (`#111111`), `1px solid #EAEAEA` borders, muted pastels, crisp typography (`SF Pro Display`, `Geist Sans`), zero heavy shadows, zero emojis.
+- **Verification Criteria**: Detail the test checks and build gates for each step.
+
+---
+
+### Step 3: Create Jira Tickets & Subtasks
+- **Jira Project**: Target `SCRUM` via Atlassian MCP (`jira` skill).
+- **Structured Fields & Defaults**:
+  - Summaries must feature module prefixes: e.g. `[OPS-BE]`, `[OPS-FE]`, `[i18n]`, `[Drawer]`.
+  - Include mandatory engineering defaults in the issue description (Objective, Mandatory Architecture, Target Files, Definition of Done).
+- **Subtask Granularity**: Break large tasks into discrete, single-concern subtasks so progress and QA can be tracked incrementally.
+
+---
+
+### Step 4: Incremental & Surgical Execution
+- **One Ticket at a Time**: Transition active ticket to `In Progress` (`transitionJiraIssue`).
+- **Simplicity First (*Karpathy Rule #2*)**: Write the cleanest, most concise code that satisfies the requirements. No speculative abstractions or unrequested configurability.
+- **Surgical Changes (*Karpathy Rule #3*)**: Retain existing formatting, docstrings, and comments. Remove only dead code introduced by your changes.
+
+---
+
+### Step 5: Rigorous QA & Verification per Ticket
+- **Quality Gates Before Ticket Closure**:
+  1. **Build Gate**: Run `npm run build` in `OPS/frontend` (Vite) and `next build` in `ETMS-FE` ➔ Must finish with **0 errors and 0 warnings**.
+  2. **Backend Gate**: Run `node run_master_qa_suite.js` or specific test runner in `backend/` ➔ 100% pass rate.
+  3. **Visual & UI Gate**: Inspect layout, responsive behavior, drawer animations, and localization switcher via Chrome DevTools MCP. Verify 0 console errors.
+- **Closure**: Add a verification comment to the ticket and transition to `Done` (transition ID `41`).
+- Repeat Steps 4 and 5 sequentially until all tickets are completed.
+- Once all tickets in the sprint are closed, stage, commit with ticket references, and push to Git remote.

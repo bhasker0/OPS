@@ -377,10 +377,16 @@ export default function SecuritySettingsModal({
               border: '1px solid rgba(198, 40, 40, 0.2)',
               fontSize: '0.78rem',
               color: 'var(--accent-red)',
-              lineHeight: 1.5
+              lineHeight: 1.5,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.5rem',
             }}
           >
-            ⚠️ <strong>Warning:</strong> Disabling Two-Factor Authentication lowers account security defenses. Enter your current 6-digit code to confirm.
+            <AlertTriangle size={16} color="var(--accent-red)" style={{ shrink: 0, marginTop: '0.1rem' }} />
+            <div>
+              <strong>Warning:</strong> Disabling Two-Factor Authentication lowers account security defenses. Enter your current 6-digit code to confirm.
+            </div>
           </div>
 
           <div>
