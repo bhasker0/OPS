@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "test": "node test_ops_qa.js",
     "seed": "node prisma/seed.js",
-    "db:push": "npx prisma db push"
+    "db:push": "npx prisma db push",
+    "sync:export": "node scripts/export_data_snapshot.js",
+    "sync:import": "node scripts/import_data_from_other_local_pc.js"
   },
   "keywords": [],
   "author": "",
