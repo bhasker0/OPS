@@ -369,4 +369,139 @@ router.delete('/:companyId/parameters/:key', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------
+// ETMS Feature Flags API
+// ---------------------------------------------------------
+
+const DEFAULT_ETMS_FEATURE_FLAGS = {
+  feature_broadcasting_alerts: { default: 'true', desc: 'Enable/Disable Broadcasting & Multilingual Alerts in ETMS' },
+  feature_kyc_onboarding: { default: 'true', desc: 'Enable/Disable KYC Verification & Indic Document OCR in ETMS' },
+  feature_command_palette: { default: 'true', desc: 'Enable/Disable Global Command Palette (Ctrl+K) & Voice Navigation in ETMS' },
+  feature_audit_log_viewer: { default: 'true', desc: 'Enable/Disable In-App Tenant Audit Log Viewer in ETMS' },
+  feature_speech_data_entry: { default: 'true', desc: 'Enable/Disable Speech-to-Form Automated Data Entry in ETMS' },
+};
+
+// GET /api/companies/:companyId/feature-flags - Resolve all active feature flags for a company
+router.get('/:companyId/feature-flags', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    // Fetch company-specific parameter overrides
+    const companyParams = await prisma.parameter.findMany({
+      where: {
+        companyId,
+        key: { startsWith: 'feature_' },
+      },
+    });
+
+    // Fetch seed defaults
+    const seedParams = await prisma.parameter.findMany({
+      where: {
+        companyId: SEED_COMPANY_ID,
+        key: { startsWith: 'feature_' },
+      },
+    });
+
+    const flags = {};
+    // 1. Set predefined defaults
+    Object.keys(DEFAULT_ETMS_FEATURE_FLAGS).forEach((key) => {
+      flags[key] = DEFAULT_ETMS_FEATURE_FLAGS[key].default === 'true';
+    });
+
+    // 2. Apply seed DB values
+    seedParams.forEach((sp) => {
+      flags[sp.key] = sp.value === 'true' || sp.value === '1';
+    });
+
+    // 3. Apply company specific overrides
+    companyParams.forEach((cp) => {
+      flags[cp.key] = cp.value === 'true' || cp.value === '1';
+    });
+
+    res.json({
+      success: true,
+      companyId,
+      data: flags,
+      metadata: DEFAULT_ETMS_FEATURE_FLAGS,
+    });
+  } catch (error) {
+    console.error('Error fetching feature flags:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/companies/:companyId/feature-flags/:flagKey/toggle - Toggle feature flag for a company
+router.post('/:companyId/feature-flags/:flagKey/toggle', async (req, res) => {
+  try {
+    const { companyId, flagKey } = req.params;
+    const { enabled } = req.body;
+
+    const cleanKey = flagKey.trim();
+    if (!cleanKey.startsWith('feature_')) {
+      return res.status(400).json({ success: false, message: 'Invalid feature flag key format. Must start with feature_' });
+    }
+
+    // Determine current value
+    const existing = await prisma.parameter.findUnique({
+      where: { companyId_key: { companyId, key: cleanKey } },
+    });
+
+    let targetValue = 'true';
+    if (enabled !== undefined) {
+      targetValue = enabled ? 'true' : 'false';
+    } else if (existing) {
+      targetValue = existing.value === 'true' ? 'false' : 'true';
+    } else {
+      // If none in DB, toggle against default
+      const defaultVal = DEFAULT_ETMS_FEATURE_FLAGS[cleanKey]?.default || 'true';
+      targetValue = defaultVal === 'true' ? 'false' : 'true';
+    }
+
+    const updated = await prisma.parameter.upsert({
+      where: { companyId_key: { companyId, key: cleanKey } },
+      update: { value: targetValue },
+      create: {
+        companyId,
+        key: cleanKey,
+        value: targetValue,
+        description: DEFAULT_ETMS_FEATURE_FLAGS[cleanKey]?.desc || 'Feature flag toggle',
+      },
+    });
+
+    // Log audit event
+    await logAuditEvent({
+      module: 'FEATURE_FLAGS',
+      action: 'TOGGLE_FEATURE_FLAG',
+      entityId: updated.id,
+      companyId,
+      details: {
+        flagKey: cleanKey,
+        previousValue: existing ? existing.value : 'DEFAULT',
+        newValue: targetValue,
+        enabled: targetValue === 'true',
+      },
+    });
+
+    // Sync to ETMS
+    dispatchOpsSync('feature_flags', {
+      company_id: companyId,
+      flagKey: cleanKey,
+      enabled: targetValue === 'true',
+    }).catch((err) => console.error('Sync failed:', err));
+
+    res.json({
+      success: true,
+      message: `Feature flag '${cleanKey}' set to ${targetValue === 'true' ? 'ENABLED' : 'DISABLED'}.`,
+      data: {
+        flagKey: cleanKey,
+        enabled: targetValue === 'true',
+        value: targetValue,
+      },
+    });
+  } catch (error) {
+    console.error('Error toggling feature flag:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;

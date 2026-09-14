@@ -23,6 +23,7 @@ import {
 import CompanyOnboardingWizard from './CompanyOnboardingWizard';
 import CompanyParameterDrawer from './CompanyParameterDrawer';
 import TenantReconciliationModal from './TenantReconciliationModal';
+import TableActionMenu from './TableActionMenu';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from '../context/ToastContext';
 import { API_BASE } from '../config/api';
@@ -435,10 +436,10 @@ export default function CompanyManagement({
                     </td>
 
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
                         <button
                           className="btn btn-primary"
-                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem' }}
+                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                           onClick={() => onOperateCompany && onOperateCompany(c)}
                         >
                           <Headphones size={11} /> Support
@@ -446,32 +447,46 @@ export default function CompanyManagement({
 
                         <button
                           className="btn btn-secondary"
-                          style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}
+                          style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                           onClick={() => setSelectedParamCompany(c)}
                           title="Open Parameter Store Drawer"
                         >
                           <Sliders size={11} /> Params
                         </button>
 
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}
-                          onClick={() => handleExportTenantArchive(c)}
-                          title="Download Complete Tenant Data Archive (GDPR / DPDP Compliance)"
-                          disabled={exportingArchiveId === c.id}
-                        >
-                          <Archive size={11} /> {exportingArchiveId === c.id ? 'Exporting...' : 'Archive'}
-                        </button>
-
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem', color: 'var(--accent-red)' }}
-                          onClick={() => setKillswitchCompany(c)}
-                          title="Revoke All Active Sessions (Killswitch)"
-                          disabled={c.isSeed}
-                        >
-                          <Shield size={11} />
-                        </button>
+                        <TableActionMenu
+                          actions={[
+                            {
+                              label: 'Open Support Workspace',
+                              icon: <Headphones size={12} color="var(--primary)" />,
+                              onClick: () => onOperateCompany && onOperateCompany(c)
+                            },
+                            {
+                              label: 'Parameter Store & Rules',
+                              icon: <Sliders size={12} color="var(--accent-blue)" />,
+                              onClick: () => setSelectedParamCompany(c)
+                            },
+                            {
+                              label: isActive ? 'Suspend Tenant Access' : 'Activate Tenant',
+                              icon: <Power size={12} color={isActive ? 'var(--accent-red)' : 'var(--accent-green)'} />,
+                              disabled: c.isSeed,
+                              onClick: () => handleStatusTogglePrompt(c)
+                            },
+                            {
+                              label: exportingArchiveId === c.id ? 'Exporting Archive...' : 'Export Tenant Archive (JSON)',
+                              icon: <Archive size={12} />,
+                              disabled: exportingArchiveId === c.id,
+                              onClick: () => handleExportTenantArchive(c)
+                            },
+                            {
+                              label: 'Revoke All Sessions (Killswitch)',
+                              icon: <Shield size={12} />,
+                              danger: true,
+                              disabled: c.isSeed,
+                              onClick: () => setKillswitchCompany(c)
+                            }
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>

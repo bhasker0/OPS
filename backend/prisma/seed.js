@@ -174,6 +174,13 @@ async function main() {
     { key: 'feature_audit_logs', value: 'true', description: 'Enable detailed MongoDB security audit logging' },
     { key: 'feature_tally_export', value: 'true', description: 'Enable Tally Prime 4.0 XML voucher export module' },
     { key: 'feature_munim_portal', value: 'true', description: 'Enable Munim Double-Handshake Reconciliation portal' },
+    { key: 'feature_broadcasting_alerts', value: 'true', description: 'Enable/Disable Broadcasting & Multilingual Alerts in ETMS' },
+    { key: 'feature_kyc_onboarding', value: 'true', description: 'Enable/Disable KYC Verification & Indic Document OCR in ETMS' },
+    { key: 'feature_command_palette', value: 'true', description: 'Enable/Disable Global Command Palette (Ctrl+K) & Voice Navigation in ETMS' },
+    { key: 'feature_audit_log_viewer', value: 'true', description: 'Enable/Disable In-App Tenant Audit Log Viewer in ETMS' },
+    { key: 'feature_speech_data_entry', value: 'true', description: 'Enable/Disable Speech-to-Form Automated Data Entry in ETMS' },
+    { key: 'bhashini_udyat_key', value: '02ea2ee8d4-a9a4-4004-b983-4f269f0581b7', description: 'Bhashini Udyat API Access Key for Indic Speech Services' },
+    { key: 'bhashini_inference_key', value: 'iwSJbBpSd7vxMdU-2E_2BQhuqMmcZwzF4avGyQDUO2fcL_b0C0PPmpV2SLt1oeAn', description: 'Bhashini Model Inference Pipeline Token' },
     { key: 'dashboard_card_order', value: 'fleet_status,production_output,sac_billing,inward_lots', description: 'Default dashboard card arrangement order for factory overview' },
   ];
 

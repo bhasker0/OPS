@@ -45,6 +45,8 @@ import SubscriptionManagement from './components/SubscriptionManagement';
 import SystemHealthMonitor from './components/SystemHealthMonitor';
 import SecuritySettingsModal from './components/SecuritySettingsModal';
 import TenantReconciliationModal from './components/TenantReconciliationModal';
+import CompanyParameterDrawer from './components/CompanyParameterDrawer';
+import TableActionMenu from './components/TableActionMenu';
 import Drawer from './components/ui/Drawer';
 import ThemeToggle from './components/ThemeToggle';
 import KpiStrip from './components/KpiStrip';
@@ -119,6 +121,7 @@ export default function App() {
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [selectedUserToEdit, setSelectedUserToEdit] = useState(null);
   const [selectedAuditLog, setSelectedAuditLog] = useState(null);
+  const [selectedParamCompany, setSelectedParamCompany] = useState(null);
 
   // Registration Form State
   const [newCompany, setNewCompany] = useState({
@@ -291,7 +294,21 @@ export default function App() {
   };
 
   const refreshOperatingCompany = async () => {
-    if (operatingCompany) await startOperatingAsCompany(operatingCompany);
+    if (!operatingCompany) return;
+    try {
+      const compRes = await fetch(`${API_BASE}/companies/${operatingCompany.id}`);
+      const compData = await compRes.json();
+
+      const txRes = await fetch(`${API_BASE}/companies/${operatingCompany.id}/transactions`);
+      const txData = await txRes.json();
+
+      if (compData.success) {
+        setOperatingCompany(compData.data);
+        setCompanyTransactions(txData.data || []);
+      }
+    } catch (err) {
+      console.error('Error refreshing operating company:', err);
+    }
   };
 
   const handleSyncStaffFromEtms = async () => {
@@ -524,22 +541,35 @@ export default function App() {
   };
 
   const handleUpdateParameter = async (companyId, key, value) => {
+    // Optimistic UI update so button state flips immediately with 0 delay
+    if (operatingCompany && operatingCompany.id === companyId) {
+      setOperatingCompany((prev) => {
+        if (!prev || !prev.parameters) return prev;
+        const updatedParams = prev.parameters.map((p) =>
+          p.key === key ? { ...p, value: String(value) } : p
+        );
+        return { ...prev, parameters: updatedParams };
+      });
+    }
+
     try {
       const res = await fetch(`${API_BASE}/companies/${companyId}/parameters/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value }),
+        body: JSON.stringify({ value: String(value) }),
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`Setting '${key}' set to '${value}'. Logged to MongoDB.`, 'Parameter Updated');
-        if (operatingCompany) refreshOperatingCompany();
+        toast.success(`Parameter '${key}' updated to '${value}'.`, 'Parameter Saved');
+        if (operatingCompany) await refreshOperatingCompany();
         fetchAuditLogs();
       } else {
         toast.error(data.message || 'Failed to update parameter', 'Parameter Error');
+        if (operatingCompany) await refreshOperatingCompany();
       }
     } catch (err) {
       toast.error('Failed to update parameter due to network error.', 'Parameter Error');
+      if (operatingCompany) await refreshOperatingCompany();
     }
   };
 
@@ -1177,10 +1207,31 @@ export default function App() {
                         <td>{company.contactPerson || 'N/A'}</td>
                         <td><small>{company.mobile || company.email || 'N/A'}</small></td>
                         <td><span className="badge badge-system"><Lock size={10} /> Locked</span></td>
-                        <td>
-                          <button className="btn btn-primary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }} onClick={() => startOperatingAsCompany(company)}>
-                            <Headphones size={13} /> Support Mode
-                          </button>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                            <button className="btn btn-primary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => startOperatingAsCompany(company)}>
+                              <Headphones size={11} /> Support
+                            </button>
+                            <TableActionMenu
+                              actions={[
+                                {
+                                  label: 'Enter Support Workspace',
+                                  icon: <Headphones size={12} color="var(--primary)" />,
+                                  onClick: () => startOperatingAsCompany(company)
+                                },
+                                {
+                                  label: 'Parameter Store & Rules',
+                                  icon: <Sliders size={12} color="var(--accent-blue)" />,
+                                  onClick: () => setSelectedParamCompany(company)
+                                },
+                                {
+                                  label: 'View in Full Directory',
+                                  icon: <Building size={12} />,
+                                  onClick: () => setActiveTab('companies')
+                                }
+                              ]}
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1409,33 +1460,85 @@ export default function App() {
 
             {companySubTab === 'features' && (
               <div className="card table-container">
-                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.75rem' }}>Utility & Feature Parameters ({operatingCompany.parameters?.length || 0})</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '0.95rem', margin: 0 }}>Utility & Feature Parameters ({operatingCompany.parameters?.length || 0})</h3>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Configure feature flags and tenant manufacturing parameters</span>
+                  </div>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                    onClick={() => setSelectedParamCompany(operatingCompany)}
+                  >
+                    <Sliders size={13} /> Open Parameter Store Drawer
+                  </button>
+                </div>
                 <table>
                   <thead>
                     <tr>
-                      <th>Key</th>
-                      <th>Value</th>
+                      <th>Parameter Key</th>
+                      <th>Current Value</th>
                       <th>Description</th>
-                      <th>Control</th>
+                      <th style={{ textAlign: 'right' }}>Control / Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {operatingCompany.parameters?.map((p) => (
-                      <tr key={p.id}>
-                        <td><code>{p.key}</code></td>
-                        <td><span style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>{p.value}</span></td>
-                        <td><small style={{ color: 'var(--text-muted)' }}>{p.description}</small></td>
-                        <td>
-                          {p.key.startsWith('feature_') ? (
-                            <button className={`btn ${p.value === 'true' ? 'btn-secondary' : 'btn-primary'}`} style={{ padding: '0.15rem 0.5rem', fontSize: '0.72rem' }} onClick={() => handleUpdateParameter(operatingCompany.id, p.key, p.value === 'true' ? 'false' : 'true')}>
-                              {p.value === 'true' ? 'Disable Feature' : 'Enable Feature'}
-                            </button>
-                          ) : (
-                            <input type="text" defaultValue={p.value} className="form-control" style={{ width: '130px', padding: '0.15rem 0.4rem' }} onBlur={(e) => { if (e.target.value !== p.value) handleUpdateParameter(operatingCompany.id, p.key, e.target.value); }} />
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {operatingCompany.parameters?.map((p) => {
+                      const isFeature = p.key.startsWith('feature_') || p.dataType === 'BOOLEAN' || p.value === 'true' || p.value === 'false';
+                      const isEnabled = p.value === 'true';
+
+                      return (
+                        <tr key={p.id || p.key}>
+                          <td>
+                            <code style={{ fontSize: '0.75rem', fontWeight: 600 }}>{p.key}</code>
+                          </td>
+                          <td>
+                            {isFeature ? (
+                              <span className={`badge ${isEnabled ? 'badge-pastel-green' : 'badge-pastel-yellow'}`} style={{ fontSize: '0.7rem' }}>
+                                {isEnabled ? 'Enabled' : 'Disabled'}
+                              </span>
+                            ) : (
+                              <span style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600, fontSize: '0.75rem' }}>
+                                {p.value}
+                              </span>
+                            )}
+                          </td>
+                          <td><small style={{ color: 'var(--text-muted)' }}>{p.description || 'Tenant configuration parameter'}</small></td>
+                          <td style={{ textAlign: 'right' }}>
+                            {isFeature ? (
+                              <button
+                                type="button"
+                                className={`btn ${isEnabled ? 'btn-secondary' : 'btn-primary'}`}
+                                style={{ padding: '0.2rem 0.6rem', fontSize: '0.72rem', minWidth: '100px' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateParameter(operatingCompany.id, p.key, isEnabled ? 'false' : 'true');
+                                }}
+                              >
+                                {isEnabled ? 'Disable' : 'Enable'}
+                              </button>
+                            ) : (
+                              <input
+                                type="text"
+                                defaultValue={p.value}
+                                className="form-control"
+                                style={{ width: '130px', padding: '0.15rem 0.4rem', fontSize: '0.75rem', textAlign: 'right' }}
+                                onBlur={(e) => {
+                                  if (e.target.value !== p.value) {
+                                    handleUpdateParameter(operatingCompany.id, p.key, e.target.value);
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.target.blur();
+                                  }
+                                }}
+                              />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1656,6 +1759,19 @@ export default function App() {
           fetchUsers();
           checkUntrackedTenants();
           fetchAuditLogs();
+        }}
+      />
+
+      {/* SLIDE-OVER PARAMETER STORE DRAWER */}
+      <CompanyParameterDrawer
+        isOpen={Boolean(selectedParamCompany)}
+        company={selectedParamCompany}
+        onClose={() => setSelectedParamCompany(null)}
+        apiBase={API_BASE}
+        onParameterUpdated={(key, value) => {
+          if (operatingCompany && selectedParamCompany?.id === operatingCompany.id) {
+            refreshOperatingCompany();
+          }
         }}
       />
     </div>
