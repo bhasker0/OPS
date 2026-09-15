@@ -45,14 +45,12 @@ import SubscriptionManagement from './components/SubscriptionManagement';
 import SystemHealthMonitor from './components/SystemHealthMonitor';
 import SecuritySettingsModal from './components/SecuritySettingsModal';
 import TenantReconciliationModal from './components/TenantReconciliationModal';
-import CompanyParameterDrawer from './components/CompanyParameterDrawer';
-import TableActionMenu from './components/TableActionMenu';
-import Drawer from './components/ui/Drawer';
 import ThemeToggle from './components/ThemeToggle';
 import KpiStrip from './components/KpiStrip';
+import CompanyParameterDrawer from './components/CompanyParameterDrawer';
 import { useToast } from './context/ToastContext';
-import { API_BASE } from './config/api';
 
+const API_BASE = 'http://localhost:5000/api';
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
 
 export default function App() {
@@ -94,6 +92,9 @@ export default function App() {
   const [operatingCompany, setOperatingCompany] = useState(null);
   const [companySubTab, setCompanySubTab] = useState('overview');
 
+  // Global Parameter Store Drawer State
+  const [selectedParamCompany, setSelectedParamCompany] = useState(null);
+
   // Command Palette State (SCRUM-79)
   const [showCommandPalette, setShowCommandPalette] = useState(false);
 
@@ -104,6 +105,15 @@ export default function App() {
   const [globalStats, setGlobalStats] = useState(null);
   const [companies, setCompanies] = useState([]);
   const [users, setUsers] = useState([]);
+
+  const masterSeedCompany = companies.find(
+    (c) => c.isSeed || c.code === '000' || c.id === SEED_COMPANY_ID
+  ) || {
+    id: SEED_COMPANY_ID,
+    name: 'Master Seed Organization (000)',
+    code: '000',
+    isSeed: true
+  };
   const [roles, setRoles] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [companyTransactions, setCompanyTransactions] = useState([]);
@@ -121,7 +131,6 @@ export default function App() {
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [selectedUserToEdit, setSelectedUserToEdit] = useState(null);
   const [selectedAuditLog, setSelectedAuditLog] = useState(null);
-  const [selectedParamCompany, setSelectedParamCompany] = useState(null);
 
   // Registration Form State
   const [newCompany, setNewCompany] = useState({
@@ -294,21 +303,7 @@ export default function App() {
   };
 
   const refreshOperatingCompany = async () => {
-    if (!operatingCompany) return;
-    try {
-      const compRes = await fetch(`${API_BASE}/companies/${operatingCompany.id}`);
-      const compData = await compRes.json();
-
-      const txRes = await fetch(`${API_BASE}/companies/${operatingCompany.id}/transactions`);
-      const txData = await txRes.json();
-
-      if (compData.success) {
-        setOperatingCompany(compData.data);
-        setCompanyTransactions(txData.data || []);
-      }
-    } catch (err) {
-      console.error('Error refreshing operating company:', err);
-    }
+    if (operatingCompany) await startOperatingAsCompany(operatingCompany);
   };
 
   const handleSyncStaffFromEtms = async () => {
@@ -541,35 +536,22 @@ export default function App() {
   };
 
   const handleUpdateParameter = async (companyId, key, value) => {
-    // Optimistic UI update so button state flips immediately with 0 delay
-    if (operatingCompany && operatingCompany.id === companyId) {
-      setOperatingCompany((prev) => {
-        if (!prev || !prev.parameters) return prev;
-        const updatedParams = prev.parameters.map((p) =>
-          p.key === key ? { ...p, value: String(value) } : p
-        );
-        return { ...prev, parameters: updatedParams };
-      });
-    }
-
     try {
       const res = await fetch(`${API_BASE}/companies/${companyId}/parameters/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: String(value) }),
+        body: JSON.stringify({ value }),
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`Parameter '${key}' updated to '${value}'.`, 'Parameter Saved');
-        if (operatingCompany) await refreshOperatingCompany();
+        toast.success(`Setting '${key}' set to '${value}'. Logged to MongoDB.`, 'Parameter Updated');
+        if (operatingCompany) refreshOperatingCompany();
         fetchAuditLogs();
       } else {
         toast.error(data.message || 'Failed to update parameter', 'Parameter Error');
-        if (operatingCompany) await refreshOperatingCompany();
       }
     } catch (err) {
       toast.error('Failed to update parameter due to network error.', 'Parameter Error');
-      if (operatingCompany) await refreshOperatingCompany();
     }
   };
 
@@ -643,13 +625,13 @@ export default function App() {
 
   if (!isLoggedIn) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg-canvas)' }}>
-        <div style={{ background: 'var(--bg-surface)', padding: '2.25rem', borderRadius: 'var(--radius-md)', width: '100%', maxWidth: '400px', boxShadow: 'var(--shadow-subtle)', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc' }}>
+        <div style={{ background: 'white', padding: '2.25rem', borderRadius: '10px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0' }}>
           <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'inline-flex', background: 'var(--primary-light)', padding: '0.75rem', borderRadius: '50%', color: 'var(--primary)', marginBottom: '0.65rem', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'inline-flex', background: '#eef2ff', padding: '0.75rem', borderRadius: '50%', color: '#4f46e5', marginBottom: '0.65rem' }}>
               <Shield size={32} />
             </div>
-            <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)' }}>OPS Super Admin</h1>
+            <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>OPS Super Admin</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.2rem' }}>
               {requires2FA ? 'Two-Factor Verification Required' : 'Production JWT Secure Control Plane'}
             </p>
@@ -659,7 +641,7 @@ export default function App() {
             {!requires2FA ? (
               <>
                 <div className="form-group">
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>OPS Admin Email</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>OPS Admin Email</label>
                   <input
                     type="email"
                     required
@@ -669,7 +651,7 @@ export default function App() {
                   />
                 </div>
                 <div className="form-group">
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>Password</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Password</label>
                   <input
                     type="password"
                     required
@@ -681,7 +663,7 @@ export default function App() {
               </>
             ) : (
               <div className="form-group">
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>
                   Enter 6-Digit Authenticator Code (TOTP)
                 </label>
                 <input
@@ -724,370 +706,360 @@ export default function App() {
   }
 
   return (
-    <div className="app-container" style={{ flexDirection: 'column' }}>
-      {/* MINIMALIST TOPBAR TELEMETRY STRIP */}
-      <div className="telemetry-strip">
-        <div className="telemetry-strip-item">
-          <span className="phosphor-beacon" />
-          <span>System: Nominal</span>
+    <div className="app-container">
+      {/* RESPONSIVE COLLAPSIBLE SIDEBAR (SCRUM-93) */}
+      <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-title">
+            <Shield size={20} />
+            <span>OPS Super Admin</span>
+          </div>
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={toggleSidebar}
+            title={isSidebarCollapsed ? "Expand Sidebar (Ctrl+B)" : "Collapse Sidebar (Ctrl+B)"}
+          >
+            {isSidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          </button>
         </div>
-        <div className="telemetry-strip-item">
-          <span>Cluster: <span className="telemetry-strip-value">Prod-01</span></span>
+
+        {operatingCompany ? (
+          <div style={{ background: 'var(--primary-light)', padding: '0.5rem 0.65rem', borderRadius: '6px', fontSize: '0.78rem', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: 'var(--primary)' }}>
+              <Headphones size={14} /> {!isSidebarCollapsed && <span>Support Mode</span>}
+            </div>
+            {!isSidebarCollapsed && (
+              <div style={{ color: 'var(--text-main)', fontSize: '0.75rem', marginTop: '0.1rem', fontWeight: 600 }}>
+                {operatingCompany.name} ({operatingCompany.code})
+              </div>
+            )}
+          </div>
+        ) : (
+          !isSidebarCollapsed && (
+            <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+              🌐 Global Super Admin View
+            </div>
+          )
+        )}
+
+        {/* COMMAND PALETTE QUICK SEARCH BUTTON (SCRUM-79) */}
+        <button
+          type="button"
+          onClick={() => setShowCommandPalette(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+            padding: isSidebarCollapsed ? '0.5rem 0' : '0.45rem 0.65rem',
+            borderRadius: '6px',
+            border: '1px solid var(--border)',
+            background: 'var(--bg-canvas)',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '0.78rem',
+            width: '100%',
+            transition: 'all 0.15s ease',
+          }}
+          title="Open Command Palette (Ctrl+K)"
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Search size={13} color="var(--text-muted)" /> {!isSidebarCollapsed && 'Quick jump...'}
+          </span>
+          {!isSidebarCollapsed && (
+            <kbd style={{
+              fontSize: '0.65rem',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: '3px',
+              padding: '0.1rem 0.3rem',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-secondary)'
+            }}>Ctrl K</kbd>
+          )}
+        </button>
+
+        <div className="nav-menu">
+          {!operatingCompany ? (
+            <>
+              {/* SECTION: PLATFORM GOVERNANCE */}
+              {!isSidebarCollapsed && <div className="nav-section-label">🏛️ Governance</div>}
+              <button className={`nav-item ${activeTab === 'global_dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('global_dashboard')} title="Global Dashboard">
+                <TrendingUp size={16} /> <span>Dashboard</span>
+              </button>
+              <button className={`nav-item ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')} title="Registered Companies">
+                <Building size={16} /> <span>Companies</span>
+                <span className="badge badge-system nav-counter-badge">{companies.length}</span>
+              </button>
+              <button className={`nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`} onClick={() => setActiveTab('subscriptions')} title="Subscriptions & Billing">
+                <CreditCard size={16} /> <span>Subscriptions & Quotas</span>
+              </button>
+              <button
+                className={`nav-item ${activeTab === 'parameters' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab('parameters');
+                  setSelectedParamCompany(masterSeedCompany);
+                }}
+                title="Master Seed Parameter Store & Rules"
+              >
+                <Sliders size={16} /> <span>Parameter Store</span>
+              </button>
+
+              {/* SECTION: SECURITY & ACCESS */}
+              {!isSidebarCollapsed && <div className="nav-section-label">🛡️ Security & Access</div>}
+              <button className={`nav-item ${activeTab === 'all_users' ? 'active' : ''}`} onClick={() => setActiveTab('all_users')} title="User Directory">
+                <Users size={16} /> <span>Users</span>
+                <span className="badge badge-seed nav-counter-badge">{users.length}</span>
+              </button>
+              <button className={`nav-item ${activeTab === 'roles' ? 'active' : ''}`} onClick={() => { fetchRoles(); setActiveTab('roles'); }} title="RBAC Roles">
+                <Lock size={16} /> <span>RBAC Roles</span>
+                <span className="badge badge-system nav-counter-badge">{roles.length}</span>
+              </button>
+              <button className={`nav-item ${activeTab === 'global_audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(); setActiveTab('global_audit'); }} title="Audit Trail">
+                <FileText size={16} /> <span>Audit Trail</span>
+              </button>
+
+              {/* SECTION: INFRASTRUCTURE & HEALTH */}
+              {!isSidebarCollapsed && <div className="nav-section-label">⚡ Infrastructure</div>}
+              <button className={`nav-item ${activeTab === 'system_health' ? 'active' : ''}`} onClick={() => setActiveTab('system_health')} title="Telemetry & Sync DLQ">
+                <Activity size={16} /> <span>Telemetry & DLQ</span>
+              </button>
+              <button
+                className={`nav-item ${activeTab === 'reconcile' ? 'active' : ''}`}
+                onClick={() => {
+                  checkUntrackedTenants();
+                  setShowReconcileModal(true);
+                }}
+                style={{
+                  background: untrackedCount > 0 ? 'var(--warning-light)' : 'transparent',
+                  color: untrackedCount > 0 ? 'var(--warning)' : 'inherit',
+                  fontWeight: untrackedCount > 0 ? 700 : 'normal',
+                }}
+                title="Scan and Reconcile unmanaged ETMS tenants into OPS Master"
+              >
+                <Shield size={16} color={untrackedCount > 0 ? 'var(--warning)' : 'var(--primary)'} />
+                <span>Reconcile ETMS</span>
+                {untrackedCount > 0 && (
+                  <span
+                    className="nav-counter-badge"
+                    style={{
+                      background: 'var(--danger)',
+                      color: '#ffffff',
+                    }}
+                  >
+                    {untrackedCount}
+                  </span>
+                )}
+              </button>
+            </>
+          ) : (
+            <>
+              {!isSidebarCollapsed && <div className="nav-section-label">🎧 Support Workspace</div>}
+              <button className={`nav-item ${companySubTab === 'overview' ? 'active' : ''}`} onClick={() => setCompanySubTab('overview')} title="Company Overview">
+                <TrendingUp size={16} /> <span>Overview</span>
+              </button>
+              <button className={`nav-item ${companySubTab === 'users' ? 'active' : ''}`} onClick={() => setCompanySubTab('users')} title="Tenant Users">
+                <Users size={16} /> <span>Users</span>
+              </button>
+              <button className={`nav-item ${companySubTab === 'features' ? 'active' : ''}`} onClick={() => { setCompanySubTab('features'); setSelectedParamCompany(operatingCompany); }} title="Parameters & Rules">
+                <Settings size={16} /> <span>Parameters</span>
+              </button>
+              <button className={`nav-item ${companySubTab === 'roles' ? 'active' : ''}`} onClick={() => setCompanySubTab('roles')} title="System Roles">
+                <Lock size={16} /> <span>Roles</span>
+              </button>
+              <button className={`nav-item ${companySubTab === 'transactions' ? 'active' : ''}`} onClick={() => setCompanySubTab('transactions')} title="Billing Transactions">
+                <CreditCard size={16} /> <span>Transactions</span>
+              </button>
+              <button className={`nav-item ${companySubTab === 'audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(operatingCompany.id); setCompanySubTab('audit'); }} title="Tenant Audit">
+                <FileText size={16} /> <span>Audit Trail</span>
+              </button>
+            </>
+          )}
         </div>
-        <div className="telemetry-strip-item">
-          <span>PostgreSQL: <span className="telemetry-status-ok">Connected</span></span>
-        </div>
-        <div className="telemetry-strip-item">
-          <span>MongoDB: <span className="telemetry-status-ok">Connected</span></span>
-        </div>
-        <div className="telemetry-strip-item">
-          <span>Tenants: <span className="telemetry-strip-value">{companies.length}</span></span>
-        </div>
-        <div className="telemetry-strip-item">
-          <span>Users: <span className="telemetry-strip-value">{users.length}</span></span>
-        </div>
-        <div className="telemetry-strip-item" style={{ marginLeft: 'auto' }}>
-          <span>Operator: <span className="telemetry-strip-value">{currentUser?.email || 'admin@ops.saas'}</span></span>
+
+        <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <button
+            className="btn btn-secondary"
+            style={{ width: '100%', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'center', gap: '0.35rem' }}
+            onClick={() => setShowSecurityModal(true)}
+            title="Manage 2FA and JWT security credentials"
+          >
+            <Shield size={13} color="var(--primary)" /> {!isSidebarCollapsed && 'Security & 2FA'}
+          </button>
+
+          {operatingCompany ? (
+            <button className="btn btn-secondary" style={{ width: '100%', fontSize: '0.78rem' }} onClick={exitCompanyOperationalMode} title="Exit Support Mode">
+              <ArrowLeft size={14} /> {!isSidebarCollapsed && 'Exit Support'}
+            </button>
+          ) : (
+            <button
+              className="btn btn-secondary"
+              style={{ width: '100%', fontSize: '0.78rem' }}
+              onClick={() => {
+                localStorage.removeItem('ops_access_token');
+                localStorage.removeItem('ops_refresh_token');
+                setIsLoggedIn(false);
+                toast.info('Logged out of Super Admin.');
+              }}
+              title="Logout Admin"
+            >
+              <LogOut size={14} /> {!isSidebarCollapsed && 'Logout Admin'}
+            </button>
+          )}
         </div>
       </div>
 
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* MINIMALIST COLLAPSIBLE SIDEBAR */}
-        <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="sidebar-header">
-            <div className="sidebar-title">
-              <Shield size={16} color="var(--accent-red)" />
-              <span>OPS Console</span>
-            </div>
-            <button
-              type="button"
-              className="sidebar-collapse-btn"
-              onClick={toggleSidebar}
-              title={isSidebarCollapsed ? "Expand Sidebar (Ctrl+B)" : "Collapse Sidebar (Ctrl+B)"}
-            >
-              {isSidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
-            </button>
-          </div>
-
-          {operatingCompany ? (
-            <div style={{ background: 'var(--accent-red-bg)', padding: '0.5rem 0.65rem', border: '1px solid transparent', borderRadius: 'var(--radius-sm)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.75rem', color: 'var(--accent-red)', fontFamily: 'var(--font-sans)' }}>
-                <Headphones size={13} /> {!isSidebarCollapsed && <span>Support Active</span>}
-              </div>
-              {!isSidebarCollapsed && (
-                <div style={{ color: 'var(--text-main)', fontSize: '0.75rem', marginTop: '0.15rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {operatingCompany.name}
-                </div>
-              )}
-            </div>
-          ) : (
-            !isSidebarCollapsed && (
-              <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.35rem 0.6rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
-                Global Control Plane
-              </div>
-            )
-          )}
-
-          {/* QUICK SEARCH PALETTE TRIGGER */}
-          <button
-            type="button"
-            onClick={() => setShowCommandPalette(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-              padding: isSidebarCollapsed ? '0.45rem 0' : '0.45rem 0.65rem',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--bg-surface)',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-sans)',
-              fontSize: '0.78rem',
-              width: '100%',
-              transition: 'all 0.15s ease',
-              boxShadow: 'var(--shadow-card)',
-            }}
-            title="Open Command Palette (Ctrl+K)"
-          >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
-              <Search size={13} color="var(--text-muted)" /> {!isSidebarCollapsed && 'Quick Search...'}
+      {/* MAIN CONTENT AREA */}
+      <div className="main-content">
+        {/* TOP INTEGRATED HEADER & BREADCRUMBS BAR (SCRUM-97 & SCRUM-98) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', gap: '1rem' }}>
+          <div className="breadcrumbs" style={{ margin: 0 }}>
+            <span className="breadcrumb-item" onClick={() => { exitCompanyOperationalMode(); setActiveTab('global_dashboard'); }}>
+              Global Control Plane
             </span>
-            {!isSidebarCollapsed && (
-              <kbd>⌘K</kbd>
-            )}
-          </button>
-
-          <div className="nav-menu">
-            {!operatingCompany ? (
+            <ChevronRight size={12} />
+            {operatingCompany ? (
               <>
-                {/* SECTION: PLATFORM GOVERNANCE */}
-                {!isSidebarCollapsed && <div className="nav-section-label">Governance</div>}
-                <button className={`nav-item ${activeTab === 'global_dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('global_dashboard')} title="Global Dashboard">
-                  <TrendingUp size={15} /> <span>Dashboard</span>
-                </button>
-                <button className={`nav-item ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')} title="Registered Companies">
-                  <Building size={15} /> <span>Companies</span>
-                  <span className="badge badge-pastel-blue nav-counter-badge">{companies.length}</span>
-                </button>
-                <button className={`nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`} onClick={() => setActiveTab('subscriptions')} title="Subscriptions & Billing">
-                  <CreditCard size={15} /> <span>Subscriptions</span>
-                </button>
-
-                {/* SECTION: SECURITY & ACCESS */}
-                {!isSidebarCollapsed && <div className="nav-section-label">Security & Access</div>}
-                <button className={`nav-item ${activeTab === 'all_users' ? 'active' : ''}`} onClick={() => setActiveTab('all_users')} title="User Directory">
-                  <Users size={15} /> <span>Users</span>
-                  <span className="badge badge-seed nav-counter-badge">{users.length}</span>
-                </button>
-                <button className={`nav-item ${activeTab === 'roles' ? 'active' : ''}`} onClick={() => { fetchRoles(); setActiveTab('roles'); }} title="RBAC Roles">
-                  <Lock size={15} /> <span>Roles</span>
-                  <span className="badge badge-pastel-yellow nav-counter-badge">{roles.length}</span>
-                </button>
-                <button className={`nav-item ${activeTab === 'global_audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(); setActiveTab('global_audit'); }} title="Audit Trail">
-                  <FileText size={15} /> <span>Audit Trail</span>
-                </button>
-
-                {/* SECTION: INFRASTRUCTURE & HEALTH */}
-                {!isSidebarCollapsed && <div className="nav-section-label">Infrastructure</div>}
-                <button className={`nav-item ${activeTab === 'system_health' ? 'active' : ''}`} onClick={() => setActiveTab('system_health')} title="Telemetry & Sync DLQ">
-                  <Activity size={15} /> <span>System Telemetry</span>
-                </button>
-                <button
-                  className={`nav-item ${activeTab === 'reconcile' ? 'active' : ''}`}
-                  onClick={() => {
-                    checkUntrackedTenants();
-                    setShowReconcileModal(true);
-                  }}
-                  style={{
-                    background: untrackedCount > 0 ? 'var(--accent-yellow-bg)' : 'transparent',
-                    color: untrackedCount > 0 ? 'var(--accent-yellow)' : 'inherit',
-                  }}
-                  title="Scan and Reconcile unmanaged ETMS tenants into OPS Master"
-                >
-                  <Shield size={15} color={untrackedCount > 0 ? 'var(--accent-yellow)' : 'var(--text-muted)'} />
-                  <span>Reconcile Tenants</span>
-                  {untrackedCount > 0 && (
-                    <span
-                      className="nav-counter-badge"
-                      style={{
-                        background: 'var(--accent-red)',
-                        color: '#ffffff',
-                      }}
-                    >
-                      {untrackedCount}
-                    </span>
-                  )}
-                </button>
+                <span className="breadcrumb-item" onClick={() => { setActiveTab('companies'); }}>
+                  Tenants
+                </span>
+                <ChevronRight size={12} />
+                <span className="breadcrumb-item active">
+                  {operatingCompany.name} ({operatingCompany.code})
+                </span>
+                <ChevronRight size={12} />
+                <span className="breadcrumb-item active" style={{ textTransform: 'capitalize' }}>
+                  {companySubTab}
+                </span>
               </>
             ) : (
-              <>
-                {!isSidebarCollapsed && <div className="nav-section-label">Support Workspace</div>}
-                <button className={`nav-item ${companySubTab === 'overview' ? 'active' : ''}`} onClick={() => setCompanySubTab('overview')} title="Company Overview">
-                  <TrendingUp size={15} /> <span>Overview</span>
-                </button>
-                <button className={`nav-item ${companySubTab === 'users' ? 'active' : ''}`} onClick={() => setCompanySubTab('users')} title="Tenant Users">
-                  <Users size={15} /> <span>Tenant Users</span>
-                </button>
-                <button className={`nav-item ${companySubTab === 'features' ? 'active' : ''}`} onClick={() => setCompanySubTab('features')} title="Parameters & Rules">
-                  <Settings size={15} /> <span>Parameters</span>
-                </button>
-                <button className={`nav-item ${companySubTab === 'roles' ? 'active' : ''}`} onClick={() => setCompanySubTab('roles')} title="System Roles">
-                  <Lock size={15} /> <span>System Roles</span>
-                </button>
-                <button className={`nav-item ${companySubTab === 'transactions' ? 'active' : ''}`} onClick={() => setCompanySubTab('transactions')} title="Billing Transactions">
-                  <CreditCard size={15} /> <span>Transactions</span>
-                </button>
-                <button className={`nav-item ${companySubTab === 'audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(operatingCompany.id); setCompanySubTab('audit'); }} title="Tenant Audit">
-                  <FileText size={15} /> <span>Audit Trail</span>
-                </button>
-              </>
+              <span className="breadcrumb-item active" style={{ textTransform: 'capitalize' }}>
+                {activeTab.replace('_', ' ')}
+              </span>
             )}
           </div>
 
-          <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-            <button
-              className="btn btn-secondary"
-              style={{ width: '100%', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'center', gap: '0.4rem' }}
-              onClick={() => setShowSecurityModal(true)}
-              title="Manage 2FA and JWT security credentials"
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            {/* PERSISTENT QUICK-SWITCH TENANT SELECTOR (SCRUM-97) */}
+            <select
+              className="form-control"
+              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', width: '170px' }}
+              value={operatingCompany?.id || ''}
+              onChange={(e) => {
+                const cId = e.target.value;
+                if (!cId) {
+                  exitCompanyOperationalMode();
+                } else {
+                  const targetComp = companies.find((c) => c.id === cId);
+                  if (targetComp) enterCompanyOperationalMode(targetComp);
+                }
+              }}
             >
-              <Shield size={13} color="var(--accent-red)" /> {!isSidebarCollapsed && 'Security & 2FA'}
-            </button>
+              <option value="">-- Jump to tenant... --</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+              ))}
+            </select>
 
-            {operatingCompany ? (
-              <button className="btn btn-secondary" style={{ width: '100%', fontSize: '0.75rem' }} onClick={exitCompanyOperationalMode} title="Exit Support Mode">
-                <ArrowLeft size={13} /> {!isSidebarCollapsed && 'Exit Support'}
-              </button>
-            ) : (
-              <button
-                className="btn btn-secondary"
-                style={{ width: '100%', fontSize: '0.75rem' }}
-                onClick={() => {
-                  localStorage.removeItem('ops_access_token');
-                  localStorage.removeItem('ops_refresh_token');
-                  setIsLoggedIn(false);
-                  toast.info('Logged out of Super Admin.');
-                }}
-                title="Logout Admin"
-              >
-                <LogOut size={13} /> {!isSidebarCollapsed && 'Logout'}
-              </button>
-            )}
+            {/* THEME TOGGLE (SCRUM-98) */}
+            <ThemeToggle />
           </div>
         </div>
-
-        {/* MAIN CONTENT AREA */}
-        <div className="main-content">
-          {/* BENTO TOPBAR & BREADCRUMBS HUD */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-            <div className="breadcrumbs" style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: '0.8125rem' }}>
-              <span className="breadcrumb-item" onClick={() => { exitCompanyOperationalMode(); setActiveTab('global_dashboard'); }}>
-                Control Plane
-              </span>
-              <ChevronRight size={13} color="var(--text-tertiary)" />
-              {operatingCompany ? (
-                <>
-                  <span className="breadcrumb-item" onClick={() => { setActiveTab('companies'); }}>
-                    Tenants
-                  </span>
-                  <ChevronRight size={13} color="var(--text-tertiary)" />
-                  <span className="breadcrumb-item active">
-                    {operatingCompany.name} ({operatingCompany.code})
-                  </span>
-                  <ChevronRight size={13} color="var(--text-tertiary)" />
-                  <span className="breadcrumb-item active" style={{ textTransform: 'capitalize' }}>
-                    {companySubTab}
-                  </span>
-                </>
-              ) : (
-                <span className="breadcrumb-item active" style={{ textTransform: 'capitalize' }}>
-                  {activeTab.replace('_', ' ')}
-                </span>
-              )}
+        {/* SUPPORT IMPERSONATION ACTIVE BANNER (SCRUM-87) */}
+        {impersonationContext && (
+          <div
+            style={{
+              background: 'linear-gradient(90deg, #b45309, #d97706, #b45309)',
+              color: '#ffffff',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '6px',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)',
+              border: '1px solid #f59e0b',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>
+                  TENANT IMPERSONATION ACTIVE: Operating as {impersonationContext.targetUser?.name} ({impersonationContext.targetUser?.email})
+                </div>
+                <div style={{ fontSize: '0.74rem', opacity: 0.9 }}>
+                  Tenant: <strong>{impersonationContext.targetUser?.company?.name || 'Internal'}</strong> &bull; Super Admin: <em>{impersonationContext.originalUser?.name}</em> &bull; Ephemeral Token (15m TTL)
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {/* PERSISTENT QUICK-SWITCH TENANT SELECTOR */}
-              <select
-                className="form-control"
-                style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', width: '200px', fontFamily: 'var(--font-sans)', borderRadius: 'var(--radius-sm)' }}
-                value={operatingCompany?.id || ''}
-                onChange={(e) => {
-                  const cId = e.target.value;
-                  if (!cId) {
-                    exitCompanyOperationalMode();
-                  } else {
-                    const targetComp = companies.find((c) => c.id === cId);
-                    if (targetComp) startOperatingAsCompany(targetComp);
-                  }
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                className="btn"
+                onClick={() => handleLaunchEtms(impersonationContext.targetUser)}
+                style={{
+                  background: '#065f46',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  padding: '0.35rem 0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                }}
+                title={`Open ETMS Factory Portal as ${impersonationContext.targetUser?.name}`}
+              >
+                <ExternalLink size={13} /> Open ETMS Factory Portal ↗
+              </button>
+
+              <button
+                className="btn"
+                onClick={handleExitImpersonation}
+                style={{
+                  background: '#ffffff',
+                  color: '#9a3412',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  padding: '0.35rem 0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
                 }}
               >
-                <option value="">Jump to Tenant...</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
-                ))}
-              </select>
-
-              {/* THEME TOGGLE */}
-              <ThemeToggle />
-            </div>
-          </div>
-
-          {/* WASHED PASTEL IMPERSONATION ACTIVE BANNER */}
-          {impersonationContext && (
-            <div
-              style={{
-                padding: '0.85rem 1.25rem',
-                marginBottom: '1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'var(--accent-yellow-bg)',
-                border: '1px solid rgba(149, 100, 0, 0.25)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-subtle)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                <span style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', color: 'var(--accent-yellow)' }}>
-                  <Shield size={20} />
-                </span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-yellow)', letterSpacing: '-0.01em', fontFamily: 'var(--font-sans)' }}>
-                    Tenant Impersonation Active &bull; {impersonationContext.targetUser?.name} ({impersonationContext.targetUser?.email})
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--accent-yellow)', opacity: 0.85, marginTop: '2px', fontFamily: 'var(--font-sans)' }}>
-                    Tenant: {impersonationContext.targetUser?.company?.name || 'Internal Workspace'} &bull; Operator: {impersonationContext.originalUser?.name || 'Super Admin'} &bull; 15m Ephemeral Session
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => handleLaunchEtms(impersonationContext.targetUser)}
-                  style={{
-                    fontSize: '0.78rem',
-                    padding: '0.4rem 0.8rem',
-                  }}
-                  title={`Open ETMS Factory Portal as ${impersonationContext.targetUser?.name}`}
-                >
-                  <ExternalLink size={13} /> Open ETMS Portal ↗
-                </button>
-
-                <button
-                  className="btn btn-secondary"
-                  onClick={handleExitImpersonation}
-                  style={{
-                    fontSize: '0.78rem',
-                    padding: '0.4rem 0.8rem',
-                    borderColor: 'rgba(149, 100, 0, 0.35)',
-                    color: 'var(--accent-red)',
-                  }}
-                >
-                  <LogOut size={13} /> Exit Impersonation
-                </button>
-              </div>
-            </div>
-          )}
-
-          {message && (
-            <div className={`alert alert-${message.type === 'error' ? 'error' : 'info'}`}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>{message.text}</span>
-                <button onClick={() => setMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
-              </div>
-            </div>
-          )}
-
-          {/* SUPPORT OPERATIONAL MODE TOP BANNER */}
-          {operatingCompany && (
-            <div
-              style={{
-                background: 'var(--bg-surface-elevated)',
-                border: '1px solid var(--border-strong)',
-                borderLeft: '4px solid var(--accent-red)',
-                padding: '0.75rem 1rem',
-                marginBottom: '1rem',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', color: 'var(--accent-red)', fontWeight: 800, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  <Headphones size={14} /> [SUPPORT OPERATING MODE ACTIVE]
-                </div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, marginTop: '0.2rem', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', letterSpacing: '-0.02em' }}>
-                  {operatingCompany.name} <samp style={{ fontSize: '0.85rem', border: '1px solid var(--border)', padding: '0.1rem 0.4rem', background: 'var(--bg-canvas)' }}>{operatingCompany.code}</samp>
-                </h2>
-              </div>
-              <button className="btn btn-secondary" onClick={exitCompanyOperationalMode} style={{ fontSize: '0.76rem' }}>
-                <ArrowLeft size={13} /> [ EXIT TO GLOBAL HUD ]
+                <LogOut size={13} /> Exit Support Mode
               </button>
             </div>
-          )}
+          </div>
+        )}
+
+        {message && (
+          <div className={`alert alert-${message.type === 'error' ? 'error' : 'info'}`}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>{message.text}</span>
+              <button onClick={() => setMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+            </div>
+          </div>
+        )}
+
+        {/* SUPPORT OPERATIONAL MODE TOP BANNER */}
+        {operatingCompany && (
+          <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: '#4338ca', fontWeight: 600, textTransform: 'uppercase' }}>
+                <Headphones size={15} /> Support Operating Mode Active
+              </div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e1b4b', marginTop: '0.1rem' }}>
+                {operatingCompany.name} <code style={{ fontSize: '0.9rem', background: '#e0e7ff', padding: '0.1rem 0.4rem', borderRadius: '4px', color: '#3730a3' }}>{operatingCompany.code}</code>
+              </h2>
+            </div>
+            <button className="btn btn-secondary" onClick={exitCompanyOperationalMode} style={{ fontSize: '0.78rem' }}>
+              <ArrowLeft size={14} /> Exit to Global View
+            </button>
+          </div>
+        )}
 
         {/* GLOBAL DASHBOARD */}
         {activeTab === 'global_dashboard' && !operatingCompany && (
@@ -1096,20 +1068,20 @@ export default function App() {
             {untrackedCount > 0 && (
               <div
                 style={{
-                  background: 'var(--accent-yellow-bg)',
-                  border: '1px solid var(--warning)',
-                  borderRadius: 'var(--radius-md)',
+                  background: 'linear-gradient(90deg, #fffbeb, #fef3c7)',
+                  border: '1px solid #fde68a',
+                  borderRadius: '8px',
                   padding: '0.85rem 1.25rem',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  boxShadow: 'var(--shadow-card)',
+                  boxShadow: '0 1px 4px rgba(217, 119, 6, 0.1)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div
                     style={{
-                      background: 'var(--warning)',
+                      background: '#f59e0b',
                       color: '#ffffff',
                       borderRadius: '50%',
                       width: '32px',
@@ -1124,10 +1096,10 @@ export default function App() {
                     !
                   </div>
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#92400e' }}>
                       {untrackedCount} Untracked Tenant(s) Detected in ETMS!
                     </div>
-                    <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '0.76rem', color: '#78350f' }}>
                       ETMS contains unmanaged factory companies and mobile accounts. Adopt and standardize them into OPS Master now.
                     </div>
                   </div>
@@ -1157,12 +1129,12 @@ export default function App() {
                 <h3 style={{ fontSize: '0.95rem' }}>Registered Companies Directory</h3>
 
                 {/* SEARCH FILTER BOX */}
-                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-canvas)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '0.2rem 0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: '5px', padding: '0.2rem 0.5rem' }}>
                   <Search size={14} color="var(--text-muted)" style={{ marginRight: '0.3rem' }} />
                   <input
                     type="text"
                     placeholder="Filter by name, GSTIN, code..."
-                    style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', width: '200px', color: 'var(--text-main)' }}
+                    style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', width: '200px' }}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -1190,14 +1162,14 @@ export default function App() {
                               <img src={company.logoUrl} alt="Logo" style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover' }} />
                             )}
                             <div>
-                              <strong>{company.name}</strong> <code style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>{company.code}</code>
+                              <strong>{company.name}</strong> <code style={{ fontSize: '0.75rem', color: '#4f46e5' }}>{company.code}</code>
                               {company.isSeed && <span className="badge badge-seed" style={{ marginLeft: '0.3rem' }}>000 SEED</span>}
                             </div>
                           </div>
                         </td>
                         <td>
                           {company.gstin ? (
-                            <code className="mono" style={{ background: 'var(--accent-blue-bg)', padding: '0.1rem 0.3rem', borderRadius: '3px', color: 'var(--accent-blue)', fontSize: '0.75rem' }}>
+                            <code className="mono" style={{ background: '#f1f5f9', padding: '0.1rem 0.3rem', borderRadius: '3px', color: '#1e40af', fontSize: '0.75rem' }}>
                               {company.gstin}
                             </code>
                           ) : (
@@ -1207,31 +1179,10 @@ export default function App() {
                         <td>{company.contactPerson || 'N/A'}</td>
                         <td><small>{company.mobile || company.email || 'N/A'}</small></td>
                         <td><span className="badge badge-system"><Lock size={10} /> Locked</span></td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
-                            <button className="btn btn-primary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => startOperatingAsCompany(company)}>
-                              <Headphones size={11} /> Support
-                            </button>
-                            <TableActionMenu
-                              actions={[
-                                {
-                                  label: 'Enter Support Workspace',
-                                  icon: <Headphones size={12} color="var(--primary)" />,
-                                  onClick: () => startOperatingAsCompany(company)
-                                },
-                                {
-                                  label: 'Parameter Store & Rules',
-                                  icon: <Sliders size={12} color="var(--accent-blue)" />,
-                                  onClick: () => setSelectedParamCompany(company)
-                                },
-                                {
-                                  label: 'View in Full Directory',
-                                  icon: <Building size={12} />,
-                                  onClick: () => setActiveTab('companies')
-                                }
-                              ]}
-                            />
-                          </div>
+                        <td>
+                          <button className="btn btn-primary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }} onClick={() => startOperatingAsCompany(company)}>
+                            <Headphones size={13} /> Support Mode
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1312,6 +1263,97 @@ export default function App() {
           />
         )}
 
+        {/* MASTER SEED PARAMETER STORE & RULES TAB */}
+        {activeTab === 'parameters' && !operatingCompany && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div className="card" style={{ borderTop: '3px solid var(--primary)', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 600 }}>
+                    <Sliders size={15} /> Platform Governance &bull; Master Seed Default Hub (000)
+                  </div>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0.25rem 0 0 0' }}>
+                    Master Seed Parameter Store & System Rules
+                  </h2>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+                    Manage global SAC 9988 rates, stitching tolerances, karigar TDS deductions, Tally export rules, and tenant feature flags.
+                  </p>
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setSelectedParamCompany(masterSeedCompany)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.9rem', fontSize: '0.82rem' }}
+                >
+                  <Sliders size={14} /> Open Slide-Over Drawer
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Master Default Rules</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.1rem' }}>35 Parameters</div>
+                </div>
+                <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>SAC Code</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-green)', marginTop: '0.1rem' }}>SAC 9988</div>
+                </div>
+                <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Default Rate</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#2563eb', marginTop: '0.1rem' }}>₹0.40 / 1k Stitches</div>
+                </div>
+                <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Rule Categories</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#7c3aed', marginTop: '0.1rem' }}>5 Accordions</div>
+                </div>
+              </div>
+            </div>
+
+            {/* SEED PARAMETERS DIRECTORY TABLE */}
+            <div className="card table-container">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h3 style={{ fontSize: '0.95rem' }}>System-Wide Master Default Parameter Rules (SEED000)</h3>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setSelectedParamCompany(masterSeedCompany)}
+                  style={{ fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Sliders size={12} /> Configure & Add Seed Parameters
+                </button>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter Key</th>
+                    <th>Master Default Value</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {companies.find((c) => c.isSeed)?.parameters?.map((p) => (
+                    <tr key={p.id || p.key}>
+                      <td><code>{p.key}</code></td>
+                      <td>
+                        <span className="badge badge-pastel-purple" style={{ fontFamily: 'var(--font-mono)' }}>
+                          {String(p.value)}
+                        </span>
+                      </td>
+                      <td><small style={{ color: 'var(--text-muted)' }}>{p.type || 'STRING'}</small></td>
+                      <td><small>{p.description}</small></td>
+                    </tr>
+                  )) || (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
+                        Loading Master Seed Default Rules... Click 'Open Slide-Over Drawer' to manage values.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* SYSTEM HEALTH TELEMETRY & SYNC DLQ TAB (SCRUM-82 & SCRUM-83) */}
         {activeTab === 'system_health' && !operatingCompany && (
           <SystemHealthMonitor
@@ -1351,27 +1393,27 @@ export default function App() {
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
-                    <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
                         <FileSpreadsheet size={15} /> Indian Tax & Compliance
                       </div>
-                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>GSTIN: <code className="mono" style={{ color: 'var(--primary)', fontWeight: 600 }}>{operatingCompany.gstin || 'N/A'}</code></div>
+                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>GSTIN: <code className="mono" style={{ color: '#2563eb', fontWeight: 600 }}>{operatingCompany.gstin || 'N/A'}</code></div>
                       <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Contact Person: <strong>{operatingCompany.contactPerson || 'N/A'}</strong></div>
                       <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Mobile Phone: <strong>{operatingCompany.mobile || 'N/A'}</strong></div>
                       <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Billing Email: <strong>{operatingCompany.email || 'N/A'}</strong></div>
                     </div>
 
-                    <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
                         <MapPin size={15} /> Billing Address
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>
+                      <div style={{ fontSize: '0.78rem', color: '#334155' }}>
                         {operatingCompany.address || 'No billing address recorded.'}
                       </div>
                     </div>
 
-                    <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
                         <Globe size={15} /> Utility Parameters
                       </div>
                       <div style={{ margin: '0.15rem 0', fontSize: '0.75rem' }}>Time Zone: <strong>{operatingCompany.parameters?.find(p => p.key === 'timezone')?.value || 'Asia/Kolkata'}</strong></div>
@@ -1383,7 +1425,7 @@ export default function App() {
                 </div>
 
                 <div className="card">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: 'var(--warning)', fontSize: '0.82rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: '#92400e', fontSize: '0.82rem' }}>
                     <Lock size={15} /> System-Defined Role Guard
                   </div>
                   <p style={{ fontSize: '0.78rem', marginTop: '0.2rem', color: 'var(--text-muted)' }}>
@@ -1429,7 +1471,7 @@ export default function App() {
                         <td>
                           <div>{u.email}</div>
                           {u.mobile && (
-                            <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>
+                            <div style={{ fontSize: '0.7rem', color: '#4338ca', fontWeight: 600 }}>
                               📱 {u.mobile}
                             </div>
                           )}
@@ -1437,11 +1479,11 @@ export default function App() {
                         <td><span className="badge badge-active">{u.status || 'ACTIVE'}</span></td>
                         <td>
                           {u.role?.name?.toLowerCase().includes('admin') ? (
-                            <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, border: '1px solid var(--border)' }}>
+                            <span style={{ background: '#dbeafe', color: '#1e40af', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
                               ⭐ {u.role.name}
                             </span>
                           ) : (
-                            <span style={{ background: 'var(--bg-surface-elevated)', color: 'var(--text-main)', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, border: '1px solid var(--border)' }}>
+                            <span style={{ background: '#f0fdf4', color: '#166534', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>
                               🏭 {u.role ? u.role.name : 'Staff'}
                             </span>
                           )}
@@ -1460,92 +1502,39 @@ export default function App() {
 
             {companySubTab === 'features' && (
               <div className="card table-container">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  <div>
-                    <h3 style={{ fontSize: '0.95rem', margin: 0 }}>Utility & Feature Parameters ({operatingCompany.parameters?.length || 0})</h3>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Configure feature flags and tenant manufacturing parameters</span>
-                  </div>
-                  <button
-                    className="btn btn-secondary"
-                    style={{ fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                    onClick={() => setSelectedParamCompany(operatingCompany)}
-                  >
-                    <Sliders size={13} /> Open Parameter Store Drawer
-                  </button>
-                </div>
+                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.75rem' }}>Utility & Feature Parameters ({operatingCompany.parameters?.length || 0})</h3>
                 <table>
                   <thead>
                     <tr>
-                      <th>Parameter Key</th>
-                      <th>Current Value</th>
+                      <th>Key</th>
+                      <th>Value</th>
                       <th>Description</th>
-                      <th style={{ textAlign: 'right' }}>Control / Status</th>
+                      <th>Control</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {operatingCompany.parameters?.map((p) => {
-                      const isFeature = p.key.startsWith('feature_') || p.dataType === 'BOOLEAN' || p.value === 'true' || p.value === 'false';
-                      const isEnabled = p.value === 'true';
-
-                      return (
-                        <tr key={p.id || p.key}>
-                          <td>
-                            <code style={{ fontSize: '0.75rem', fontWeight: 600 }}>{p.key}</code>
-                          </td>
-                          <td>
-                            {isFeature ? (
-                              <span className={`badge ${isEnabled ? 'badge-pastel-green' : 'badge-pastel-yellow'}`} style={{ fontSize: '0.7rem' }}>
-                                {isEnabled ? 'Enabled' : 'Disabled'}
-                              </span>
-                            ) : (
-                              <span style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600, fontSize: '0.75rem' }}>
-                                {p.value}
-                              </span>
-                            )}
-                          </td>
-                          <td><small style={{ color: 'var(--text-muted)' }}>{p.description || 'Tenant configuration parameter'}</small></td>
-                          <td style={{ textAlign: 'right' }}>
-                            {isFeature ? (
-                              <button
-                                type="button"
-                                className={`btn ${isEnabled ? 'btn-secondary' : 'btn-primary'}`}
-                                style={{ padding: '0.2rem 0.6rem', fontSize: '0.72rem', minWidth: '100px' }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleUpdateParameter(operatingCompany.id, p.key, isEnabled ? 'false' : 'true');
-                                }}
-                              >
-                                {isEnabled ? 'Disable' : 'Enable'}
-                              </button>
-                            ) : (
-                              <input
-                                type="text"
-                                defaultValue={p.value}
-                                className="form-control"
-                                style={{ width: '130px', padding: '0.15rem 0.4rem', fontSize: '0.75rem', textAlign: 'right' }}
-                                onBlur={(e) => {
-                                  if (e.target.value !== p.value) {
-                                    handleUpdateParameter(operatingCompany.id, p.key, e.target.value);
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.target.blur();
-                                  }
-                                }}
-                              />
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {operatingCompany.parameters?.map((p) => (
+                      <tr key={p.id}>
+                        <td><code>{p.key}</code></td>
+                        <td><span style={{ background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>{p.value}</span></td>
+                        <td><small style={{ color: 'var(--text-muted)' }}>{p.description}</small></td>
+                        <td>
+                          {p.key.startsWith('feature_') ? (
+                            <button className={`btn ${p.value === 'true' ? 'btn-secondary' : 'btn-primary'}`} style={{ padding: '0.15rem 0.5rem', fontSize: '0.72rem' }} onClick={() => handleUpdateParameter(operatingCompany.id, p.key, p.value === 'true' ? 'false' : 'true')}>
+                              {p.value === 'true' ? 'Disable Feature' : 'Enable Feature'}
+                            </button>
+                          ) : (
+                            <input type="text" defaultValue={p.value} className="form-control" style={{ width: '130px', padding: '0.15rem 0.4rem' }} onBlur={(e) => { if (e.target.value !== p.value) handleUpdateParameter(operatingCompany.id, p.key, e.target.value); }} />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             )}
           </div>
         )}
-      </div>
       </div>
 
       {/* MODAL: ONBOARDING WIZARD */}
@@ -1579,150 +1568,73 @@ export default function App() {
         loading={loading}
       />
 
-      {/* DRAWER: CREATE USER */}
-      <Drawer
-        isOpen={showUserModal}
-        onClose={() => setShowUserModal(false)}
-        title="Create New User"
-        subtitle="Provision user credentials and assign company tenant scope"
-        icon={<Users size={18} />}
-        size="md"
-        footer={
-          <>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowUserModal(false)}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleCreateUser}
-            >
-              Create User
-            </button>
-          </>
-        }
-      >
-        <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="form-group">
-            <label>Full Name *</label>
-            <input
-              type="text"
-              required
-              placeholder="Rajesh Sharma"
-              className="form-control"
-              value={newUser.name}
-              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-            />
+      {/* MODAL: CREATE USER */}
+      {showUserModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content">
+            <h2 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>Create User</h2>
+            <form onSubmit={handleCreateUser}>
+              <div className="form-group">
+                <label>Full Name</label>
+                <input type="text" required placeholder="Rajesh Sharma" className="form-control" value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Email Address</label>
+                <input type="email" required placeholder="rajesh@acme.in" className="form-control" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', marginTop: '1rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowUserModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create User</button>
+              </div>
+            </form>
           </div>
-          <div className="form-group">
-            <label>Email Address *</label>
-            <input
-              type="email"
-              required
-              placeholder="rajesh@acme.in"
-              className="form-control"
-              value={newUser.email}
-              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-            />
+        </div>
+      )}
+
+      {/* MODAL: SUPPORT EDIT USER */}
+      {showEditUserModal && selectedUserToEdit && (
+        <div className="modal-backdrop">
+          <div className="modal-content">
+            <h2 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>🎧 Edit User Details</h2>
+            <form onSubmit={handleUpdateUser}>
+              <div className="form-group">
+                <label>Full Name</label>
+                <input type="text" required className="form-control" value={editUserData.name} onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Email Address</label>
+                <input type="email" required className="form-control" value={editUserData.email} onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Account Status</label>
+                <select className="form-control" value={editUserData.status} onChange={(e) => setEditUserData({ ...editUserData, status: e.target.value })}>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="SUSPENDED">SUSPENDED</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', marginTop: '1rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditUserModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
           </div>
-        </form>
-      </Drawer>
+        </div>
+      )}
 
-      {/* DRAWER: SUPPORT EDIT USER */}
-      <Drawer
-        isOpen={Boolean(showEditUserModal && selectedUserToEdit)}
-        onClose={() => setShowEditUserModal(false)}
-        title={`Edit User: ${selectedUserToEdit?.name || ''}`}
-        subtitle="Update profile identity, permissions, and account status"
-        icon={<Users size={18} />}
-        size="md"
-        footer={
-          <>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowEditUserModal(false)}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleUpdateUser}
-            >
-              Save Changes
-            </button>
-          </>
-        }
-      >
-        {selectedUserToEdit && (
-          <form onSubmit={handleUpdateUser} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="form-group">
-              <label>Full Name *</label>
-              <input
-                type="text"
-                required
-                className="form-control"
-                value={editUserData.name}
-                onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
-              />
+      {/* MODAL: AUDIT LOG PAYLOAD */}
+      {selectedAuditLog && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: '550px' }}>
+            <h2 style={{ fontSize: '1.1rem' }}>MongoDB Audit Log Record</h2>
+            <pre style={{ background: '#1e293b', color: '#38bdf8', padding: '0.75rem', borderRadius: '6px', overflowX: 'auto', fontSize: '0.78rem', marginTop: '0.75rem' }}>
+              {JSON.stringify(selectedAuditLog, null, 2)}
+            </pre>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+              <button className="btn btn-primary" onClick={() => setSelectedAuditLog(null)}>Close</button>
             </div>
-            <div className="form-group">
-              <label>Email Address *</label>
-              <input
-                type="email"
-                required
-                className="form-control"
-                value={editUserData.email}
-                onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Account Status</label>
-              <select
-                className="form-control"
-                value={editUserData.status}
-                onChange={(e) => setEditUserData({ ...editUserData, status: e.target.value })}
-              >
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="SUSPENDED">SUSPENDED</option>
-              </select>
-            </div>
-          </form>
-        )}
-      </Drawer>
-
-      {/* DRAWER: AUDIT LOG PAYLOAD */}
-      <Drawer
-        isOpen={Boolean(selectedAuditLog)}
-        onClose={() => setSelectedAuditLog(null)}
-        title="Audit Log Event Record"
-        subtitle="Full immutable event payload inspection (MongoDB)"
-        icon={<Shield size={18} />}
-        size="lg"
-        footer={
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setSelectedAuditLog(null)}
-          >
-            Close Inspector
-          </button>
-        }
-      >
-        {selectedAuditLog && (
-          <pre
-            style={{
-              background: 'var(--bg-canvas)',
-              color: 'var(--accent-blue)',
-              border: '1px solid var(--border)',
-              padding: '1rem',
-              borderRadius: 'var(--radius-sm)',
-              overflowX: 'auto',
-              fontSize: '0.78rem',
-              lineHeight: 1.45,
-            }}
-          >
-            {JSON.stringify(selectedAuditLog, null, 2)}
-          </pre>
-        )}
-      </Drawer>
+          </div>
+        </div>
+      )}
 
       {/* GLOBAL COMMAND PALETTE (SCRUM-79) */}
       <CommandPalette
@@ -1738,6 +1650,28 @@ export default function App() {
         onSelectCompany={(c) => startOperatingAsCompany(c)}
         onRegisterCompany={() => setShowCompanyModal(true)}
         onCreateUser={() => setShowUserModal(true)}
+        onOpenParameterStore={(comp) => {
+          if (comp?.id && comp.id !== SEED_COMPANY_ID) {
+            startOperatingAsCompany(comp);
+            setCompanySubTab('features');
+          } else {
+            if (operatingCompany) setOperatingCompany(null);
+            setActiveTab('parameters');
+            setSelectedParamCompany(masterSeedCompany);
+          }
+        }}
+      />
+
+      {/* GLOBAL COMPANY PARAMETER STORE DRAWER */}
+      <CompanyParameterDrawer
+        isOpen={!!selectedParamCompany}
+        company={selectedParamCompany}
+        onClose={() => setSelectedParamCompany(null)}
+        apiBase={API_BASE}
+        onParameterUpdated={() => {
+          fetchCompanies();
+          if (operatingCompany) refreshOperatingCompany();
+        }}
       />
 
       {/* SECURITY & 2FA SETTINGS MODAL (SCRUM-84) */}
@@ -1759,19 +1693,6 @@ export default function App() {
           fetchUsers();
           checkUntrackedTenants();
           fetchAuditLogs();
-        }}
-      />
-
-      {/* SLIDE-OVER PARAMETER STORE DRAWER */}
-      <CompanyParameterDrawer
-        isOpen={Boolean(selectedParamCompany)}
-        company={selectedParamCompany}
-        onClose={() => setSelectedParamCompany(null)}
-        apiBase={API_BASE}
-        onParameterUpdated={(key, value) => {
-          if (operatingCompany && selectedParamCompany?.id === operatingCompany.id) {
-            refreshOperatingCompany();
-          }
         }}
       />
     </div>

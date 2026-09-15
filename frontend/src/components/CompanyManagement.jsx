@@ -571,6 +571,9 @@ export default function CompanyManagement({
         company={selectedParamCompany}
         onClose={() => setSelectedParamCompany(null)}
         apiBase={apiBase}
+        onParameterUpdated={() => {
+          if (onRefresh) onRefresh();
+        }}
       />
 
       {/* CONFIRMATION DIALOG MODAL (SCRUM-78) */}

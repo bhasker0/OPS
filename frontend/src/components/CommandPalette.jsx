@@ -27,6 +27,7 @@ export default function CommandPalette({
   onSelectCompany,
   onRegisterCompany,
   onCreateUser,
+  onOpenParameterStore,
 }) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -133,6 +134,18 @@ export default function CommandPalette({
       },
     },
     {
+      id: 'nav-parameters',
+      category: 'Governance',
+      title: 'Master Seed Parameter Store & Rules',
+      subtitle: 'Configure global defaults, SAC 9988 rates, stitching tolerances & feature flags',
+      icon: <Sliders size={15} color="var(--primary)" />,
+      keywords: ['parameter', 'settings', 'feature flags', 'sac 9988', 'seed', 'rules', 'override', 'governance', 'stitching', 'karigar'],
+      action: () => {
+        if (onOpenParameterStore) onOpenParameterStore();
+        onClose();
+      },
+    },
+    {
       id: 'nav-audit',
       category: 'Navigation',
       title: 'Forensic Audit Trail Inspector',
@@ -205,7 +218,8 @@ export default function CommandPalette({
         return (
           item.title.toLowerCase().includes(q) ||
           (item.subtitle && item.subtitle.toLowerCase().includes(q)) ||
-          item.category.toLowerCase().includes(q)
+          item.category.toLowerCase().includes(q) ||
+          (item.keywords && item.keywords.some((k) => k.toLowerCase().includes(q)))
         );
       }).slice(0, 15);
 
