@@ -473,57 +473,57 @@ export default function CompanyParameterDrawer({
       statusBadge = (
         <span
           style={{
-            fontSize: '0.65rem',
+            fontSize: '0.62rem',
             fontWeight: 700,
-            padding: '0.1rem 0.45rem',
+            padding: '0.05rem 0.35rem',
             borderRadius: '4px',
             background: 'rgba(139, 92, 246, 0.12)',
             color: '#8b5cf6',
             border: '1px solid rgba(139, 92, 246, 0.25)',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.25rem'
+            gap: '0.2rem'
           }}
         >
-          <Sparkles size={9} /> Seed Master Rule
+          <Sparkles size={8} /> Seed Master
         </span>
       );
     } else if (isOverride) {
       statusBadge = (
         <span
           style={{
-            fontSize: '0.65rem',
+            fontSize: '0.62rem',
             fontWeight: 700,
-            padding: '0.1rem 0.45rem',
+            padding: '0.05rem 0.35rem',
             borderRadius: '4px',
             background: 'rgba(16, 185, 129, 0.12)',
             color: '#10b981',
             border: '1px solid rgba(16, 185, 129, 0.25)',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.25rem'
+            gap: '0.2rem'
           }}
         >
-          <CheckCircle2 size={9} /> Custom Tenant Override
+          <CheckCircle2 size={8} /> Custom Override
         </span>
       );
     } else {
       statusBadge = (
         <span
           style={{
-            fontSize: '0.65rem',
+            fontSize: '0.62rem',
             fontWeight: 600,
-            padding: '0.1rem 0.45rem',
+            padding: '0.05rem 0.35rem',
             borderRadius: '4px',
             background: 'var(--bg-canvas)',
             color: 'var(--text-muted)',
             border: '1px solid var(--border)',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.25rem'
+            gap: '0.2rem'
           }}
         >
-          <ArrowRight size={9} /> Inherited Default
+          <ArrowRight size={8} /> Inherited
         </span>
       );
     }
@@ -532,9 +532,9 @@ export default function CompanyParameterDrawer({
       <div
         key={p.key}
         style={{
-          padding: '0.75rem 0.95rem',
+          padding: '0.45rem 0.75rem',
           border: '1px solid var(--border)',
-          borderRadius: '6px',
+          borderRadius: '5px',
           background: isOverride ? 'rgba(16, 185, 129, 0.03)' : 'var(--bg-surface)',
           borderLeft: isOverride
             ? '3px solid #10b981'
@@ -543,18 +543,18 @@ export default function CompanyParameterDrawer({
             : '3px solid var(--border)',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: '0.75rem',
+          alignItems: 'center',
+          gap: '0.65rem',
           transition: 'all 0.15s ease'
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
             <span
               className="font-mono-tabular"
               style={{
                 fontWeight: 700,
-                fontSize: '0.8rem',
+                fontSize: '0.78rem',
                 color: 'var(--text-main)',
                 cursor: 'pointer'
               }}
@@ -566,42 +566,41 @@ export default function CompanyParameterDrawer({
             <button
               type="button"
               onClick={() => handleCopyKey(p.key)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}
               title="Copy key"
             >
-              <Copy size={11} />
+              <Copy size={10} />
             </button>
             {statusBadge}
             {isDirty && (
-              <span style={{ fontSize: '0.65rem', color: '#f59e0b', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.62rem', color: '#f59e0b', fontWeight: 700 }}>
                 ● Modified
               </span>
             )}
           </div>
 
-          <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: '0.2rem', lineHeight: 1.4 }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.1rem', lineHeight: 1.25 }}>
             {p.description || 'System configuration rule'}
+            {!isSeedCompany && isOverride && p.defaultValue !== undefined && (
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: '0.5rem', fontFamily: 'var(--font-mono)' }}>
+                (Seed Default: <code>{String(p.defaultValue)}</code>)
+              </span>
+            )}
           </div>
-
-          {!isSeedCompany && isOverride && p.defaultValue !== undefined && (
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.25rem', fontFamily: 'var(--font-mono)' }}>
-              Seed Default: <code>{String(p.defaultValue)}</code>
-            </div>
-          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
           {renderParameterInput(p)}
 
           {isOverride && (
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ padding: '0.25rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+              style={{ padding: '0.18rem 0.4rem', fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
               title="Remove override & revert back to Master Seed default"
               onClick={() => setConfirmResetKey(p.key)}
             >
-              <RotateCcw size={11} /> Revert
+              <RotateCcw size={10} /> Revert
             </button>
           )}
         </div>
@@ -625,129 +624,115 @@ export default function CompanyParameterDrawer({
         }}
       >
         {/* HEADER */}
-        <div style={{ padding: '1.1rem 1.35rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '0.75rem 1.15rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: isSeedCompany ? '#8b5cf6' : '#10b981', fontSize: '0.76rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              <Sliders size={14} /> Parameter Store &bull; {isSeedCompany ? 'Master Seed Default Hub (SEED000)' : 'Tenant Configuration & Inheritance'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: isSeedCompany ? '#8b5cf6' : '#10b981', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <Sliders size={13} /> Parameter Store &bull; {isSeedCompany ? 'Master Seed Default Hub' : 'Tenant Inheritance'}
             </div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.25rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-              {company.name} <span className="font-mono-tabular" style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>[{company.code}]</span>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.15rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {company.name} <span className="font-mono-tabular" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>[{company.code}]</span>
               {isSeedCompany && (
-                <span className="badge badge-pastel-purple" style={{ fontSize: '0.68rem', fontWeight: 700 }}>
+                <span className="badge badge-pastel-purple" style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem' }}>
                   000 Seed Master
                 </span>
               )}
             </h2>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.72rem', color: 'var(--text-muted)', background: 'var(--bg-canvas)', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <span>Rules: <strong className="font-mono-tabular" style={{ color: 'var(--text-main)' }}>{totalCount}</strong></span>
+              {!isSeedCompany && (
+                <span style={{ color: '#10b981', fontWeight: 700 }}>
+                  Overrides: <strong className="font-mono-tabular">{overrideCount}</strong>
+                </span>
+              )}
+              <span>Flags: <strong className="font-mono-tabular" style={{ color: 'var(--text-main)' }}>{flagCount}</strong></span>
+            </div>
+
             {isSeedCompany && (
               <button
                 className="btn btn-primary"
-                style={{ fontSize: '0.78rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                style={{ fontSize: '0.74rem', padding: '0.3rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                 onClick={() => setShowAddSeedModal(true)}
               >
-                <Plus size={14} /> Add Seed Rule
+                <Plus size={13} /> Add Seed Rule
               </button>
             )}
             <button
               onClick={onClose}
-              style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.4rem', cursor: 'pointer', color: 'var(--text-muted)' }}
+              style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.35rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               title="Close Drawer (Esc)"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
         </div>
 
-        {/* METRICS STRIP */}
-        <div style={{ padding: '0.65rem 1.35rem', background: 'var(--bg-surface-elevated)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.75rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            <span>Total Rules: <strong className="font-mono-tabular">{totalCount}</strong></span>
-            {!isSeedCompany && (
-              <span style={{ color: '#10b981', fontWeight: 700 }}>
-                Custom Overrides: <strong className="font-mono-tabular">{overrideCount}</strong>
-              </span>
-            )}
-            <span>Feature Flags: <strong className="font-mono-tabular">{flagCount}</strong></span>
-          </div>
-        </div>
+        {/* COMPACT CONTROLS BAR (SEARCH, FILTERS, CATEGORY CHIPS) */}
+        <div style={{ padding: '0.55rem 1.15rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {/* ROW 1: SEARCH & FILTER MODE PILLS */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={13} color="var(--text-muted)" style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder="Search parameter key, description or value..."
+                className="form-control"
+                style={{ paddingLeft: '2rem', fontSize: '0.75rem', height: '28px', width: '100%', borderRadius: '5px' }}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  style={{ position: 'absolute', right: '0.65rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.75rem' }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
 
-        {/* SEED NOTICE BANNER */}
-        {isSeedCompany && (
-          <div style={{ padding: '0.65rem 1.35rem', background: 'rgba(139, 92, 246, 0.08)', borderBottom: '1px solid rgba(139, 92, 246, 0.2)', fontSize: '0.76rem', color: '#6d28d9', display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-            <Sparkles size={15} color="#8b5cf6" />
-            <span>
-              <strong>Master Seed Inheritance Guard:</strong> Modifying rules here sets the <strong>system-wide fallback defaults</strong> across all tenant organizations.
-            </span>
-          </div>
-        )}
-
-        {/* SEARCH & FILTER & CATEGORY CHIPS BAR */}
-        <div style={{ padding: '0.85rem 1.35rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {/* SEARCH INPUT */}
-          <div style={{ position: 'relative' }}>
-            <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              placeholder="Filter by parameter key, description or value..."
-              className="form-control"
-              style={{ paddingLeft: '2.2rem', fontSize: '0.78rem', width: '100%', borderRadius: '6px' }}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.75rem' }}
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* FILTER PILLS */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, marginRight: '0.2rem' }}>Filter Mode:</span>
-            <button
-              type="button"
-              className={`btn ${filterMode === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: '12px' }}
-              onClick={() => setFilterMode('ALL')}
-            >
-              All Rules ({totalCount})
-            </button>
-            {!isSeedCompany && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
               <button
                 type="button"
-                className={`btn ${filterMode === 'OVERRIDES' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: '12px', background: filterMode === 'OVERRIDES' ? '#10b981' : undefined }}
-                onClick={() => setFilterMode('OVERRIDES')}
+                className={`btn ${filterMode === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '10px', height: '26px' }}
+                onClick={() => setFilterMode('ALL')}
               >
-                Overrides Only ({overrideCount})
+                All ({totalCount})
               </button>
-            )}
-            <button
-              type="button"
-              className={`btn ${filterMode === 'FLAGS' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: '12px' }}
-              onClick={() => setFilterMode('FLAGS')}
-            >
-              Feature Flags ({flagCount})
-            </button>
+              {!isSeedCompany && (
+                <button
+                  type="button"
+                  className={`btn ${filterMode === 'OVERRIDES' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '10px', height: '26px', background: filterMode === 'OVERRIDES' ? '#10b981' : undefined }}
+                  onClick={() => setFilterMode('OVERRIDES')}
+                >
+                  Overrides ({overrideCount})
+                </button>
+              )}
+              <button
+                type="button"
+                className={`btn ${filterMode === 'FLAGS' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '10px', height: '26px' }}
+                onClick={() => setFilterMode('FLAGS')}
+              >
+                Flags ({flagCount})
+              </button>
+            </div>
           </div>
 
-          {/* CATEGORY NAVIGATION CHIPS */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.2rem', scrollbarWidth: 'thin' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, marginRight: '0.2rem', flexShrink: 0 }}>Categories:</span>
+          {/* ROW 2: CATEGORY NAVIGATION CHIPS */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '0.1rem' }}>
             <button
               type="button"
               onClick={() => setSelectedCategory('ALL')}
               style={{
-                fontSize: '0.72rem',
+                fontSize: '0.7rem',
                 fontWeight: 700,
-                padding: '0.25rem 0.65rem',
-                borderRadius: '16px',
+                padding: '0.18rem 0.55rem',
+                borderRadius: '12px',
                 whiteSpace: 'nowrap',
                 background: selectedCategory === 'ALL' ? 'var(--accent-purple, #8b5cf6)' : 'var(--bg-canvas)',
                 color: selectedCategory === 'ALL' ? '#ffffff' : 'var(--text-muted)',
@@ -755,11 +740,11 @@ export default function CompanyParameterDrawer({
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.35rem',
+                gap: '0.3rem',
                 transition: 'all 0.15s ease'
               }}
             >
-              <Layers size={12} /> All Categories ({totalCount})
+              <Layers size={11} /> All ({totalCount})
             </button>
             {PARAMETER_CATEGORIES.map((cat) => {
               const catCount = parameters.filter((p) => cat.keys.includes(p.key)).length;
@@ -770,10 +755,10 @@ export default function CompanyParameterDrawer({
                   type="button"
                   onClick={() => setSelectedCategory(cat.id)}
                   style={{
-                    fontSize: '0.72rem',
+                    fontSize: '0.7rem',
                     fontWeight: 700,
-                    padding: '0.25rem 0.65rem',
-                    borderRadius: '16px',
+                    padding: '0.18rem 0.55rem',
+                    borderRadius: '12px',
                     whiteSpace: 'nowrap',
                     background: isSelected ? cat.color : 'var(--bg-canvas)',
                     color: isSelected ? '#ffffff' : 'var(--text-muted)',
@@ -781,7 +766,7 @@ export default function CompanyParameterDrawer({
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.35rem',
+                    gap: '0.3rem',
                     transition: 'all 0.15s ease'
                   }}
                 >
@@ -794,10 +779,10 @@ export default function CompanyParameterDrawer({
                 type="button"
                 onClick={() => setSelectedCategory('other_parameters')}
                 style={{
-                  fontSize: '0.72rem',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
-                  padding: '0.25rem 0.65rem',
-                  borderRadius: '16px',
+                  padding: '0.18rem 0.55rem',
+                  borderRadius: '12px',
                   whiteSpace: 'nowrap',
                   background: selectedCategory === 'other_parameters' ? '#6b7280' : 'var(--bg-canvas)',
                   color: selectedCategory === 'other_parameters' ? '#ffffff' : 'var(--text-muted)',
@@ -805,18 +790,18 @@ export default function CompanyParameterDrawer({
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.35rem',
+                  gap: '0.3rem',
                   transition: 'all 0.15s ease'
                 }}
               >
-                <FolderPlus size={12} /> Custom ({uncategorizedParams.length})
+                <FolderPlus size={11} /> Custom ({uncategorizedParams.length})
               </button>
             )}
           </div>
         </div>
 
-        {/* NON-COLLAPSIBLE CATEGORY PARAMETER LIST */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.35rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+        {/* HIGH-DENSITY PARAMETER LIST */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0.85rem 1.15rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
               <RefreshCw size={24} className="spin" style={{ marginBottom: '0.5rem' }} />
@@ -853,45 +838,44 @@ export default function CompanyParameterDrawer({
                 const catOverrideCount = catParams.filter((p) => !isSeedCompany && (p.isOverridden || (p.companyId && p.companyId !== '00000000-0000-0000-0000-000000000000' && !p.isInherited))).length;
 
                 return (
-                  <div key={cat.id} id={`category-section-${cat.id}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div key={cat.id} id={`category-section-${cat.id}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                     {/* CATEGORY SECTION HEADER & DIVIDER */}
-                    <div style={{ paddingBottom: '0.5rem', borderBottom: `2px solid ${cat.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ paddingBottom: '0.3rem', borderBottom: `2px solid ${cat.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div
                           style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '6px',
                             background: cat.bgColor,
                             color: cat.color,
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                            justifyContent: 'center'
                           }}
                         >
                           {cat.icon}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-main)', letterSpacing: '-0.01em' }}>{cat.title}</div>
-                          <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>{cat.description}</div>
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)', letterSpacing: '-0.01em' }}>{cat.title}</div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{cat.description}</div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         {!isSeedCompany && catOverrideCount > 0 && (
-                          <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '0.1rem 0.35rem', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
                             {catOverrideCount} Overrides
                           </span>
                         )}
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
                           {catParams.length} Rules
                         </span>
                       </div>
                     </div>
 
                     {/* PARAMETERS LIST */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       {catParams.map((p) => renderParameterRow(p))}
                     </div>
                   </div>
