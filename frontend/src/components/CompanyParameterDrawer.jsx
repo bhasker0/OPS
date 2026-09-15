@@ -145,15 +145,8 @@ export default function CompanyParameterDrawer({
   const [newDesc, setNewDesc] = useState('');
   const [creatingSeedParam, setCreatingSeedParam] = useState(false);
 
-  // Accordion Expand/Collapse State
-  const [openAccordions, setOpenAccordions] = useState({
-    textile_production: true,
-    karigar_accounting: true,
-    integration_governance: true,
-    security_geofence: true,
-    etms_features: true,
-    other_parameters: true
-  });
+  // Category Navigation Chip State
+  const [selectedCategory, setSelectedCategory] = useState('ALL'); // 'ALL' | category id
 
   const isSeedCompany = useMemo(() => {
     return (
@@ -191,20 +184,7 @@ export default function CompanyParameterDrawer({
     }
   };
 
-  const toggleAccordion = (catId) => {
-    setOpenAccordions((prev) => ({ ...prev, [catId]: !prev[catId] }));
-  };
 
-  const toggleAllAccordions = (openState) => {
-    setOpenAccordions({
-      textile_production: openState,
-      karigar_accounting: openState,
-      integration_governance: openState,
-      security_geofence: openState,
-      etms_features: openState,
-      other_parameters: openState
-    });
-  };
 
   const handleSaveParam = async (key, value) => {
     setSavingKey(key);
@@ -691,25 +671,6 @@ export default function CompanyParameterDrawer({
             )}
             <span>Feature Flags: <strong className="font-mono-tabular">{flagCount}</strong></span>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem' }}
-              onClick={() => toggleAllAccordions(true)}
-            >
-              Expand All
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem' }}
-              onClick={() => toggleAllAccordions(false)}
-            >
-              Collapse All
-            </button>
-          </div>
         </div>
 
         {/* SEED NOTICE BANNER */}
@@ -722,8 +683,9 @@ export default function CompanyParameterDrawer({
           </div>
         )}
 
-        {/* SEARCH & FILTER BAR */}
-        <div style={{ padding: '0.75rem 1.35rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+        {/* SEARCH & FILTER & CATEGORY CHIPS BAR */}
+        <div style={{ padding: '0.85rem 1.35rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {/* SEARCH INPUT */}
           <div style={{ position: 'relative' }}>
             <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
             <input
@@ -746,6 +708,7 @@ export default function CompanyParameterDrawer({
 
           {/* FILTER PILLS */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, marginRight: '0.2rem' }}>Filter Mode:</span>
             <button
               type="button"
               className={`btn ${filterMode === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
@@ -773,10 +736,87 @@ export default function CompanyParameterDrawer({
               Feature Flags ({flagCount})
             </button>
           </div>
+
+          {/* CATEGORY NAVIGATION CHIPS */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.2rem', scrollbarWidth: 'thin' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, marginRight: '0.2rem', flexShrink: 0 }}>Categories:</span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('ALL')}
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                padding: '0.25rem 0.65rem',
+                borderRadius: '16px',
+                whiteSpace: 'nowrap',
+                background: selectedCategory === 'ALL' ? 'var(--accent-purple, #8b5cf6)' : 'var(--bg-canvas)',
+                color: selectedCategory === 'ALL' ? '#ffffff' : 'var(--text-muted)',
+                border: selectedCategory === 'ALL' ? 'none' : '1px solid var(--border)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Layers size={12} /> All Categories ({totalCount})
+            </button>
+            {PARAMETER_CATEGORIES.map((cat) => {
+              const catCount = parameters.filter((p) => cat.keys.includes(p.key)).length;
+              const isSelected = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: '16px',
+                    whiteSpace: 'nowrap',
+                    background: isSelected ? cat.color : 'var(--bg-canvas)',
+                    color: isSelected ? '#ffffff' : 'var(--text-muted)',
+                    border: isSelected ? 'none' : '1px solid var(--border)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {cat.icon} {cat.title.split(' ')[0]} ({catCount})
+                </button>
+              );
+            })}
+            {uncategorizedParams.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('other_parameters')}
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '16px',
+                  whiteSpace: 'nowrap',
+                  background: selectedCategory === 'other_parameters' ? '#6b7280' : 'var(--bg-canvas)',
+                  color: selectedCategory === 'other_parameters' ? '#ffffff' : 'var(--text-muted)',
+                  border: selectedCategory === 'other_parameters' ? 'none' : '1px solid var(--border)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <FolderPlus size={12} /> Custom ({uncategorizedParams.length})
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* ACCORDION CATEGORY LIST */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.35rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        {/* NON-COLLAPSIBLE CATEGORY PARAMETER LIST */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.35rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
               <RefreshCw size={24} className="spin" style={{ marginBottom: '0.5rem' }} />
@@ -785,6 +825,8 @@ export default function CompanyParameterDrawer({
           ) : (
             <>
               {PARAMETER_CATEGORIES.map((cat) => {
+                if (selectedCategory !== 'ALL' && selectedCategory !== cat.id) return null;
+
                 const catParams = parameters.filter((p) => {
                   const matchesCat = cat.keys.includes(p.key);
                   if (!matchesCat) return false;
@@ -808,82 +850,56 @@ export default function CompanyParameterDrawer({
                 });
 
                 if ((search || filterMode !== 'ALL') && catParams.length === 0) return null;
-
-                const isAccordionOpen = (search || filterMode !== 'ALL') ? true : openAccordions[cat.id];
                 const catOverrideCount = catParams.filter((p) => !isSeedCompany && (p.isOverridden || (p.companyId && p.companyId !== '00000000-0000-0000-0000-000000000000' && !p.isInherited))).length;
 
                 return (
-                  <div
-                    key={cat.id}
-                    style={{
-                      border: '1px solid var(--border)',
-                      borderRadius: '8px',
-                      background: 'var(--bg-surface)',
-                      overflow: 'hidden',
-                      boxShadow: 'var(--shadow-card)'
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleAccordion(cat.id)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        padding: '0.85rem 1.1rem',
-                        background: 'var(--bg-surface-elevated)',
-                        border: 'none',
-                        borderBottom: isAccordionOpen ? '1px solid var(--border)' : 'none',
-                        textAlign: 'left',
-                        cursor: 'pointer'
-                      }}
-                    >
+                  <div key={cat.id} id={`category-section-${cat.id}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    {/* CATEGORY SECTION HEADER & DIVIDER */}
+                    <div style={{ paddingBottom: '0.5rem', borderBottom: `2px solid ${cat.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                         <div
                           style={{
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '6px',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
                             background: cat.bgColor,
                             color: cat.color,
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                           }}
                         >
                           {cat.icon}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>{cat.title}</div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{cat.description}</div>
+                          <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-main)', letterSpacing: '-0.01em' }}>{cat.title}</div>
+                          <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>{cat.description}</div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                         {!isSeedCompany && catOverrideCount > 0 && (
-                          <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
                             {catOverrideCount} Overrides
                           </span>
                         )}
-                        <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'var(--bg-canvas)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
                           {catParams.length} Rules
                         </span>
-                        {isAccordionOpen ? <ChevronDown size={15} color="var(--text-muted)" /> : <ChevronRight size={15} color="var(--text-muted)" />}
                       </div>
-                    </button>
+                    </div>
 
-                    {isAccordionOpen && (
-                      <div style={{ padding: '0.85rem 1.1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                        {catParams.map((p) => renderParameterRow(p))}
-                      </div>
-                    )}
+                    {/* PARAMETERS LIST */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      {catParams.map((p) => renderParameterRow(p))}
+                    </div>
                   </div>
                 );
               })}
 
-              {/* DYNAMIC FALLBACK FOR UNCATEGORIZED KEYS */}
-              {uncategorizedParams.length > 0 && (() => {
+              {/* DYNAMIC UNCATEGORIZED CATEGORY */}
+              {uncategorizedParams.length > 0 && (selectedCategory === 'ALL' || selectedCategory === 'other_parameters') && (() => {
                 const filteredUncat = uncategorizedParams.filter((p) => {
                   if (filterMode === 'OVERRIDES' && !isSeedCompany) {
                     const isOverride = p.isOverridden || (p.companyId && p.companyId !== '00000000-0000-0000-0000-000000000000' && !p.isInherited);
@@ -902,57 +918,27 @@ export default function CompanyParameterDrawer({
                 });
 
                 if ((search || filterMode !== 'ALL') && filteredUncat.length === 0) return null;
-                const isAccordionOpen = (search || filterMode !== 'ALL') ? true : openAccordions.other_parameters;
 
                 return (
-                  <div
-                    key="other_parameters"
-                    style={{
-                      border: '1px solid var(--border)',
-                      borderRadius: '8px',
-                      background: 'var(--bg-surface)',
-                      overflow: 'hidden',
-                      boxShadow: 'var(--shadow-card)'
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleAccordion('other_parameters')}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        padding: '0.85rem 1.1rem',
-                        background: 'var(--bg-surface-elevated)',
-                        border: 'none',
-                        borderBottom: isAccordionOpen ? '1px solid var(--border)' : 'none',
-                        textAlign: 'left',
-                        cursor: 'pointer'
-                      }}
-                    >
+                  <div key="other_parameters" id="category-section-other_parameters" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    <div style={{ paddingBottom: '0.5rem', borderBottom: '2px solid #8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.08)', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <FolderPlus size={15} />
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FolderPlus size={16} />
                         </div>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>Other Parameters & Custom Keys</div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Dynamically configured seed parameters and custom rules</div>
+                          <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-main)' }}>Other Parameters & Custom Keys</div>
+                          <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>Dynamically configured seed parameters and custom rules</div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'var(--bg-canvas)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-                          {filteredUncat.length} Keys
-                        </span>
-                        {isAccordionOpen ? <ChevronDown size={15} color="var(--text-muted)" /> : <ChevronRight size={15} color="var(--text-muted)" />}
-                      </div>
-                    </button>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                        {filteredUncat.length} Keys
+                      </span>
+                    </div>
 
-                    {isAccordionOpen && (
-                      <div style={{ padding: '0.85rem 1.1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                        {filteredUncat.map((p) => renderParameterRow(p))}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      {filteredUncat.map((p) => renderParameterRow(p))}
+                    </div>
                   </div>
                 );
               })()}
