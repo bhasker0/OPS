@@ -10,7 +10,7 @@ async function runPrismaSchemaQA() {
 
   // Test 1: Validate Prisma Schema Syntax
   try {
-    const validateOut = execSync('npx prisma validate', { cwd: __dirname, encoding: 'utf8' });
+    const validateOut = execSync('node node_modules/prisma/build/index.js validate', { cwd: __dirname, encoding: 'utf8' });
     if (validateOut.includes('is valid') || validateOut.includes('valid')) {
       console.log('  ? PASSED [Test 1]: npx prisma validate reported 0 syntax or relational schema errors');
       passed++;

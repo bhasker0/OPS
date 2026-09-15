@@ -24,6 +24,17 @@ async function importSnapshot() {
   console.log(`💻 Source Machine Hostname: ${snapshot.metadata?.hostname || 'Unknown'}\n`);
 
   try {
+    // 0. Wipe existing tables to ensure clean restore of snapshot IDs & unique codes
+    console.log('🧹 Clearing pre-existing data for clean snapshot restore...');
+    await prisma.subscriptionInvoice.deleteMany({});
+    await prisma.transaction.deleteMany({});
+    await prisma.parameter.deleteMany({});
+    await prisma.user.deleteMany({});
+    await prisma.role.deleteMany({});
+    await prisma.company.deleteMany({});
+    await prisma.subscriptionPlan.deleteMany({});
+    console.log('  ✓ Existing data cleared.\n');
+
     // 1. Restore Subscription Plans
     if (snapshot.postgres.subscriptionPlans?.length) {
       console.log(`🔹 Importing ${snapshot.postgres.subscriptionPlans.length} Subscription Plans...`);

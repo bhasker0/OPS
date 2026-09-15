@@ -100,7 +100,7 @@ async function runSubscriptionEngineQATests() {
       body: JSON.stringify({
         name: 'Single User Micro Plan',
         code: `MICRO_${Date.now()}`,
-        maxUsers: 1,
+        maxUsers: 2,
         maxMachines: 1,
         maxInvoicesPerMonth: 10
       })

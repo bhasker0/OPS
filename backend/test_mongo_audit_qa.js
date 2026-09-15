@@ -62,6 +62,9 @@ async function runMongoAuditQA() {
       details: { tier: 'ENTERPRISE', plan: 'ANNUAL' }
     });
 
+    // Wait 50ms for setImmediate async mongo write
+    await new Promise(r => setTimeout(r, 50));
+
     const logs = await getAuditLogs({
       companyId: testCompanyId,
       module: 'COMPANY',
