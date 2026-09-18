@@ -20,21 +20,21 @@ function runFinancialFormatterQA() {
   // Test 1: Acceptance Criteria: 154200.5 formatted as en-IN INR
   const acInput = 154200.5;
   const acFormatted = formatIndianCurrency(acInput);
-  if (acFormatted === '?1,54,200.50') {
+  if (acFormatted === '₹1,54,200.50') {
     console.log(`  ? PASSED [Test 1]: Given 154200.5, formatIndianCurrency produced exact AC output "${acFormatted}"`);
     passed++;
   } else {
-    console.error(`  ? FAILED [Test 1]: Expected "?1,54,200.50", got "${acFormatted}"`);
+    console.error(`  ? FAILED [Test 1]: Expected "₹1,54,200.50", got "${acFormatted}"`);
   }
 
   // Test 2: Large Values in Indian Crores & Lakhs
   const croreVal = 105000000;
   const croreFormatted = formatIndianCurrency(croreVal);
-  if (croreFormatted === '?10,50,00,000.00') {
+  if (croreFormatted === '₹10,50,00,000.00') {
     console.log(`  ? PASSED [Test 2]: Large Crores value 10,50,00,000 formatted correctly: "${croreFormatted}"`);
     passed++;
   } else {
-    console.error(`  ? FAILED [Test 2]: Expected "?10,50,00,000.00", got "${croreFormatted}"`);
+    console.error(`  ? FAILED [Test 2]: Expected "₹10,50,00,000.00", got "${croreFormatted}"`);
   }
 
   // Test 3: Negative Amounts and Zero Values
@@ -42,7 +42,7 @@ function runFinancialFormatterQA() {
   const zeroVal = 0;
   const negFormatted = formatIndianCurrency(negVal);
   const zeroFormatted = formatIndianCurrency(zeroVal);
-  if (negFormatted === '-?1,500.25' && zeroFormatted === '?0.00') {
+  if (negFormatted === '-₹1,500.25' && zeroFormatted === '₹0.00') {
     console.log(`  ? PASSED [Test 3]: Negative ("${negFormatted}") and zero ("${zeroFormatted}") formatted accurately`);
     passed++;
   } else {
@@ -108,10 +108,10 @@ function runFinancialFormatterQA() {
   }
 
   // Test 9: Indian Number String Parser
-  const parsed1 = parseIndianNumber('?1,54,200.50');
+  const parsed1 = parseIndianNumber('₹1,54,200.50');
   const parsed2 = parseIndianNumber('10,50,00,000');
   if (parsed1 === 154200.5 && parsed2 === 105000000) {
-    console.log(`  ? PASSED [Test 9]: parseIndianNumber parsed "?1,54,200.50" to ${parsed1} and "10,50,00,000" to ${parsed2}`);
+    console.log(`  ? PASSED [Test 9]: parseIndianNumber parsed "₹1,54,200.50" to ${parsed1} and "10,50,00,000" to ${parsed2}`);
     passed++;
   } else {
     console.error(`  ? FAILED [Test 9]: parseIndianNumber failed`, { parsed1, parsed2 });

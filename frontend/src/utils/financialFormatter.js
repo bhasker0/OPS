@@ -66,6 +66,18 @@ export function applyRoundOff(amount, roundOffFormat = 'TWO_DECIMALS', digitsAft
   }
 }
 
+const formatterCache = new Map();
+
+function getFormatter(digits) {
+  if (!formatterCache.has(digits)) {
+    formatterCache.set(digits, new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }));
+  }
+  return formatterCache.get(digits);
+}
+
 export function formatIndianCurrency(amount, digits = 2, options = {}) {
   const { symbol = '\u20B9', includeSymbol = true, fallback = '\u20B90.00' } = options;
 
@@ -79,10 +91,7 @@ export function formatIndianCurrency(amount, digits = 2, options = {}) {
 
   const rounded = applyRoundOff(absNum, 'TWO_DECIMALS', digits);
 
-  const formatted = new Intl.NumberFormat('en-IN', {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  }).format(rounded);
+  const formatted = getFormatter(digits).format(rounded);
 
   const prefix = isNegative ? '-' : '';
   const sym = includeSymbol ? (symbol ? symbol : '') : '';

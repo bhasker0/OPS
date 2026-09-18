@@ -78,6 +78,18 @@ function applyRoundOff(amount, roundOffFormat = 'TWO_DECIMALS', digitsAfterDecim
  * Format numeric value in Indian Currency (en-IN)
  * e.g. 154200.5 => "?1,54,200.50"
  */
+const formatterCache = new Map();
+
+function getFormatter(digits) {
+  if (!formatterCache.has(digits)) {
+    formatterCache.set(digits, new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }));
+  }
+  return formatterCache.get(digits);
+}
+
 function formatIndianCurrency(amount, digits = 2, options = {}) {
   const { symbol = '\u20B9', includeSymbol = true, fallback = '\u20B90.00' } = options;
 
@@ -91,10 +103,7 @@ function formatIndianCurrency(amount, digits = 2, options = {}) {
 
   const rounded = applyRoundOff(absNum, 'TWO_DECIMALS', digits);
 
-  const formatted = new Intl.NumberFormat('en-IN', {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  }).format(rounded);
+  const formatted = getFormatter(digits).format(rounded);
 
   const prefix = isNegative ? '-' : '';
   const sym = includeSymbol ? (symbol ? symbol : '') : '';
@@ -124,7 +133,7 @@ function parseIndianNumber(str) {
   if (typeof str === 'number') return str;
   if (!str) return 0;
   const clean = String(str)
-    .replace(/[\u20B9₹\s,]/g, '')
+    .replace(/[\u20B9₹?\s,]/g, '')
     .trim();
   const parsed = parseFloat(clean);
   return isNaN(parsed) ? 0 : parsed;
