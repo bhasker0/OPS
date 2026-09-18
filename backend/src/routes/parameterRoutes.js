@@ -379,6 +379,20 @@ const DEFAULT_ETMS_FEATURE_FLAGS = {
   feature_command_palette: { default: 'true', desc: 'Enable/Disable Global Command Palette (Ctrl+K) & Voice Navigation in ETMS' },
   feature_audit_log_viewer: { default: 'true', desc: 'Enable/Disable In-App Tenant Audit Log Viewer in ETMS' },
   feature_speech_data_entry: { default: 'true', desc: 'Enable/Disable Speech-to-Form Automated Data Entry in ETMS' },
+  feature_shift_production: { default: 'true', desc: 'Enable/Disable Daily Shift Logs & Production Counters in ETMS' },
+  feature_machines: { default: 'true', desc: 'Enable/Disable Machine Master & RPM Monitoring in ETMS' },
+  feature_karigars: { default: 'true', desc: 'Enable/Disable Karigar Master, Piece-rates & Operator Directory in ETMS' },
+  feature_inward_challans: { default: 'true', desc: 'Enable/Disable Raw Fabric Inward Challans & Lots in ETMS' },
+  feature_parties: { default: 'true', desc: 'Enable/Disable Parties & Traders Directory in ETMS' },
+  feature_outward_invoices: { default: 'true', desc: 'Enable/Disable SAC 9988 Tax Invoices & Job Work Billing in ETMS' },
+  feature_purchases: { default: 'true', desc: 'Enable/Disable Store & Raw Material Purchases in ETMS' },
+  feature_expenses: { default: 'true', desc: 'Enable/Disable Factory Expenses & Vouchers in ETMS' },
+  feature_reports: { default: 'true', desc: 'Enable/Disable Analytics & Financial Reports in ETMS' },
+  feature_uchapat_advance: { default: 'true', desc: 'Enable/Disable Karigar Uchapat Advances & Loans in ETMS' },
+  feature_wage_hisab: { default: 'true', desc: 'Enable/Disable Karigar Wage Calculations & Payout Slips in ETMS' },
+  feature_tally_export: { default: 'true', desc: 'Enable/Disable Tally XML Export & Sync in ETMS' },
+  feature_munim_portal: { default: 'true', desc: 'Enable/Disable External CA/Munim Portal & Export in ETMS' },
+  feature_whatsapp_dispatch: { default: 'true', desc: 'Enable/Disable Automated WhatsApp Delivery in ETMS' },
 };
 
 // GET /api/companies/:companyId/feature-flags - Resolve all active feature flags for a company

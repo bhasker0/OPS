@@ -16,6 +16,9 @@ function resolveEndpoint(endpoint) {
   if (ep === 'company_subscription_updated' || ep === 'subscription_updated' || ep === 'subscription-status') {
     return 'subscription-status';
   }
+  if (ep === 'feature_flags' || ep === 'feature-flags' || ep === 'featureflags') {
+    return 'feature-flags';
+  }
   return ep;
 }
 
