@@ -192,7 +192,9 @@ async function main() {
     });
   }
 
-  // OPS Super Admin Role (Idempotent upsert)
+  // ---------------------------------------------------------
+  // Master Seed RBAC Roles on SEED_COMPANY_ID (000 UUID)
+  // ---------------------------------------------------------
   const opsRole = await prisma.role.upsert({
     where: { companyId_name: { companyId: SEED_COMPANY_ID, name: 'OPS Super Admin' } },
     update: { isSystemDefined: true, permissions: JSON.stringify(['*']) },
@@ -201,6 +203,84 @@ async function main() {
       companyId: SEED_COMPANY_ID,
       isSystemDefined: true,
       permissions: JSON.stringify(['*']),
+    },
+  });
+
+  const masterCompanyAdminRole = await prisma.role.upsert({
+    where: { companyId_name: { companyId: SEED_COMPANY_ID, name: 'Company Admin' } },
+    update: {
+      isSystemDefined: true,
+      permissions: JSON.stringify([
+        'READ_COMPANIES',
+        'WRITE_COMPANIES',
+        'READ_USERS',
+        'WRITE_USERS',
+        'READ_TRANSACTIONS',
+        'WRITE_TRANSACTIONS',
+        'READ_PARAMETERS',
+        'WRITE_PARAMETERS',
+        'READ_AUDIT_LOGS',
+        'READ_ROLES',
+      ]),
+    },
+    create: {
+      name: 'Company Admin',
+      companyId: SEED_COMPANY_ID,
+      isSystemDefined: true,
+      permissions: JSON.stringify([
+        'READ_COMPANIES',
+        'WRITE_COMPANIES',
+        'READ_USERS',
+        'WRITE_USERS',
+        'READ_TRANSACTIONS',
+        'WRITE_TRANSACTIONS',
+        'READ_PARAMETERS',
+        'WRITE_PARAMETERS',
+        'READ_AUDIT_LOGS',
+        'READ_ROLES',
+      ]),
+    },
+  });
+
+  const masterMunimRole = await prisma.role.upsert({
+    where: { companyId_name: { companyId: SEED_COMPANY_ID, name: 'Munim' } },
+    update: {
+      isSystemDefined: true,
+      permissions: JSON.stringify(['READ_TRANSACTIONS', 'WRITE_TRANSACTIONS', 'RECONCILE_PAYMENTS', 'TALLY_EXPORT', 'READ_PARAMETERS']),
+    },
+    create: {
+      name: 'Munim',
+      companyId: SEED_COMPANY_ID,
+      isSystemDefined: true,
+      permissions: JSON.stringify(['READ_TRANSACTIONS', 'WRITE_TRANSACTIONS', 'RECONCILE_PAYMENTS', 'TALLY_EXPORT', 'READ_PARAMETERS']),
+    },
+  });
+
+  const masterSupervisorRole = await prisma.role.upsert({
+    where: { companyId_name: { companyId: SEED_COMPANY_ID, name: 'Floor Supervisor' } },
+    update: {
+      isSystemDefined: true,
+      permissions: JSON.stringify(['READ_FLOOR', 'LOG_SHIFTS', 'PRINT_SLIPS']),
+    },
+    create: {
+      name: 'Floor Supervisor',
+      companyId: SEED_COMPANY_ID,
+      isSystemDefined: true,
+      permissions: JSON.stringify(['READ_FLOOR', 'LOG_SHIFTS', 'PRINT_SLIPS']),
+    },
+  });
+
+  const masterKarigarRole = await prisma.role.upsert({
+    where: { companyId_name: { companyId: SEED_COMPANY_ID, name: 'Karigar Operator' } },
+    update: {
+      isSystemDefined: true,
+      permissions: JSON.stringify(['LOG_SHIFTS']),
+    },
+    create: {
+      name: 'Karigar Operator',
+      companyId: SEED_COMPANY_ID,
+      isSystemDefined: true,
+      permissions: JSON.stringify(['LOG_SHIFTS']),
     },
   });
 
@@ -356,43 +436,25 @@ async function main() {
       },
     });
 
-    // 2. Upsert System-Defined Admin Role
-    const adminRole = await prisma.role.upsert({
-      where: { companyId_name: { companyId: company.id, name: 'Company Admin' } },
-      update: { isSystemDefined: true, permissions: JSON.stringify(['READ_ALL', 'WRITE_ALL', 'ADMIN_ACCESS']) },
-      create: {
-        name: 'Company Admin',
-        companyId: company.id,
-        isSystemDefined: true,
-        permissions: JSON.stringify(['READ_ALL', 'WRITE_ALL', 'ADMIN_ACCESS']),
-      },
-    });
+    // 2. Custom Role Example for Tenant (RADHEEMB only)
+    let customInspectorRole = null;
+    if (compData.code === 'RADHEEMB') {
+      customInspectorRole = await prisma.role.upsert({
+        where: { companyId_name: { companyId: company.id, name: 'Embroidery Quality Inspector' } },
+        update: {
+          isSystemDefined: false,
+          permissions: JSON.stringify(['READ_FLOOR', 'PRINT_SLIPS']),
+        },
+        create: {
+          name: 'Embroidery Quality Inspector',
+          companyId: company.id,
+          isSystemDefined: false,
+          permissions: JSON.stringify(['READ_FLOOR', 'PRINT_SLIPS']),
+        },
+      });
+    }
 
-    // 3. Upsert Munim Role
-    const munimRole = await prisma.role.upsert({
-      where: { companyId_name: { companyId: company.id, name: 'Munim' } },
-      update: { isSystemDefined: false, permissions: JSON.stringify(['READ_INVOICES', 'WRITE_INVOICES', 'TALLY_EXPORT', 'RECONCILE_PAYMENTS']) },
-      create: {
-        name: 'Munim',
-        companyId: company.id,
-        isSystemDefined: false,
-        permissions: JSON.stringify(['READ_INVOICES', 'WRITE_INVOICES', 'TALLY_EXPORT', 'RECONCILE_PAYMENTS']),
-      },
-    });
-
-    // 4. Upsert Floor Supervisor Role
-    const supervisorRole = await prisma.role.upsert({
-      where: { companyId_name: { companyId: company.id, name: 'Floor Supervisor' } },
-      update: { isSystemDefined: false, permissions: JSON.stringify(['READ_FLOOR', 'LOG_SHIFTS', 'KARIGAR_TELEMETRY', 'PRINT_SLIPS']) },
-      create: {
-        name: 'Floor Supervisor',
-        companyId: company.id,
-        isSystemDefined: false,
-        permissions: JSON.stringify(['READ_FLOOR', 'LOG_SHIFTS', 'KARIGAR_TELEMETRY', 'PRINT_SLIPS']),
-      },
-    });
-
-    // 5. Clone & Upsert Operational Parameters
+    // 3. Clone & Upsert Operational Parameters
     for (const p of defaultParameters) {
       let customValue = p.value;
       if (p.key === 'default_rate_per_1000') customValue = compData.rate;
@@ -405,11 +467,12 @@ async function main() {
       });
     }
 
-    // 6. Upsert Users
+    // 4. Upsert Users linked to Master Seed Roles
     for (const u of compData.users) {
-      let assignedRole = adminRole;
-      if (u.role === 'Munim') assignedRole = munimRole;
-      if (u.role === 'Floor Supervisor') assignedRole = supervisorRole;
+      let assignedRole = masterCompanyAdminRole;
+      if (u.role === 'Munim') assignedRole = masterMunimRole;
+      if (u.role === 'Floor Supervisor') assignedRole = masterSupervisorRole;
+      if (u.role === 'Quality Inspector' && customInspectorRole) assignedRole = customInspectorRole;
 
       await prisma.user.upsert({
         where: { email: u.email },

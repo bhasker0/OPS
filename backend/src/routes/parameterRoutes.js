@@ -6,6 +6,22 @@ const { dispatchOpsSync } = require('../services/opsSyncClient');
 const router = express.Router();
 const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
 
+// Real-time SSE Clients connection pool
+const sseClients = new Set();
+
+function broadcastParameterChange(companyId, eventData) {
+  const payload = `data: ${JSON.stringify({ company_id: companyId, ...eventData, timestamp: new Date().toISOString() })}\n\n`;
+  for (const client of sseClients) {
+    if (!client.companyId || client.companyId === 'all' || client.companyId === companyId) {
+      try {
+        client.res.write(payload);
+      } catch (_err) {
+        sseClients.delete(client);
+      }
+    }
+  }
+}
+
 // Infer and format parameter value type
 function inferValueType(val) {
   if (typeof val === 'boolean' || val === 'true' || val === 'false') return 'BOOLEAN';
@@ -22,14 +38,36 @@ function inferValueType(val) {
   return 'STRING';
 }
 
+
 function stringifyValue(val) {
   if (typeof val === 'object' && val !== null) return JSON.stringify(val);
   return String(val);
 }
 
 // ---------------------------------------------------------
+// Real-time SSE Stream Endpoint (MUST BE BEFORE :companyId)
+// ---------------------------------------------------------
+router.get('/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.flushHeaders?.();
+
+  const client = { res, companyId: req.query.companyId || 'all' };
+  sseClients.add(client);
+
+  res.write(`data: ${JSON.stringify({ type: 'CONNECTED', timestamp: new Date().toISOString() })}\n\n`);
+
+  req.on('close', () => {
+    sseClients.delete(client);
+  });
+});
+
+// ---------------------------------------------------------
 // Global Seed Parameter Routes (MUST BE BEFORE :companyId)
 // ---------------------------------------------------------
+
 
 // GET /api/seed/parameters or /api/companies/seed/parameters
 router.get('/seed/parameters', async (req, res) => {
@@ -294,7 +332,7 @@ router.put('/:companyId/parameters/:key', async (req, res) => {
       diff,
     });
 
-    // ?? SYNC TO ETMS
+    // 🚀 SYNC TO ETMS
     dispatchOpsSync('parameters', {
       company_id: companyId,
       settings: { [cleanKey]: strVal },
@@ -309,6 +347,15 @@ router.put('/:companyId/parameters/:key', async (req, res) => {
         enabled: boolVal,
       }).catch((err) => console.error('Sync feature flag failed:', err));
     }
+
+    // 📡 Direct SSE Broadcast
+    broadcastParameterChange(companyId, {
+      type: 'PARAMETER_UPDATED',
+      key: cleanKey,
+      value: strVal,
+      enabled: strVal === 'true' || strVal === '1' || strVal === true,
+    });
+
 
     res.json({
       success: true,
@@ -364,11 +411,20 @@ router.delete('/:companyId/parameters/:key', async (req, res) => {
       details: { key: cleanKey, deletedOverrideValue: existing.value, revertedToSeedDefault: seedDefault ? seedDefault.value : null },
     });
 
-    // ?? SYNC REVERSION TO ETMS
+    // 🚀 SYNC REVERSION TO ETMS
     if (seedDefault) {
       dispatchOpsSync('parameters', { company_id: companyId, settings: { [cleanKey]: seedDefault.value } })
         .catch((err) => console.error('Sync failed:', err));
     }
+
+    // 📡 Direct SSE Broadcast
+    broadcastParameterChange(companyId, {
+      type: 'PARAMETER_UPDATED',
+      key: cleanKey,
+      value: seedDefault ? seedDefault.value : null,
+      enabled: seedDefault?.value === 'true' || seedDefault?.value === '1',
+    });
+
 
     res.json({
       success: true,
@@ -529,6 +585,15 @@ router.post('/:companyId/feature-flags/:flagKey/toggle', async (req, res) => {
       settings: { [cleanKey]: targetValue },
       parameters: { [cleanKey]: targetValue },
     }).catch((err) => console.error('Sync parameters failed:', err));
+
+    // 📡 Direct SSE Broadcast
+    broadcastParameterChange(companyId, {
+      type: 'FEATURE_FLAG_UPDATED',
+      key: cleanKey,
+      enabled: targetValue === 'true',
+      value: targetValue,
+    });
+
 
     res.json({
       success: true,

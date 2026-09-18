@@ -24,6 +24,8 @@ import TableDensityControl from './TableDensityControl';
 import { useToast } from '../context/ToastContext';
 import { API_BASE } from '../config/api';
 
+const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
+
 export default function UserManagement({
   users = [],
   companies = [],
@@ -39,6 +41,21 @@ export default function UserManagement({
   const [selectedCompanyId, setSelectedCompanyId] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [tableDensity, setTableDensity] = useState(() => localStorage.getItem('ops_user_density') || 'compact');
+
+  // Filter available roles: Seed roles (for all tenants) + Custom roles (strictly for active company)
+  // OPS Super Admin role is internal to OPS only: it should not be available for tenant users.
+  const getAvailableRolesForCompany = (targetCompanyId, isInternalOps = false) => {
+    return roles.filter((r) => {
+      const isOpsSuperAdmin = r.name?.toLowerCase().includes('super admin') || r.isInternalOpsOnly || (r.permissions && r.permissions.includes('*'));
+      if (isOpsSuperAdmin) {
+        return isInternalOps || !targetCompanyId;
+      }
+      const isSeed = r.isSeedRole || r.isSystemDefined || r.companyId === SEED_COMPANY_ID;
+      if (isSeed) return true;
+      if (targetCompanyId && r.companyId === targetCompanyId) return true;
+      return false;
+    });
+  };
 
   const handleDensityChange = (d) => {
     setTableDensity(d);
@@ -793,8 +810,10 @@ export default function UserManagement({
                     onChange={(e) => setNewUser({ ...newUser, roleId: e.target.value })}
                   >
                     <option value="">-- Default System Access --</option>
-                    {roles.map((r) => (
-                      <option key={r.id} value={r.id}>{r.name} {r.isSystemDefined ? '(System)' : ''}</option>
+                    {getAvailableRolesForCompany(newUser.companyId, newUser.isInternalOps).map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name} {r.isSeedRole || r.isSystemDefined ? '(Seed Default)' : '(Custom Tenant Role)'}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -887,8 +906,10 @@ export default function UserManagement({
                     onChange={(e) => setEditUser({ ...editUser, roleId: e.target.value })}
                   >
                     <option value="">-- Default System Access --</option>
-                    {roles.map((r) => (
-                      <option key={r.id} value={r.id}>{r.name} {r.isSystemDefined ? '(System)' : ''}</option>
+                    {getAvailableRolesForCompany(editUser.companyId || selectedUser?.companyId, editUser.isInternalOps).map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name} {r.isSeedRole || r.isSystemDefined ? '(Seed Default)' : '(Custom Tenant Role)'}
+                      </option>
                     ))}
                   </select>
                 </div>

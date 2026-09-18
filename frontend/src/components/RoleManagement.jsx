@@ -102,11 +102,13 @@ export default function RoleManagement({
     );
   });
 
+  const tenantCompaniesList = companies.filter((c) => !c.isSeed && c.code !== '000');
+
   const handleOpenCreate = () => {
     setEditingRole(null);
     setRoleForm({
       name: '',
-      companyId: selectedCompanyId !== 'ALL' ? selectedCompanyId : (companies[0]?.id || ''),
+      companyId: selectedCompanyId !== 'ALL' ? selectedCompanyId : (tenantCompaniesList[0]?.id || ''),
       permissions: ['READ_COMPANIES', 'READ_USERS', 'READ_TRANSACTIONS', 'READ_AUDIT_LOGS']
     });
     setShowRoleModal(true);
@@ -248,10 +250,21 @@ export default function RoleManagement({
         }}
       >
         <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>RBAC Telemetry:</span>
-        <span style={{ color: 'var(--text-main)' }}>Total Roles: <strong className="font-mono-tabular">{roles.length}</strong></span>
-        <span style={{ color: 'var(--accent-yellow)' }}>System Locked: <strong className="font-mono-tabular">{roles.filter(r => r.isSystemDefined).length}</strong></span>
-        <span style={{ color: 'var(--accent-green)' }}>Custom Tenant: <strong className="font-mono-tabular">{roles.filter(r => !r.isSystemDefined).length}</strong></span>
-        <span style={{ color: 'var(--accent-blue)' }}>Immutability: <strong>Enforced (403)</strong></span>
+        <span style={{ color: 'var(--text-main)' }}>
+          {selectedCompanyId === 'ALL' ? 'Seed Baseline Roles: ' : 'Effective Roles: '}
+          <strong className="font-mono-tabular">{roles.length}</strong>
+        </span>
+        <span style={{ color: 'var(--accent-purple, #7c3aed)' }}>
+          Seed Defaults: <strong className="font-mono-tabular">{roles.filter(r => r.isSeedRole || r.isSystemDefined).length}</strong>
+        </span>
+        {selectedCompanyId !== 'ALL' && (
+          <span style={{ color: 'var(--accent-green)' }}>
+            Tenant Custom: <strong className="font-mono-tabular">{roles.filter(r => r.isCustom).length}</strong>
+          </span>
+        )}
+        <span style={{ color: 'var(--accent-blue)' }}>
+          Isolation: <strong>Enforced per Tenant</strong>
+        </span>
       </div>
 
       {/* FILTER TOOLBAR */}
@@ -277,17 +290,17 @@ export default function RoleManagement({
               value={selectedCompanyId}
               onChange={(e) => setSelectedCompanyId(e.target.value)}
             >
-              <option value="ALL">All Roles ({roles.length})</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+              <option value="ALL">Master Seed Roles (Global Baseline)</option>
+              {companies.filter(c => !c.isSeed && c.code !== '000').map((c) => (
+                <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
               ))}
             </select>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
-          <span className="badge badge-pastel-yellow">
-            System Defined = Immutable
+          <span className="badge badge-pastel-purple">
+            Seed Defaults = Auto-Available in all Companies
           </span>
         </div>
       </div>
@@ -295,7 +308,8 @@ export default function RoleManagement({
       {/* ROLES GRID */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '0.85rem' }}>
         {filteredRoles.map((r) => {
-          const isLocked = r.isSystemDefined;
+          const isSeed = r.isSeedRole || r.isSystemDefined;
+          const isCustom = r.isCustom || !isSeed;
 
           return (
             <div
@@ -307,33 +321,47 @@ export default function RoleManagement({
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 gap: '0.85rem',
-                borderLeft: `3px solid ${isLocked ? 'var(--accent-yellow)' : 'var(--accent-green)'}`
+                borderLeft: `3px solid ${isSeed ? 'var(--accent-purple, #7c3aed)' : 'var(--accent-green)'}`
               }}
             >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                       <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                         {r.name}
                       </h3>
-                      {isLocked ? (
+                      {r.name === 'OPS Super Admin' || r.isInternalOpsOnly ? (
                         <span
-                          className="badge badge-pastel-yellow"
+                          className="badge badge-pastel-red"
                           style={{ fontSize: '0.65rem' }}
-                          title="System-defined role cannot be modified or deleted"
+                          title="Internal OPS Platform Administrator role - Excluded from tenants and ETMS"
                         >
-                          System Locked
+                          Platform Admin (Internal OPS Only)
+                        </span>
+                      ) : isSeed ? (
+                        <span
+                          className="badge badge-pastel-purple"
+                          style={{ fontSize: '0.65rem' }}
+                          title="Seed role automatically available in all companies"
+                        >
+                          {r.isInherited ? 'Seed Default (Inherited)' : 'Seed Default (Global Master)'}
                         </span>
                       ) : (
                         <span className="badge badge-pastel-green" style={{ fontSize: '0.65rem' }}>
-                          Custom
+                          Custom Tenant Role
                         </span>
                       )}
                     </div>
 
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                      Tenant: <strong>{r.company?.name || 'Global Template'}</strong>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                      {r.name === 'OPS Super Admin' || r.isInternalOpsOnly ? (
+                        <span>Origin: <strong>Internal OPS System (Excluded from Tenants)</strong></span>
+                      ) : isSeed ? (
+                        <span>Origin: <strong>Master Seed (All Companies)</strong></span>
+                      ) : (
+                        <span>Scoped To: <strong>{r.company?.name || 'Current Tenant'}</strong></span>
+                      )}
                     </div>
                   </div>
 
@@ -382,12 +410,12 @@ export default function RoleManagement({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.25rem',
-                    opacity: isLocked ? 0.5 : 1,
-                    cursor: isLocked ? 'not-allowed' : 'pointer'
+                    opacity: isSeed ? 0.5 : 1,
+                    cursor: isSeed ? 'not-allowed' : 'pointer'
                   }}
-                  disabled={isLocked}
+                  disabled={isSeed}
                   onClick={() => handleOpenEdit(r)}
-                  title={isLocked ? 'System role cannot be modified' : 'Edit role permissions'}
+                  title={isSeed ? 'Master seed roles are immutable' : 'Edit custom role permissions'}
                 >
                   <Edit2 size={12} /> Edit
                 </button>
@@ -400,13 +428,13 @@ export default function RoleManagement({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.25rem',
-                    color: isLocked ? 'var(--text-muted)' : 'var(--accent-red)',
-                    opacity: isLocked ? 0.5 : 1,
-                    cursor: isLocked ? 'not-allowed' : 'pointer'
+                    color: isSeed ? 'var(--text-muted)' : 'var(--accent-red)',
+                    opacity: isSeed ? 0.5 : 1,
+                    cursor: isSeed ? 'not-allowed' : 'pointer'
                   }}
-                  disabled={isLocked || (r._count?.users > 0)}
+                  disabled={isSeed || (r._count?.users > 0)}
                   onClick={() => handleDeletePrompt(r)}
-                  title={isLocked ? 'System role cannot be deleted' : r._count?.users > 0 ? 'Cannot delete role with assigned users' : 'Delete custom role'}
+                  title={isSeed ? 'Master seed roles cannot be deleted' : r._count?.users > 0 ? 'Cannot delete role with assigned users' : 'Delete custom role'}
                 >
                   <Trash2 size={12} /> Delete
                 </button>
@@ -454,8 +482,8 @@ export default function RoleManagement({
                     disabled={!!editingRole}
                     onChange={(e) => setRoleForm({ ...roleForm, companyId: e.target.value })}
                   >
-                    {companies.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                    {tenantCompaniesList.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
                     ))}
                   </select>
                 </div>

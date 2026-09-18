@@ -1533,6 +1533,18 @@ export default function App() {
                 </table>
               </div>
             )}
+
+            {companySubTab === 'roles' && (
+              <RoleManagement
+                companies={companies}
+                currentCompanyId={operatingCompany.id}
+                apiBase={API_BASE}
+                onRefresh={() => {
+                  fetchRoles();
+                  fetchAuditLogs(operatingCompany.id);
+                }}
+              />
+            )}
           </div>
         )}
       </div>

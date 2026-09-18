@@ -3,6 +3,7 @@ const prisma = require('../db');
 const { logAuditEvent, computeDiff } = require('../services/auditLogger');
 
 const router = express.Router();
+const SEED_COMPANY_ID = '00000000-0000-0000-0000-000000000000';
 
 // Catalogue of all fine-grained system permissions grouped by domain
 const AVAILABLE_PERMISSIONS = {
@@ -68,14 +69,190 @@ router.get('/permissions/available', (req, res) => {
   });
 });
 
-// GET /api/roles - List all roles or filter by companyId / search
+// GET /api/roles/seed, /api/seed/roles - List only Master Seed Roles
+router.get(['/seed', '/seed/roles'], async (req, res) => {
+  try {
+    const seedRoles = await prisma.role.findMany({
+      where: { companyId: SEED_COMPANY_ID },
+      include: {
+        company: {
+          select: { id: true, name: true, code: true },
+        },
+        _count: {
+          select: { users: true },
+        },
+      },
+      orderBy: [{ isSystemDefined: 'desc' }, { name: 'asc' }],
+    });
+
+    const parsedRoles = seedRoles.map((r) => ({
+      ...r,
+      isSeedRole: true,
+      isInherited: false,
+      isCustom: false,
+      permissions: parsePermissions(r.permissions),
+    }));
+
+    res.json({ success: true, data: parsedRoles });
+  } catch (error) {
+    console.error('Error fetching seed roles:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET /api/companies/:companyId/roles
+router.get('/:companyId/roles', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { isSystemDefined, search } = req.query;
+
+    if (companyId === SEED_COMPANY_ID) {
+      const seedRoles = await prisma.role.findMany({
+        where: { companyId: SEED_COMPANY_ID },
+        include: {
+          company: { select: { id: true, name: true, code: true } },
+          _count: { select: { users: true } },
+        },
+        orderBy: [{ isSystemDefined: 'desc' }, { name: 'asc' }],
+      });
+      return res.json({
+        success: true,
+        data: seedRoles.map((r) => ({
+          ...r,
+          isSeedRole: true,
+          isInherited: false,
+          isCustom: false,
+          isInternalOpsOnly: r.name === 'OPS Super Admin',
+          permissions: parsePermissions(r.permissions),
+        })),
+      });
+    }
+
+    // Fetch Tenant-Appropriate Seed Roles (OPS Super Admin is excluded for tenants / ETMS)
+    const seedRoles = await prisma.role.findMany({
+      where: {
+        companyId: SEED_COMPANY_ID,
+        NOT: { name: 'OPS Super Admin' },
+        ...(isSystemDefined !== undefined && { isSystemDefined: isSystemDefined === 'true' }),
+        ...(search && { name: { contains: search, mode: 'insensitive' } }),
+      },
+      include: {
+        company: { select: { id: true, name: true, code: true } },
+        _count: { select: { users: true } },
+      },
+      orderBy: [{ isSystemDefined: 'desc' }, { name: 'asc' }],
+    });
+
+    const customRoles = await prisma.role.findMany({
+      where: {
+        companyId,
+        ...(isSystemDefined !== undefined && { isSystemDefined: isSystemDefined === 'true' }),
+        ...(search && { name: { contains: search, mode: 'insensitive' } }),
+      },
+      include: {
+        company: { select: { id: true, name: true, code: true } },
+        _count: { select: { users: true } },
+      },
+      orderBy: [{ isSystemDefined: 'desc' }, { name: 'asc' }],
+    });
+
+    const formattedSeedRoles = seedRoles.map((r) => ({
+      ...r,
+      isSeedRole: true,
+      isInherited: true,
+      isCustom: false,
+      isInternalOpsOnly: false,
+      permissions: parsePermissions(r.permissions),
+    }));
+
+    const formattedCustomRoles = customRoles.map((r) => ({
+      ...r,
+      isSeedRole: false,
+      isInherited: false,
+      isCustom: true,
+      isInternalOpsOnly: false,
+      permissions: parsePermissions(r.permissions),
+    }));
+
+    res.json({ success: true, data: [...formattedSeedRoles, ...formattedCustomRoles] });
+  } catch (error) {
+    console.error('Error fetching company roles:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET /api/roles - List roles with Master Seed Role Inheritance & Tenant Custom Role Isolation
 router.get('/', async (req, res) => {
   try {
-    const { companyId, isSystemDefined, search } = req.query;
-    const where = {};
+    const { companyId, isSystemDefined, search, includeAllCustom } = req.query;
 
-    if (companyId) {
-      where.companyId = companyId;
+    // SCENARIO 1: Specific Tenant Company selected (Inherit Seed Roles + Tenant-Specific Custom Roles)
+    // Note: OPS Super Admin is excluded for tenants/ETMS and available only to internal OPS users.
+    if (companyId && companyId !== 'ALL' && companyId !== SEED_COMPANY_ID) {
+      // 1. Fetch Master Seed Roles appropriate for tenants
+      const seedRoles = await prisma.role.findMany({
+        where: {
+          companyId: SEED_COMPANY_ID,
+          NOT: { name: 'OPS Super Admin' },
+          ...(isSystemDefined !== undefined && { isSystemDefined: isSystemDefined === 'true' }),
+          ...(search && { name: { contains: search, mode: 'insensitive' } }),
+        },
+        include: {
+          company: {
+            select: { id: true, name: true, code: true },
+          },
+          _count: {
+            select: { users: true },
+          },
+        },
+        orderBy: [{ isSystemDefined: 'desc' }, { name: 'asc' }],
+      });
+
+      // 2. Fetch Custom Roles belonging ONLY to this specific company (Strict Isolation)
+      const tenantCustomRoles = await prisma.role.findMany({
+        where: {
+          companyId,
+          ...(isSystemDefined !== undefined && { isSystemDefined: isSystemDefined === 'true' }),
+          ...(search && { name: { contains: search, mode: 'insensitive' } }),
+        },
+        include: {
+          company: {
+            select: { id: true, name: true, code: true },
+          },
+          _count: {
+            select: { users: true },
+          },
+        },
+        orderBy: [{ isSystemDefined: 'desc' }, { name: 'asc' }],
+      });
+
+      const formattedSeedRoles = seedRoles.map((r) => ({
+        ...r,
+        isSeedRole: true,
+        isInherited: true,
+        isCustom: false,
+        isInternalOpsOnly: false,
+        permissions: parsePermissions(r.permissions),
+      }));
+
+      const formattedCustomRoles = tenantCustomRoles.map((r) => ({
+        ...r,
+        isSeedRole: false,
+        isInherited: false,
+        isCustom: true,
+        isInternalOpsOnly: false,
+        permissions: parsePermissions(r.permissions),
+      }));
+
+      // Combine Seed Roles + Tenant Custom Roles (No other tenant roles included)
+      const mergedRoles = [...formattedSeedRoles, ...formattedCustomRoles];
+      return res.json({ success: true, data: mergedRoles });
+    }
+
+    // SCENARIO 2: Global Control Plane / Master Seed View (Show only seed company roles)
+    const where = {};
+    if (!includeAllCustom || includeAllCustom !== 'true') {
+      where.companyId = SEED_COMPANY_ID;
     }
     if (isSystemDefined !== undefined) {
       where.isSystemDefined = isSystemDefined === 'true';
@@ -99,6 +276,9 @@ router.get('/', async (req, res) => {
 
     const parsedRoles = roles.map((r) => ({
       ...r,
+      isSeedRole: r.companyId === SEED_COMPANY_ID,
+      isInherited: false,
+      isCustom: r.companyId !== SEED_COMPANY_ID,
       permissions: parsePermissions(r.permissions),
     }));
 
@@ -111,6 +291,8 @@ router.get('/', async (req, res) => {
         name: 'SUPER_ADMIN',
         description: 'Full wildcard administrator access across all multi-tenant boundaries.',
         isSystemDefined: true,
+        isSeedRole: true,
+        isInherited: false,
         permissions: ['*'],
         _count: { users: 2 },
       },
@@ -119,6 +301,8 @@ router.get('/', async (req, res) => {
         name: 'COMPANY_ADMIN',
         description: 'Full operational control within a single tenant scope.',
         isSystemDefined: true,
+        isSeedRole: true,
+        isInherited: false,
         permissions: ['READ_COMPANIES', 'WRITE_COMPANIES', 'READ_USERS', 'WRITE_USERS', 'READ_TRANSACTIONS', 'WRITE_TRANSACTIONS'],
         _count: { users: 5 },
       },
@@ -127,6 +311,8 @@ router.get('/', async (req, res) => {
         name: 'MUNIM',
         description: 'Accountant access with dual-handshake financial reconciliation permissions.',
         isSystemDefined: true,
+        isSeedRole: true,
+        isInherited: false,
         permissions: ['READ_TRANSACTIONS', 'WRITE_TRANSACTIONS', 'RECONCILE_PAYMENTS', 'TALLY_EXPORT'],
         _count: { users: 3 },
       },
@@ -135,6 +321,8 @@ router.get('/', async (req, res) => {
         name: 'SUPERVISOR',
         description: 'Factory floor supervisor for shifts, karigars, and delivery challans.',
         isSystemDefined: true,
+        isSeedRole: true,
+        isInherited: false,
         permissions: ['READ_FLOOR', 'LOG_SHIFTS', 'PRINT_SLIPS'],
         _count: { users: 8 },
       },
@@ -143,6 +331,8 @@ router.get('/', async (req, res) => {
         name: 'KARIGAR_OPERATOR',
         description: 'Machine operator restricted to logging shift counters and job-work hisab.',
         isSystemDefined: true,
+        isSeedRole: true,
+        isInherited: false,
         permissions: ['LOG_SHIFTS'],
         _count: { users: 30 },
       },
