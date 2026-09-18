@@ -145,10 +145,10 @@ export default function AuditLogViewer({
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
             <FileText size={18} color="var(--accent-red)" />
-            Audit Stream & Forensic Logs
+            Audit Trail
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
-            Immutable MongoDB event telemetry and real-time state mutation diffs
+            System event logs, operator actions, and state changes
           </p>
         </div>
 
@@ -185,25 +185,25 @@ export default function AuditLogViewer({
         <div className="kpi-strip">
           <div className="kpi-card-compact">
             <div>
-              <div className="kpi-metric-label">Total Audit Events</div>
+              <div className="kpi-metric-label">Total Events</div>
               <div className="kpi-metric-value">{stats.totalEvents}</div>
             </div>
           </div>
           <div className="kpi-card-compact" style={{ borderLeft: '3px solid var(--accent-green)' }}>
             <div>
-              <div className="kpi-metric-label" style={{ color: 'var(--accent-green)' }}>Successful Mutations</div>
+              <div className="kpi-metric-label" style={{ color: 'var(--accent-green)' }}>Successful</div>
               <div className="kpi-metric-value" style={{ color: 'var(--accent-green)' }}>{stats.byStatus?.SUCCESS || 0}</div>
             </div>
           </div>
           <div className="kpi-card-compact" style={{ borderLeft: '3px solid var(--accent-red)' }}>
             <div>
-              <div className="kpi-metric-label" style={{ color: 'var(--accent-red)' }}>Security Alerts & Blocks</div>
+              <div className="kpi-metric-label" style={{ color: 'var(--accent-red)' }}>Alerts & Failures</div>
               <div className="kpi-metric-value" style={{ color: 'var(--accent-red)' }}>{stats.byStatus?.FAILURE || stats.byStatus?.WARNING || 0}</div>
             </div>
           </div>
           <div className="kpi-card-compact">
             <div>
-              <div className="kpi-metric-label">Active Modules</div>
+              <div className="kpi-metric-label">Modules</div>
               <div className="kpi-metric-value">{Object.keys(stats.byModule || {}).length}</div>
             </div>
           </div>
@@ -441,7 +441,7 @@ export default function AuditLogViewer({
       <Drawer
         isOpen={Boolean(inspectedLog)}
         onClose={() => setInspectedLog(null)}
-        title={inspectedLog ? `Forensic Event: ${inspectedLog.module} › ${inspectedLog.action}` : 'Audit Event Inspector'}
+        title={inspectedLog ? `Audit Event: ${inspectedLog.module} › ${inspectedLog.action}` : 'Audit Event'}
         subtitle={inspectedLog ? `Timestamp: ${new Date(inspectedLog.createdAt).toISOString()} • UUID: ${inspectedLog._id}` : ''}
         icon={<Terminal size={18} color="var(--accent-red)" />}
         size="lg"
@@ -452,7 +452,7 @@ export default function AuditLogViewer({
             onClick={() => setInspectedLog(null)}
             style={{ fontSize: '0.78rem' }}
           >
-            Close Inspector
+            Close
           </button>
         }
       >
@@ -487,7 +487,7 @@ export default function AuditLogViewer({
               <div>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <Sparkles size={14} color="var(--accent-yellow)" />
-                  <span>Entity Mutation Delta</span>
+                  <span>Mutation Changes</span>
                 </div>
                 <div
                   style={{
@@ -544,7 +544,7 @@ export default function AuditLogViewer({
                 }}
               >
                 <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  Raw Event Payload (MongoDB)
+                  Event Payload
                 </span>
                 <button
                   type="button"

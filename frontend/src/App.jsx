@@ -738,7 +738,7 @@ export default function App() {
         ) : (
           !isSidebarCollapsed && (
             <div style={{ background: 'var(--bg-canvas)', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-              🌐 Global Super Admin View
+              Global Control Plane
             </div>
           )
         )}
@@ -783,16 +783,16 @@ export default function App() {
           {!operatingCompany ? (
             <>
               {/* SECTION: PLATFORM GOVERNANCE */}
-              {!isSidebarCollapsed && <div className="nav-section-label">🏛️ Governance</div>}
-              <button className={`nav-item ${activeTab === 'global_dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('global_dashboard')} title="Global Dashboard">
+              {!isSidebarCollapsed && <div className="nav-section-label">Governance</div>}
+              <button className={`nav-item ${activeTab === 'global_dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('global_dashboard')} title="Dashboard">
                 <TrendingUp size={16} /> <span>Dashboard</span>
               </button>
-              <button className={`nav-item ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')} title="Registered Companies">
+              <button className={`nav-item ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')} title="Companies">
                 <Building size={16} /> <span>Companies</span>
                 <span className="badge badge-system nav-counter-badge">{companies.length}</span>
               </button>
-              <button className={`nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`} onClick={() => setActiveTab('subscriptions')} title="Subscriptions & Billing">
-                <CreditCard size={16} /> <span>Subscriptions & Quotas</span>
+              <button className={`nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`} onClick={() => setActiveTab('subscriptions')} title="Subscriptions">
+                <CreditCard size={16} /> <span>Subscriptions</span>
               </button>
               <button
                 className={`nav-item ${activeTab === 'parameters' ? 'active' : ''}`}
@@ -800,19 +800,19 @@ export default function App() {
                   setActiveTab('parameters');
                   setSelectedParamCompany(masterSeedCompany);
                 }}
-                title="Master Seed Parameter Store & Rules"
+                title="Parameter Store"
               >
-                <Sliders size={16} /> <span>Parameter Store</span>
+                <Sliders size={16} /> <span>Parameters</span>
               </button>
 
               {/* SECTION: SECURITY & ACCESS */}
-              {!isSidebarCollapsed && <div className="nav-section-label">🛡️ Security & Access</div>}
+              {!isSidebarCollapsed && <div className="nav-section-label">Security & Access</div>}
               <button className={`nav-item ${activeTab === 'all_users' ? 'active' : ''}`} onClick={() => setActiveTab('all_users')} title="User Directory">
                 <Users size={16} /> <span>Users</span>
                 <span className="badge badge-seed nav-counter-badge">{users.length}</span>
               </button>
               <button className={`nav-item ${activeTab === 'roles' ? 'active' : ''}`} onClick={() => { fetchRoles(); setActiveTab('roles'); }} title="RBAC Roles">
-                <Lock size={16} /> <span>RBAC Roles</span>
+                <Lock size={16} /> <span>Roles</span>
                 <span className="badge badge-system nav-counter-badge">{roles.length}</span>
               </button>
               <button className={`nav-item ${activeTab === 'global_audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(); setActiveTab('global_audit'); }} title="Audit Trail">
@@ -820,9 +820,9 @@ export default function App() {
               </button>
 
               {/* SECTION: INFRASTRUCTURE & HEALTH */}
-              {!isSidebarCollapsed && <div className="nav-section-label">⚡ Infrastructure</div>}
-              <button className={`nav-item ${activeTab === 'system_health' ? 'active' : ''}`} onClick={() => setActiveTab('system_health')} title="Telemetry & Sync DLQ">
-                <Activity size={16} /> <span>Telemetry & DLQ</span>
+              {!isSidebarCollapsed && <div className="nav-section-label">Infrastructure</div>}
+              <button className={`nav-item ${activeTab === 'system_health' ? 'active' : ''}`} onClick={() => setActiveTab('system_health')} title="System Health">
+                <Activity size={16} /> <span>System Health</span>
               </button>
               <button
                 className={`nav-item ${activeTab === 'reconcile' ? 'active' : ''}`}
@@ -835,7 +835,7 @@ export default function App() {
                   color: untrackedCount > 0 ? 'var(--warning)' : 'inherit',
                   fontWeight: untrackedCount > 0 ? 700 : 'normal',
                 }}
-                title="Scan and Reconcile unmanaged ETMS tenants into OPS Master"
+                title="Reconcile ETMS Tenants"
               >
                 <Shield size={16} color={untrackedCount > 0 ? 'var(--warning)' : 'var(--primary)'} />
                 <span>Reconcile ETMS</span>
@@ -854,23 +854,23 @@ export default function App() {
             </>
           ) : (
             <>
-              {!isSidebarCollapsed && <div className="nav-section-label">🎧 Support Workspace</div>}
-              <button className={`nav-item ${companySubTab === 'overview' ? 'active' : ''}`} onClick={() => setCompanySubTab('overview')} title="Company Overview">
+              {!isSidebarCollapsed && <div className="nav-section-label">Support Workspace</div>}
+              <button className={`nav-item ${companySubTab === 'overview' ? 'active' : ''}`} onClick={() => setCompanySubTab('overview')} title="Overview">
                 <TrendingUp size={16} /> <span>Overview</span>
               </button>
-              <button className={`nav-item ${companySubTab === 'users' ? 'active' : ''}`} onClick={() => setCompanySubTab('users')} title="Tenant Users">
+              <button className={`nav-item ${companySubTab === 'users' ? 'active' : ''}`} onClick={() => setCompanySubTab('users')} title="Users">
                 <Users size={16} /> <span>Users</span>
               </button>
-              <button className={`nav-item ${companySubTab === 'features' ? 'active' : ''}`} onClick={() => { setCompanySubTab('features'); setSelectedParamCompany(operatingCompany); }} title="Parameters & Rules">
+              <button className={`nav-item ${companySubTab === 'features' ? 'active' : ''}`} onClick={() => { setCompanySubTab('features'); setSelectedParamCompany(operatingCompany); }} title="Parameters">
                 <Settings size={16} /> <span>Parameters</span>
               </button>
-              <button className={`nav-item ${companySubTab === 'roles' ? 'active' : ''}`} onClick={() => setCompanySubTab('roles')} title="System Roles">
+              <button className={`nav-item ${companySubTab === 'roles' ? 'active' : ''}`} onClick={() => setCompanySubTab('roles')} title="Roles">
                 <Lock size={16} /> <span>Roles</span>
               </button>
-              <button className={`nav-item ${companySubTab === 'transactions' ? 'active' : ''}`} onClick={() => setCompanySubTab('transactions')} title="Billing Transactions">
+              <button className={`nav-item ${companySubTab === 'transactions' ? 'active' : ''}`} onClick={() => setCompanySubTab('transactions')} title="Transactions">
                 <CreditCard size={16} /> <span>Transactions</span>
               </button>
-              <button className={`nav-item ${companySubTab === 'audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(operatingCompany.id); setCompanySubTab('audit'); }} title="Tenant Audit">
+              <button className={`nav-item ${companySubTab === 'audit' ? 'active' : ''}`} onClick={() => { fetchAuditLogs(operatingCompany.id); setCompanySubTab('audit'); }} title="Audit Trail">
                 <FileText size={16} /> <span>Audit Trail</span>
               </button>
             </>
@@ -882,7 +882,7 @@ export default function App() {
             className="btn btn-secondary"
             style={{ width: '100%', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'center', gap: '0.35rem' }}
             onClick={() => setShowSecurityModal(true)}
-            title="Manage 2FA and JWT security credentials"
+            title="Manage security & 2FA"
           >
             <Shield size={13} color="var(--primary)" /> {!isSidebarCollapsed && 'Security & 2FA'}
           </button>
@@ -901,9 +901,9 @@ export default function App() {
                 setIsLoggedIn(false);
                 toast.info('Logged out of Super Admin.');
               }}
-              title="Logout Admin"
+              title="Sign Out"
             >
-              <LogOut size={14} /> {!isSidebarCollapsed && 'Logout Admin'}
+              <LogOut size={14} /> {!isSidebarCollapsed && 'Sign Out'}
             </button>
           )}
         </div>
@@ -969,59 +969,51 @@ export default function App() {
         {impersonationContext && (
           <div
             style={{
-              background: 'linear-gradient(90deg, #b45309, #d97706, #b45309)',
-              color: '#ffffff',
+              background: 'var(--accent-yellow-bg)',
+              color: 'var(--accent-yellow)',
               padding: '0.65rem 1.25rem',
-              borderRadius: '6px',
+              borderRadius: 'var(--radius-md)',
               marginBottom: '1rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)',
-              border: '1px solid #f59e0b',
+              border: '1px solid rgba(149, 100, 0, 0.25)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+              <Shield size={16} />
               <div>
-                <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>
-                  TENANT IMPERSONATION ACTIVE: Operating as {impersonationContext.targetUser?.name} ({impersonationContext.targetUser?.email})
+                <div style={{ fontWeight: 700, fontSize: '0.82rem' }}>
+                  Tenant Impersonation Active: Operating as {impersonationContext.targetUser?.name} ({impersonationContext.targetUser?.email})
                 </div>
-                <div style={{ fontSize: '0.74rem', opacity: 0.9 }}>
-                  Tenant: <strong>{impersonationContext.targetUser?.company?.name || 'Internal'}</strong> &bull; Super Admin: <em>{impersonationContext.originalUser?.name}</em> &bull; Ephemeral Token (15m TTL)
+                <div style={{ fontSize: '0.74rem', opacity: 0.85 }}>
+                  Tenant: <strong>{impersonationContext.targetUser?.company?.name || 'Internal'}</strong> &bull; Super Admin: <em>{impersonationContext.originalUser?.name}</em> &bull; Ephemeral Session (15m TTL)
                 </div>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <button
-                className="btn"
+                className="btn btn-secondary"
                 onClick={() => handleLaunchEtms(impersonationContext.targetUser)}
                 style={{
-                  background: '#065f46',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontWeight: 700,
                   fontSize: '0.78rem',
                   padding: '0.35rem 0.75rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                 }}
                 title={`Open ETMS Factory Portal as ${impersonationContext.targetUser?.name}`}
               >
-                <ExternalLink size={13} /> Open ETMS Factory Portal ↗
+                <ExternalLink size={13} /> Open ETMS Portal
               </button>
 
               <button
-                className="btn"
+                className="btn btn-secondary"
                 onClick={handleExitImpersonation}
                 style={{
-                  background: '#ffffff',
-                  color: '#9a3412',
-                  border: 'none',
-                  fontWeight: 700,
+                  color: 'var(--accent-red)',
+                  fontWeight: 600,
                   fontSize: '0.78rem',
                   padding: '0.35rem 0.75rem',
                   display: 'flex',
@@ -1029,7 +1021,7 @@ export default function App() {
                   gap: '0.35rem',
                 }}
               >
-                <LogOut size={13} /> Exit Support Mode
+                <LogOut size={13} /> Exit Support
               </button>
             </div>
           </div>
@@ -1046,13 +1038,13 @@ export default function App() {
 
         {/* SUPPORT OPERATIONAL MODE TOP BANNER */}
         {operatingCompany && (
-          <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: '#4338ca', fontWeight: 600, textTransform: 'uppercase' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, textTransform: 'uppercase' }}>
                 <Headphones size={15} /> Support Operating Mode Active
               </div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e1b4b', marginTop: '0.1rem' }}>
-                {operatingCompany.name} <code style={{ fontSize: '0.9rem', background: '#e0e7ff', padding: '0.1rem 0.4rem', borderRadius: '4px', color: '#3730a3' }}>{operatingCompany.code}</code>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.1rem' }}>
+                {operatingCompany.name} <code style={{ fontSize: '0.85rem', background: 'var(--bg-surface)', padding: '0.1rem 0.4rem', borderRadius: '3px', border: '1px solid var(--border)' }}>{operatingCompany.code}</code>
               </h2>
             </div>
             <button className="btn btn-secondary" onClick={exitCompanyOperationalMode} style={{ fontSize: '0.78rem' }}>
@@ -1068,39 +1060,23 @@ export default function App() {
             {untrackedCount > 0 && (
               <div
                 style={{
-                  background: 'linear-gradient(90deg, #fffbeb, #fef3c7)',
-                  border: '1px solid #fde68a',
-                  borderRadius: '8px',
+                  background: 'var(--accent-yellow-bg)',
+                  border: '1px solid rgba(149, 100, 0, 0.25)',
+                  borderRadius: 'var(--radius-md)',
                   padding: '0.85rem 1.25rem',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  boxShadow: '0 1px 4px rgba(217, 119, 6, 0.1)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div
-                    style={{
-                      background: '#f59e0b',
-                      color: '#ffffff',
-                      borderRadius: '50%',
-                      width: '32px',
-                      height: '32px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 800,
-                      fontSize: '1rem',
-                    }}
-                  >
-                    !
-                  </div>
+                  <Shield size={18} color="var(--accent-yellow)" />
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#92400e' }}>
-                      {untrackedCount} Untracked Tenant(s) Detected in ETMS!
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-yellow)' }}>
+                      {untrackedCount} Untracked Tenant(s) Detected in ETMS
                     </div>
-                    <div style={{ fontSize: '0.76rem', color: '#78350f' }}>
-                      ETMS contains unmanaged factory companies and mobile accounts. Adopt and standardize them into OPS Master now.
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                      Reconcile and standardize factory tenants into the OPS master directory.
                     </div>
                   </div>
                 </div>
@@ -1109,7 +1085,7 @@ export default function App() {
                   onClick={() => setShowReconcileModal(true)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}
                 >
-                  <Shield size={14} /> Adopt & Standardize Now
+                  <Shield size={14} /> Reconcile Now
                 </button>
               </div>
             )}
@@ -1266,66 +1242,44 @@ export default function App() {
         {/* MASTER SEED PARAMETER STORE & RULES TAB */}
         {activeTab === 'parameters' && !operatingCompany && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div className="card" style={{ borderTop: '3px solid var(--primary)', padding: '1.25rem' }}>
+            <div className="card" style={{ padding: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 600 }}>
-                    <Sliders size={15} /> Platform Governance &bull; Master Seed Default Hub (000)
-                  </div>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0.25rem 0 0 0' }}>
-                    Master Seed Parameter Store & System Rules
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
+                    Master Parameter Store
                   </h2>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                    Manage global SAC 9988 rates, stitching tolerances, karigar TDS deductions, Tally export rules, and tenant feature flags.
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: '0.2rem' }}>
+                    Global system rules, SAC codes, and tenant defaults (Seed 000)
                   </p>
                 </div>
                 <button
                   className="btn btn-primary"
                   onClick={() => setSelectedParamCompany(masterSeedCompany)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.9rem', fontSize: '0.82rem' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
                 >
-                  <Sliders size={14} /> Open Slide-Over Drawer
+                  <Sliders size={14} /> Open Parameters
                 </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginTop: '1.25rem' }}>
-                <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Master Default Rules</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.1rem' }}>35 Parameters</div>
-                </div>
-                <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>SAC Code</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-green)', marginTop: '0.1rem' }}>SAC 9988</div>
-                </div>
-                <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Default Rate</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#2563eb', marginTop: '0.1rem' }}>₹0.40 / 1k Stitches</div>
-                </div>
-                <div style={{ background: 'var(--bg-canvas)', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Rule Categories</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#7c3aed', marginTop: '0.1rem' }}>5 Accordions</div>
-                </div>
               </div>
             </div>
 
             {/* SEED PARAMETERS DIRECTORY TABLE */}
             <div className="card table-container">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <h3 style={{ fontSize: '0.95rem' }}>System-Wide Master Default Parameter Rules (SEED000)</h3>
+                <h3 style={{ fontSize: '0.95rem' }}>Default System Rules</h3>
                 <button
                   className="btn btn-secondary"
                   onClick={() => setSelectedParamCompany(masterSeedCompany)}
                   style={{ fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                 >
-                  <Sliders size={12} /> Configure & Add Seed Parameters
+                  <Sliders size={12} /> Configure Rules
                 </button>
               </div>
               <table>
                 <thead>
                   <tr>
                     <th>Parameter Key</th>
-                    <th>Master Default Value</th>
-                    <th>Category</th>
+                    <th>Default Value</th>
+                    <th>Type</th>
                     <th>Description</th>
                   </tr>
                 </thead>
@@ -1344,7 +1298,7 @@ export default function App() {
                   )) || (
                     <tr>
                       <td colSpan="4" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
-                        Loading Master Seed Default Rules... Click 'Open Slide-Over Drawer' to manage values.
+                        No default parameters loaded.
                       </td>
                     </tr>
                   )}
@@ -1381,11 +1335,11 @@ export default function App() {
           <div>
             {companySubTab === 'overview' && (
               <div>
-                <div className="card" style={{ borderTop: '3px solid var(--primary)' }}>
+                <div className="card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{operatingCompany.name}</h2>
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Registered Business Profile for Invoices & Billing PDFs</p>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Organization Profile</p>
                     </div>
                     {operatingCompany.logoUrl && (
                       <img src={operatingCompany.logoUrl} alt="Logo" style={{ maxWidth: '100px', maxHeight: '45px', borderRadius: '4px', objectFit: 'contain' }} />
@@ -1393,28 +1347,28 @@ export default function App() {
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
-                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
-                        <FileSpreadsheet size={15} /> Indian Tax & Compliance
+                    <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+                        <FileSpreadsheet size={15} /> Compliance & Contact
                       </div>
-                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>GSTIN: <code className="mono" style={{ color: '#2563eb', fontWeight: 600 }}>{operatingCompany.gstin || 'N/A'}</code></div>
-                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Contact Person: <strong>{operatingCompany.contactPerson || 'N/A'}</strong></div>
-                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Mobile Phone: <strong>{operatingCompany.mobile || 'N/A'}</strong></div>
-                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Billing Email: <strong>{operatingCompany.email || 'N/A'}</strong></div>
+                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>GSTIN: <code className="mono" style={{ color: 'var(--text-main)', fontWeight: 600 }}>{operatingCompany.gstin || 'N/A'}</code></div>
+                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Contact: <strong>{operatingCompany.contactPerson || 'N/A'}</strong></div>
+                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Phone: <strong>{operatingCompany.mobile || 'N/A'}</strong></div>
+                      <div style={{ margin: '0.2rem 0', fontSize: '0.78rem' }}>Email: <strong>{operatingCompany.email || 'N/A'}</strong></div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+                    <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
                         <MapPin size={15} /> Billing Address
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                         {operatingCompany.address || 'No billing address recorded.'}
                       </div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
-                        <Globe size={15} /> Utility Parameters
+                    <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+                        <Globe size={15} /> Localization
                       </div>
                       <div style={{ margin: '0.15rem 0', fontSize: '0.75rem' }}>Time Zone: <strong>{operatingCompany.parameters?.find(p => p.key === 'timezone')?.value || 'Asia/Kolkata'}</strong></div>
                       <div style={{ margin: '0.15rem 0', fontSize: '0.75rem' }}>Date Format: <strong>{operatingCompany.parameters?.find(p => p.key === 'date_format')?.value || 'DD/MM/YYYY'}</strong></div>
@@ -1423,31 +1377,22 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-
-                <div className="card">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: '#92400e', fontSize: '0.82rem' }}>
-                    <Lock size={15} /> System-Defined Role Guard
-                  </div>
-                  <p style={{ fontSize: '0.78rem', marginTop: '0.2rem', color: 'var(--text-muted)' }}>
-                    Role Name: <strong>{operatingCompany.roles?.[0]?.name}</strong> | Single Final Source of Truth (Protected from FE edit)
-                  </p>
-                </div>
               </div>
             )}
 
             {companySubTab === 'users' && (
               <div className="card table-container">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <h3 style={{ fontSize: '0.95rem' }}>{operatingCompany.name} - Support User Operations</h3>
+                  <h3 style={{ fontSize: '0.95rem' }}>Users ({operatingCompany.name})</h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <button
                       className="btn btn-secondary"
                       onClick={handleSyncStaffFromEtms}
                       disabled={loading}
                       style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                      title="Sync operational staff users (Supervisors, Munims) from ETMS into this company"
+                      title="Sync staff from ETMS"
                     >
-                      <RefreshCw size={13} className={loading ? 'spin' : ''} /> Sync Staff from ETMS
+                      <RefreshCw size={13} className={loading ? 'spin' : ''} /> Sync Staff
                     </button>
                     <button className="btn btn-primary" onClick={() => setShowUserModal(true)} style={{ fontSize: '0.78rem' }}>
                       <Plus size={14} /> Create User
@@ -1458,10 +1403,10 @@ export default function App() {
                   <thead>
                     <tr>
                       <th>Name</th>
-                      <th>Email & Mobile</th>
+                      <th>Email & Phone</th>
                       <th>Status</th>
                       <th>Role</th>
-                      <th>Support Action</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1471,26 +1416,20 @@ export default function App() {
                         <td>
                           <div>{u.email}</div>
                           {u.mobile && (
-                            <div style={{ fontSize: '0.7rem', color: '#4338ca', fontWeight: 600 }}>
-                              📱 {u.mobile}
+                            <div className="font-mono-tabular" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              {u.mobile}
                             </div>
                           )}
                         </td>
                         <td><span className="badge badge-active">{u.status || 'ACTIVE'}</span></td>
                         <td>
-                          {u.role?.name?.toLowerCase().includes('admin') ? (
-                            <span style={{ background: '#dbeafe', color: '#1e40af', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
-                              ⭐ {u.role.name}
-                            </span>
-                          ) : (
-                            <span style={{ background: '#f0fdf4', color: '#166534', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>
-                              🏭 {u.role ? u.role.name : 'Staff'}
-                            </span>
-                          )}
+                          <span className="badge badge-pastel-blue" style={{ fontSize: '0.7rem' }}>
+                            {u.role ? u.role.name : 'Staff'}
+                          </span>
                         </td>
                         <td>
                           <button className="btn btn-secondary" style={{ padding: '0.15rem 0.45rem', fontSize: '0.72rem' }} onClick={() => { setSelectedUserToEdit(u); setEditUserData({ name: u.name, email: u.email, status: u.status || 'ACTIVE' }); setShowEditUserModal(true); }}>
-                            <Edit2 size={12} /> Edit Details
+                            <Edit2 size={12} /> Edit
                           </button>
                         </td>
                       </tr>
@@ -1502,7 +1441,7 @@ export default function App() {
 
             {companySubTab === 'features' && (
               <div className="card table-container">
-                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.75rem' }}>Utility & Feature Parameters ({operatingCompany.parameters?.length || 0})</h3>
+                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.75rem' }}>Parameters ({operatingCompany.parameters?.length || 0})</h3>
                 <table>
                   <thead>
                     <tr>
@@ -1516,12 +1455,12 @@ export default function App() {
                     {operatingCompany.parameters?.map((p) => (
                       <tr key={p.id}>
                         <td><code>{p.key}</code></td>
-                        <td><span style={{ background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>{p.value}</span></td>
+                        <td><span style={{ background: 'var(--bg-surface-elevated)', padding: '0.15rem 0.4rem', borderRadius: '3px', fontWeight: 600 }}>{p.value}</span></td>
                         <td><small style={{ color: 'var(--text-muted)' }}>{p.description}</small></td>
                         <td>
                           {p.key.startsWith('feature_') ? (
                             <button className={`btn ${p.value === 'true' ? 'btn-secondary' : 'btn-primary'}`} style={{ padding: '0.15rem 0.5rem', fontSize: '0.72rem' }} onClick={() => handleUpdateParameter(operatingCompany.id, p.key, p.value === 'true' ? 'false' : 'true')}>
-                              {p.value === 'true' ? 'Disable Feature' : 'Enable Feature'}
+                              {p.value === 'true' ? 'Disable' : 'Enable'}
                             </button>
                           ) : (
                             <input type="text" defaultValue={p.value} className="form-control" style={{ width: '130px', padding: '0.15rem 0.4rem' }} onBlur={(e) => { if (e.target.value !== p.value) handleUpdateParameter(operatingCompany.id, p.key, e.target.value); }} />
@@ -1607,7 +1546,7 @@ export default function App() {
       {showEditUserModal && selectedUserToEdit && (
         <div className="modal-backdrop">
           <div className="modal-content">
-            <h2 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>🎧 Edit User Details</h2>
+            <h2 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>Edit User</h2>
             <form onSubmit={handleUpdateUser}>
               <div className="form-group">
                 <label>Full Name</label>

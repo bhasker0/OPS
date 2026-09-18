@@ -210,10 +210,10 @@ export default function RoleManagement({
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Lock size={18} color="var(--accent-red)" />
-            RBAC Roles & Permission Schemes
+            Roles & Permissions
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
-            Tenant permission boundaries, privilege matrices & system immutability guards
+            Role definitions and access control policies
           </p>
         </div>
 
@@ -230,41 +230,9 @@ export default function RoleManagement({
             onClick={handleOpenCreate}
             style={{ fontSize: '0.78rem' }}
           >
-            <Plus size={14} /> Provision Custom Role
+            <Plus size={14} /> New Role
           </button>
         </div>
-      </div>
-
-      {/* TELEMETRY READOUT BAR */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          flexWrap: 'wrap',
-          background: 'var(--bg-surface-elevated)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.65rem 1rem',
-          fontSize: '0.78rem',
-        }}
-      >
-        <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>RBAC Telemetry:</span>
-        <span style={{ color: 'var(--text-main)' }}>
-          {selectedCompanyId === 'ALL' ? 'Seed Baseline Roles: ' : 'Effective Roles: '}
-          <strong className="font-mono-tabular">{roles.length}</strong>
-        </span>
-        <span style={{ color: 'var(--accent-purple, #7c3aed)' }}>
-          Seed Defaults: <strong className="font-mono-tabular">{roles.filter(r => r.isSeedRole || r.isSystemDefined).length}</strong>
-        </span>
-        {selectedCompanyId !== 'ALL' && (
-          <span style={{ color: 'var(--accent-green)' }}>
-            Tenant Custom: <strong className="font-mono-tabular">{roles.filter(r => r.isCustom).length}</strong>
-          </span>
-        )}
-        <span style={{ color: 'var(--accent-blue)' }}>
-          Isolation: <strong>Enforced per Tenant</strong>
-        </span>
       </div>
 
       {/* FILTER TOOLBAR */}
@@ -298,11 +266,9 @@ export default function RoleManagement({
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
-          <span className="badge badge-pastel-purple">
-            Seed Defaults = Auto-Available in all Companies
-          </span>
-        </div>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          Showing <strong className="font-mono-tabular">{filteredRoles.length}</strong> of <strong className="font-mono-tabular">{roles.length}</strong> roles
+        </span>
       </div>
 
       {/* ROLES GRID */}
@@ -450,11 +416,8 @@ export default function RoleManagement({
           <div className="modal-content" style={{ maxWidth: '660px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
               <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent-red)' }}>
-                  RBAC Access Control Scheme
-                </div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0.2rem 0 0 0' }}>
-                  {editingRole ? `Edit Role: ${editingRole.name}` : 'Provision Custom RBAC Role'}
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                  {editingRole ? `Edit Role: ${editingRole.name}` : 'New Role'}
                 </h2>
               </div>
               <button onClick={() => setShowRoleModal(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '0.3rem', cursor: 'pointer' }}><X size={16} /></button>
@@ -546,7 +509,7 @@ export default function RoleManagement({
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ fontSize: '0.78rem' }}>
-                  {editingRole ? 'Save Changes' : 'Provision Role'}
+                  {editingRole ? 'Save Changes' : 'Create Role'}
                 </button>
               </div>
             </form>

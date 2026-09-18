@@ -211,8 +211,8 @@ export default function SecuritySettingsModal({
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
-      title="Security Dossier & MFA Settings"
-      subtitle="TOTP RFC 6238 Authentication & Session Defense"
+      title="Security & Authentication"
+      subtitle="Two-factor authentication and credentials"
       icon={<Shield size={18} color="var(--accent-red)" />}
       size="md"
       footer={getFooter()}
@@ -244,7 +244,7 @@ export default function SecuritySettingsModal({
                   color: user?.twoFactorEnabled ? 'var(--accent-green)' : 'var(--accent-yellow)',
                 }}
               >
-                2FA Status: {user?.twoFactorEnabled ? 'Protected (Active)' : 'Not Configured (Elevated Risk)'}
+                2FA Status: {user?.twoFactorEnabled ? 'Active' : 'Disabled'}
               </div>
               <div
                 style={{

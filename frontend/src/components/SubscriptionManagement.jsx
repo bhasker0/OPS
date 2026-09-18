@@ -378,10 +378,10 @@ export default function SubscriptionManagement({
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <CreditCard size={18} color="var(--accent-red)" />
-            Subscription Ledger & Quotas
+            Subscriptions & Invoicing
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
-            Pricing tiers, machine & user seat allocations, and SAC 9983 fiscal invoicing
+            Subscription tiers, tenant allocations, and invoice history
           </p>
         </div>
 
@@ -399,7 +399,7 @@ export default function SubscriptionManagement({
               onClick={() => setShowCreateInvoiceModal(true)}
               style={{ fontSize: '0.78rem' }}
             >
-              <Plus size={13} /> Issue Invoice (SAC 9983)
+              <Plus size={13} /> New Invoice
             </button>
           ) : (
             <button
@@ -407,54 +407,10 @@ export default function SubscriptionManagement({
               onClick={handleOpenCreatePlan}
               style={{ fontSize: '0.78rem' }}
             >
-              <Plus size={13} /> Provision Tier
+              <Plus size={13} /> New Tier
             </button>
           )}
         </div>
-      </div>
-
-      {/* GATEWAY TELEMETRY STATUS BAR */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.5rem 0.85rem',
-          fontSize: '0.75rem',
-        }}
-      >
-        <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Gateway Telemetry:</span>
-        <span className="badge badge-pastel-green">Razorpay: Active</span>
-        <span className="badge badge-pastel-green">UPI Autopay: Online</span>
-        <span className="badge badge-pastel-blue">Dunning: 72h Grace</span>
-        <span className="badge badge-pastel-yellow">SAC 9983 GST: Enforced</span>
-      </div>
-
-      {/* MAKER-CHECKER DUAL APPROVAL HUD NOTICE */}
-      <div
-        style={{
-          background: 'var(--accent-yellow-bg)',
-          border: '1px solid rgba(149, 100, 0, 0.25)',
-          borderRadius: 'var(--radius-md)',
-          padding: '0.75rem 1rem',
-          fontSize: '0.78rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '0.65rem',
-          color: 'var(--accent-yellow)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShieldAlert size={16} color="var(--accent-yellow)" />
-          <span><strong>Maker-Checker Protocol:</strong> Tier allocations and invoice status overrides require dual-operator clearance.</span>
-        </div>
-        <span className="font-mono-tabular" style={{ opacity: 0.85, fontSize: '0.72rem' }}>Audit ID: #4091 &bull; Clearance Active</span>
       </div>
 
       {/* SEGMENTED VIEW SELECTOR TABS */}
@@ -470,7 +426,7 @@ export default function SubscriptionManagement({
             boxShadow: activeTab === 'plans' ? 'var(--shadow-card)' : 'none'
           }}
         >
-          <Layers size={13} /> Pricing Tiers ({plans.length})
+          <Layers size={13} /> Plans ({plans.length})
         </button>
         <button
           className={`btn ${activeTab === 'allocations' ? 'btn-primary' : 'btn-secondary'}`}
@@ -483,7 +439,7 @@ export default function SubscriptionManagement({
             boxShadow: activeTab === 'allocations' ? 'var(--shadow-card)' : 'none'
           }}
         >
-          <Building size={13} /> Tenant Allocations ({companies.length})
+          <Building size={13} /> Allocations ({companies.length})
         </button>
         <button
           className={`btn ${activeTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`}
@@ -496,7 +452,7 @@ export default function SubscriptionManagement({
             boxShadow: activeTab === 'invoices' ? 'var(--shadow-card)' : 'none'
           }}
         >
-          <FileSpreadsheet size={13} /> Invoice Ledger ({invoices.length})
+          <FileSpreadsheet size={13} /> Invoices ({invoices.length})
         </button>
       </div>
 

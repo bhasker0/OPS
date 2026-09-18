@@ -458,10 +458,10 @@ export default function UserManagement({
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Users size={18} color="var(--accent-red)" />
-            User Directory & Identity Lifecycle
+            Users
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
-            Multi-tenant operator credentials, RBAC roles & emergency session management
+            User accounts, role assignments, and access control
           </p>
         </div>
 
@@ -478,30 +478,9 @@ export default function UserManagement({
             onClick={() => setShowCreateModal(true)}
             style={{ fontSize: '0.78rem' }}
           >
-            <Plus size={14} /> Provision User
+            <Plus size={14} /> New User
           </button>
         </div>
-      </div>
-
-      {/* TELEMETRY READOUT BAR */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          flexWrap: 'wrap',
-          background: 'var(--bg-surface-elevated)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.65rem 1rem',
-          fontSize: '0.78rem',
-        }}
-      >
-        <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Identity Telemetry:</span>
-        <span style={{ color: 'var(--text-main)' }}>Total: <strong className="font-mono-tabular">{users.length}</strong></span>
-        <span style={{ color: 'var(--accent-green)' }}>Active: <strong className="font-mono-tabular">{users.filter(u => (u.status || 'ACTIVE') === 'ACTIVE').length}</strong></span>
-        <span style={{ color: 'var(--accent-blue)' }}>Super Admins: <strong className="font-mono-tabular">{users.filter(u => u.isInternalOps).length}</strong></span>
-        <span style={{ color: 'var(--accent-yellow)' }}>Killswitch: <strong>Armed</strong></span>
       </div>
 
       {/* FILTER TOOLBAR */}
@@ -579,7 +558,7 @@ export default function UserManagement({
 
               const rowActions = [
                 {
-                  label: 'Launch ETMS Portal ↗',
+                  label: 'Launch ETMS Portal',
                   icon: <ExternalLink size={12} color="var(--accent-green)" />,
                   hidden: u.isInternalOps || !isActive,
                   onClick: () => handleLaunchEtms(u)
@@ -734,7 +713,7 @@ export default function UserManagement({
         <div className="modal-backdrop">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Provision New User</h2>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>New User</h2>
               <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
             </div>
 
@@ -1021,7 +1000,7 @@ export default function UserManagement({
         isOpen={Boolean(impersonateTargetUser)}
         title={`Start Support Impersonation: ${impersonateTargetUser?.name || 'User'}`}
         message={`You are about to establish a Support Impersonation session as '${impersonateTargetUser?.name}' (${impersonateTargetUser?.email}) from '${impersonateTargetUser?.company?.name || 'Tenant'}'. This will switch OPS into Support Mode and immediately launch the ETMS Factory Operations Portal as this user in a new tab. Continue?`}
-        confirmText="Impersonate & Launch ETMS ↗"
+        confirmText="Impersonate & Launch ETMS"
         cancelText="Cancel"
         variant="warning"
         loading={impersonateLoading}

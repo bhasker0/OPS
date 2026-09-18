@@ -626,14 +626,14 @@ export default function CompanyParameterDrawer({
         {/* HEADER */}
         <div style={{ padding: '0.75rem 1.15rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: isSeedCompany ? '#8b5cf6' : '#10b981', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              <Sliders size={13} /> Parameter Store &bull; {isSeedCompany ? 'Master Seed Default Hub' : 'Tenant Inheritance'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: isSeedCompany ? 'var(--accent-purple, #8b5cf6)' : 'var(--accent-green)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <Sliders size={13} /> Parameters
             </div>
             <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.15rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {company.name} <span className="font-mono-tabular" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>[{company.code}]</span>
               {isSeedCompany && (
                 <span className="badge badge-pastel-purple" style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem' }}>
-                  000 Seed Master
+                  Seed Master
                 </span>
               )}
             </h2>

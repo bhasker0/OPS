@@ -92,10 +92,10 @@ export default function AnalyticsDashboard({
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <TrendingUp size={18} color="var(--accent-red)" />
-            Executive Analytics & Revenue Telemetry
+            Executive Analytics
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
-            Multi-tenant subscription volume, annualized run-rate, and cluster telemetry
+            Subscription volume, annualized run-rate, and platform metrics
           </p>
         </div>
 
@@ -108,7 +108,7 @@ export default function AnalyticsDashboard({
             title="Toggle automatic 30s polling"
           >
             <span className={pollingActive ? 'phosphor-beacon' : ''} style={{ width: '6px', height: '6px' }} />
-            <span>{pollingActive ? `Refresh in ${countdown}s` : 'Polling Paused'}</span>
+            <span>{pollingActive ? `${countdown}s` : 'Paused'}</span>
           </button>
 
           {/* Manual Refresh Button */}
@@ -127,7 +127,7 @@ export default function AnalyticsDashboard({
             onClick={onRegisterCompany}
             style={{ fontSize: '0.78rem' }}
           >
-            <Plus size={13} /> Register Tenant
+            <Plus size={13} /> New Tenant
           </button>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function AnalyticsDashboard({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <AlertCircle size={16} color="var(--danger)" />
             <div>
-              <strong>Telemetry Fetch Failure:</strong> {fetchError}
+              <strong>Error:</strong> {fetchError}
             </div>
           </div>
           <button
@@ -154,7 +154,7 @@ export default function AnalyticsDashboard({
             className="btn btn-secondary"
             style={{ fontSize: '0.75rem' }}
           >
-            <RefreshCw size={12} className={refreshing ? 'spin' : ''} /> Retry Connection
+            <RefreshCw size={12} className={refreshing ? 'spin' : ''} /> Retry
           </button>
         </div>
       )}
@@ -164,7 +164,7 @@ export default function AnalyticsDashboard({
         <div className="bento-grid">
           {[1, 2, 3, 4].map((n) => (
             <div key={n} className="bento-card bento-span-3" style={{ height: '110px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Loading telemetry metric...</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Loading metrics...</div>
             </div>
           ))}
         </div>
@@ -176,38 +176,38 @@ export default function AnalyticsDashboard({
               {
                 label: 'Active Tenants',
                 value: `${stats?.activeCompanies ?? 0} / ${stats?.totalCompanies ?? 0}`,
-                subtext: `${stats?.suspendedCompanies ?? 0} suspended • +12% MoM`,
+                subtext: `${stats?.suspendedCompanies ?? 0} suspended`,
                 icon: <Building size={16} />,
                 accentColor: 'var(--text-main)',
                 filterKey: 'companies',
-                tooltip: 'Click to view Registered Companies'
+                tooltip: 'Registered Companies'
               },
               {
-                label: 'Total Ledger Volume',
-                value: stats?.totalVolumeFormatted || formatIndianCurrency(stats?.totalVolume || 0),
-                subtext: `24h Volume: ${stats?.volume24hFormatted || formatIndianCurrency(stats?.volume24h || 0)}`,
+                label: 'Monthly Run-Rate (MRR)',
+                value: stats?.mrrFormatted || formatIndianCurrency(stats?.mrr || 0),
+                subtext: `ARR: ${stats?.arrFormatted || formatIndianCurrency(stats?.arr || 0)}`,
                 icon: <TrendingUp size={16} />,
                 accentColor: 'var(--accent-green)',
                 filterKey: 'subscriptions',
-                tooltip: 'Click to view Subscriptions & Billing'
+                tooltip: 'Subscriptions & Billing'
               },
               {
-                label: 'System Uptime & Health',
+                label: 'System Uptime',
                 value: `${stats?.systemHealth?.uptimePercent ?? 99.99}%`,
-                subtext: 'PostgreSQL & Mongo Active',
+                subtext: 'Operational',
                 icon: <Activity size={16} />,
                 accentColor: 'var(--text-main)',
                 filterKey: 'system_health',
-                tooltip: 'Click to view Telemetry & Sync DLQ'
+                tooltip: 'System Health'
               },
               {
-                label: 'Registered Platform Users',
+                label: 'Platform Users',
                 value: String(stats?.totalUsers ?? 0),
-                subtext: `${stats?.superAdminsCount ?? 0} Super Admins`,
+                subtext: `${stats?.internalOpsUsers ?? 0} Admin, ${stats?.tenantUsers ?? 0} Tenants`,
                 icon: <Users size={16} />,
                 accentColor: 'var(--warning)',
                 filterKey: 'all_users',
-                tooltip: 'Click to view User Directory'
+                tooltip: 'User Directory'
               }
             ]}
             onFilterSelect={(tabKey) => onNavigateTab && onNavigateTab(tabKey)}
@@ -220,10 +220,10 @@ export default function AnalyticsDashboard({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Annualized Run-Rate (ARR) Runway
+                    Annual Recurring Revenue (ARR)
                   </div>
                   <span className="badge badge-pastel-green">
-                    <TrendingUp size={11} /> +18.4% YoY Projected
+                    <TrendingUp size={11} /> {stats?.activeCompanies ?? 0} Active Plans
                   </span>
                 </div>
 
@@ -236,30 +236,30 @@ export default function AnalyticsDashboard({
                   color: 'var(--text-main)',
                   marginTop: '0.25rem',
                 }}>
-                  {formatIndianCurrency((stats?.totalVolume || 0) * 12)}
+                  {stats?.arrFormatted || formatIndianCurrency(stats?.arr || 0)}
                 </div>
                 <div style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)', marginTop: '0.35rem' }}>
-                  Estimated baseline recurring software subscriptions across all active company tenants
+                  Annualized subscriptions calculated from active tenant tiers
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Estimated MRR</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Monthly Revenue (MRR)</div>
                   <div className="font-mono-tabular" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-green)', marginTop: '2px' }}>
-                    {formatIndianCurrency(stats?.totalVolume || 0)}
+                    {stats?.mrrFormatted || formatIndianCurrency(stats?.mrr || 0)}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>24h Transaction Volume</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Active Tenants</div>
                   <div className="font-mono-tabular" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '2px' }}>
-                    {formatIndianCurrency(stats?.volume24h || 0)}
+                    {stats?.activeCompanies ?? 0}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cluster Heartbeat</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Last Sync</div>
                   <div className="font-mono-tabular" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '4px' }}>
-                    {lastRefreshed.toISOString().split('T')[1].slice(0, 8)} UTC
+                    {lastRefreshed.toLocaleTimeString()}
                   </div>
                 </div>
               </div>
@@ -269,7 +269,7 @@ export default function AnalyticsDashboard({
             <div className="bento-card bento-span-4" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '1rem' }}>
               <div>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.75rem' }}>
-                  Operational Shortcuts
+                  Shortcuts
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -279,7 +279,7 @@ export default function AnalyticsDashboard({
                     style={{ justifyContent: 'space-between', padding: '0.6rem 0.85rem', fontSize: '0.78rem', width: '100%' }}
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Building size={14} color="var(--accent-blue)" /> Manage Tenants
+                      <Building size={14} color="var(--accent-blue)" /> Tenants
                     </span>
                     <ChevronRight size={13} color="var(--text-tertiary)" />
                   </button>
@@ -290,7 +290,7 @@ export default function AnalyticsDashboard({
                     style={{ justifyContent: 'space-between', padding: '0.6rem 0.85rem', fontSize: '0.78rem', width: '100%' }}
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Users size={14} color="var(--accent-green)" /> User Directory
+                      <Users size={14} color="var(--accent-green)" /> Users
                     </span>
                     <ChevronRight size={13} color="var(--text-tertiary)" />
                   </button>
@@ -301,7 +301,7 @@ export default function AnalyticsDashboard({
                     style={{ justifyContent: 'space-between', padding: '0.6rem 0.85rem', fontSize: '0.78rem', width: '100%' }}
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <FileText size={14} color="var(--accent-red)" /> Audit Stream
+                      <FileText size={14} color="var(--accent-red)" /> Audit Trail
                     </span>
                     <ChevronRight size={13} color="var(--text-tertiary)" />
                   </button>
@@ -313,7 +313,7 @@ export default function AnalyticsDashboard({
                 onClick={onRegisterCompany}
                 style={{ width: '100%', fontSize: '0.78rem', padding: '0.55rem' }}
               >
-                <Plus size={13} /> Provision New Tenant
+                <Plus size={13} /> New Tenant
               </button>
             </div>
           </div>
@@ -325,7 +325,7 @@ export default function AnalyticsDashboard({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.65rem' }}>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                   <CreditCard size={15} color="var(--accent-green)" />
-                  <span>Recent Financial Entries</span>
+                  <span>Recent Transactions</span>
                 </div>
                 <button
                   className="btn btn-secondary"
@@ -369,7 +369,7 @@ export default function AnalyticsDashboard({
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                  Zero financial entries detected
+                  No transactions recorded
                 </div>
               )}
             </div>
@@ -379,14 +379,14 @@ export default function AnalyticsDashboard({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.65rem' }}>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                   <Activity size={15} color="var(--accent-blue)" />
-                  <span>Platform Infrastructure</span>
+                  <span>Infrastructure</span>
                 </div>
                 <button
                   className="btn btn-secondary"
                   style={{ padding: '0.2rem 0.45rem', fontSize: '0.72rem' }}
                   onClick={() => onNavigateTab && onNavigateTab('system_health')}
                 >
-                  Deep Telemetry
+                  System Health
                 </button>
               </div>
 
@@ -394,23 +394,23 @@ export default function AnalyticsDashboard({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Database size={15} color="var(--accent-blue)" />
-                    <span style={{ fontWeight: 600 }}>PostgreSQL 16 Cluster</span>
+                    <span style={{ fontWeight: 600 }}>PostgreSQL</span>
                   </div>
-                  <span className="badge badge-pastel-green">Port 5433 &bull; Healthy</span>
+                  <span className="badge badge-pastel-green">Healthy</span>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FileText size={15} color="var(--accent-green)" />
-                    <span style={{ fontWeight: 600 }}>MongoDB 7 Audit Store</span>
+                    <span style={{ fontWeight: 600 }}>MongoDB</span>
                   </div>
-                  <span className="badge badge-pastel-green">Port 27017 &bull; Connected</span>
+                  <span className="badge badge-pastel-green">Connected</span>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Clock size={15} color="var(--accent-yellow)" />
-                    <span style={{ fontWeight: 600 }}>Telemetry Heartbeat</span>
+                    <span style={{ fontWeight: 600 }}>Heartbeat</span>
                   </div>
                   <span className="font-mono-tabular" style={{ color: 'var(--text-muted)' }}>
                     {lastRefreshed.toLocaleTimeString()}

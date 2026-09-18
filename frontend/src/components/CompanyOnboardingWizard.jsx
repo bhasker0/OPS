@@ -149,7 +149,7 @@ export default function CompanyOnboardingWizard({
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}
           >
             <CheckCircle2 size={14} />
-            {loading ? 'Provisioning...' : 'Complete Tenant Onboarding'}
+            {loading ? 'Creating...' : 'Create Tenant'}
           </button>
         )}
       </div>
@@ -160,8 +160,8 @@ export default function CompanyOnboardingWizard({
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
-      title="Provision Tenant Organization"
-      subtitle="Engineering onboarding wizard & seed parameter matrix"
+      title="New Tenant"
+      subtitle="Configure profile, tax compliance, and administrator"
       icon={<Building size={18} color="var(--accent-red)" />}
       size="lg"
       footer={footerContent}
@@ -202,7 +202,7 @@ export default function CompanyOnboardingWizard({
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                Tenant Identity & Code Generation
+                Company Identity
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
@@ -271,7 +271,7 @@ export default function CompanyOnboardingWizard({
           {step === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                Tax Compliance & GSTIN Matrix
+                Tax & Contact Information
               </div>
 
               <div className="form-group">
@@ -338,7 +338,7 @@ export default function CompanyOnboardingWizard({
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                Decimal Precision & Currency Formatters
+                Localization & Currency
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -397,7 +397,7 @@ export default function CompanyOnboardingWizard({
               </div>
 
               <div style={{ background: 'var(--bg-surface-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                <strong>Parameter Inheritance:</strong> 18 standardized seed attributes will automatically attach to this organization.
+                <strong>Configuration:</strong> Standard seed parameters will automatically attach to this organization.
               </div>
             </div>
           )}
@@ -406,7 +406,7 @@ export default function CompanyOnboardingWizard({
           {step === 4 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                Security Clearance & RBAC Initialization
+                Initial Administrator
               </div>
 
               <div className="card" style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.78rem', background: 'var(--bg-surface-elevated)' }}>

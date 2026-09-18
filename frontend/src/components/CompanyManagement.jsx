@@ -207,10 +207,10 @@ export default function CompanyManagement({
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Building size={18} color="var(--accent-red)" />
-            Tenant Directory & Specifications
+            Tenants
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
-            Master factory directory, GSTIN compliance, and 18-attribute parameter store
+            Company directory, tax profiles, and parameter configurations
           </p>
         </div>
 
@@ -265,13 +265,13 @@ export default function CompanyManagement({
             title="Scan and Reconcile untracked ETMS companies into OPS Master"
           >
             <Shield size={13} color={untrackedCount > 0 ? 'var(--accent-yellow)' : 'var(--primary)'} />
-            Reconcile ETMS
+            Reconcile
             {untrackedCount > 0 && (
               <span
                 className="badge badge-pastel-red font-mono-tabular"
                 style={{ marginLeft: '0.35rem' }}
               >
-                {untrackedCount} untracked
+                {untrackedCount}
               </span>
             )}
           </button>
@@ -289,30 +289,9 @@ export default function CompanyManagement({
             onClick={() => setShowWizard(true)}
             style={{ fontSize: '0.78rem' }}
           >
-            <Plus size={13} /> Provision Tenant
+            <Plus size={13} /> New Tenant
           </button>
         </div>
-      </div>
-
-      {/* TELEMETRY READOUT BAR */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.5rem 0.85rem',
-          fontSize: '0.75rem',
-        }}
-      >
-        <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Registry Telemetry:</span>
-        <span className="badge badge-pastel-blue">Registered: {companies.length}</span>
-        <span className="badge badge-pastel-green">Active: {companies.filter(c => (c.status || 'ACTIVE') === 'ACTIVE').length}</span>
-        <span className={`badge ${untrackedCount > 0 ? 'badge-pastel-yellow' : 'badge-pastel-blue'}`}>Untracked ETMS: {untrackedCount}</span>
-        <span className="badge badge-pastel-blue">Param Store: 18 Rules</span>
       </div>
 
       {/* FILTER & SEARCH TOOLBAR */}

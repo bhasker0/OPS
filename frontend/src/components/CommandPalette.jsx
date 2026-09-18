@@ -70,8 +70,8 @@ export default function CommandPalette({
     {
       id: 'nav-dashboard',
       category: 'Navigation',
-      title: 'Global Analytics Dashboard',
-      subtitle: 'Executive metrics, ARR ledger, and system health',
+      title: 'Analytics Dashboard',
+      subtitle: 'Financial metrics, revenue runway, and health overview',
       icon: <TrendingUp size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('global_dashboard');
@@ -81,8 +81,8 @@ export default function CommandPalette({
     {
       id: 'nav-companies',
       category: 'Navigation',
-      title: 'Tenant Directory & Registry',
-      subtitle: `Browse all ${companies.length} tenant organizations`,
+      title: 'Tenants',
+      subtitle: `Browse ${companies.length} tenant organizations`,
       icon: <Building size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('companies');
@@ -92,8 +92,8 @@ export default function CommandPalette({
     {
       id: 'nav-users',
       category: 'Navigation',
-      title: 'User Management & Lifecycle',
-      subtitle: `Manage ${users.length} user accounts & security roles`,
+      title: 'Users',
+      subtitle: `Manage ${users.length} user accounts and roles`,
       icon: <Users size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('all_users');
@@ -103,8 +103,8 @@ export default function CommandPalette({
     {
       id: 'nav-roles',
       category: 'Navigation',
-      title: 'RBAC Roles & Permissions Matrix',
-      subtitle: 'Configure granular module permissions and security rules',
+      title: 'Roles & Permissions',
+      subtitle: 'Configure access control and permissions',
       icon: <Lock size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('roles');
@@ -114,8 +114,8 @@ export default function CommandPalette({
     {
       id: 'nav-subscriptions',
       category: 'Navigation',
-      title: 'Subscription Ledger & Quotas',
-      subtitle: 'Manage pricing tiers, machine & user quotas, and invoices',
+      title: 'Subscriptions & Invoicing',
+      subtitle: 'Manage tiers, quotas, and invoices',
       icon: <TrendingUp size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('subscriptions');
@@ -125,8 +125,8 @@ export default function CommandPalette({
     {
       id: 'nav-health',
       category: 'Navigation',
-      title: 'System Telemetry & Sync DLQ',
-      subtitle: 'Real-time database latency heartbeats and failed event replays',
+      title: 'System Health',
+      subtitle: 'Real-time database latency and sync queues',
       icon: <Activity size={15} color="var(--accent-green)" />,
       action: () => {
         onNavigateTab('system_health');
@@ -136,8 +136,8 @@ export default function CommandPalette({
     {
       id: 'nav-parameters',
       category: 'Governance',
-      title: 'Master Seed Parameter Store & Rules',
-      subtitle: 'Configure global defaults, SAC 9988 rates, stitching tolerances & feature flags',
+      title: 'Parameters',
+      subtitle: 'Configure global defaults, SAC rates, and feature flags',
       icon: <Sliders size={15} color="var(--primary)" />,
       keywords: ['parameter', 'settings', 'feature flags', 'sac 9988', 'seed', 'rules', 'override', 'governance', 'stitching', 'karigar'],
       action: () => {
@@ -148,8 +148,8 @@ export default function CommandPalette({
     {
       id: 'nav-audit',
       category: 'Navigation',
-      title: 'Forensic Audit Trail Inspector',
-      subtitle: 'MongoDB real-time change data & compliance events',
+      title: 'Audit Trail',
+      subtitle: 'View audit logs, operator actions, and state changes',
       icon: <FileText size={15} color="var(--primary)" />,
       action: () => {
         onNavigateTab('global_audit');
@@ -162,8 +162,8 @@ export default function CommandPalette({
     {
       id: 'act-register-company',
       category: 'Actions',
-      title: 'Provision New Tenant Company',
-      subtitle: 'Launch 4-step onboarding wizard with GSTIN validation',
+      title: 'New Tenant',
+      subtitle: 'Onboard a new company organization',
       icon: <Plus size={15} color="var(--accent-green)" />,
       action: () => {
         if (onRegisterCompany) onRegisterCompany();
@@ -173,8 +173,8 @@ export default function CommandPalette({
     {
       id: 'act-create-user',
       category: 'Actions',
-      title: 'Provision User Account',
-      subtitle: 'Provision a new tenant operator or ops super admin',
+      title: 'New User',
+      subtitle: 'Create a new user account',
       icon: <Users size={15} color="var(--accent-green)" />,
       action: () => {
         if (onCreateUser) onCreateUser();

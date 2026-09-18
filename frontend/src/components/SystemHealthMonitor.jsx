@@ -196,10 +196,10 @@ export default function SystemHealthMonitor({ apiBase = API_BASE }) {
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-main)' }}>
             <Activity size={18} color="var(--accent-red)" />
-            System Health & DLQ Telemetry
+            System Health & Telemetry
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.2rem 0 0 0' }}>
-            Live cluster latency, database connection pools, and forensic dead-letter dispatch queues
+            Real-time service status, database latencies, and sync queues
           </p>
         </div>
 
@@ -212,7 +212,7 @@ export default function SystemHealthMonitor({ apiBase = API_BASE }) {
               style={{ cursor: 'pointer' }}
             />
             <span className={autoRefresh ? 'phosphor-beacon' : ''} style={{ width: '6px', height: '6px' }} />
-            <span>Heartbeat: 10s</span>
+            <span>Auto Refresh (10s)</span>
           </label>
 
           <button
@@ -233,7 +233,7 @@ export default function SystemHealthMonitor({ apiBase = API_BASE }) {
           background: 'var(--bg-surface)',
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius-md)',
-          padding: '1rem 1.25rem',
+          padding: '0.85rem 1.25rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -245,16 +245,13 @@ export default function SystemHealthMonitor({ apiBase = API_BASE }) {
             <span className="phosphor-beacon" style={{ width: '8px', height: '8px' }} />
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>Status:</span>
+                <span>System Status:</span>
                 <span style={{ color: healthData.status === 'HEALTHY' ? 'var(--accent-green)' : 'var(--danger)', fontWeight: 700 }}>
                   {healthData.status}
                 </span>
                 <span style={{ color: 'var(--text-tertiary)' }}>&bull;</span>
-                <span>Response Latency:</span>
+                <span>Latency:</span>
                 <span className="font-mono-tabular" style={{ fontWeight: 600 }}>{healthData.responseTimeMs}ms</span>
-              </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                All telemetry sockets responding within calibrated tolerances.
               </div>
             </div>
           </div>
@@ -399,10 +396,10 @@ export default function SystemHealthMonitor({ apiBase = API_BASE }) {
           <div>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.45rem', margin: 0, color: 'var(--text-main)' }}>
               <Zap size={16} color="var(--accent-yellow)" />
-              Dead-Letter Queue (DLQ) Incident Matrix
+              Dead-Letter Queue (DLQ)
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0.2rem 0 0 0' }}>
-              Zero-data-loss holding buffer with backoff retry controls
+              Failed sync event holding buffer and retry management
             </p>
           </div>
 
@@ -427,7 +424,7 @@ export default function SystemHealthMonitor({ apiBase = API_BASE }) {
                 style={{ fontSize: '0.78rem' }}
               >
                 <Play size={12} className={retryingAll ? 'spin' : ''} />
-                Replay All Pending ({syncStats.pendingCount})
+                Replay All ({syncStats.pendingCount})
               </button>
             )}
 
