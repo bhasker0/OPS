@@ -295,8 +295,20 @@ router.put('/:companyId/parameters/:key', async (req, res) => {
     });
 
     // ?? SYNC TO ETMS
-    dispatchOpsSync('parameters', { company_id: companyId, settings: { [cleanKey]: strVal } })
-      .catch((err) => console.error('Sync failed:', err));
+    dispatchOpsSync('parameters', {
+      company_id: companyId,
+      settings: { [cleanKey]: strVal },
+      parameters: { [cleanKey]: strVal },
+    }).catch((err) => console.error('Sync parameters failed:', err));
+
+    if (cleanKey.startsWith('feature_') || cleanKey.endsWith('_enabled')) {
+      const boolVal = strVal === 'true' || strVal === '1' || strVal === true;
+      dispatchOpsSync('feature_flags', {
+        company_id: companyId,
+        flagKey: cleanKey,
+        enabled: boolVal,
+      }).catch((err) => console.error('Sync feature flag failed:', err));
+    }
 
     res.json({
       success: true,
@@ -419,17 +431,26 @@ router.get('/:companyId/feature-flags', async (req, res) => {
     const flags = {};
     // 1. Set predefined defaults
     Object.keys(DEFAULT_ETMS_FEATURE_FLAGS).forEach((key) => {
-      flags[key] = DEFAULT_ETMS_FEATURE_FLAGS[key].default === 'true';
+      const clean = key.replace(/^feature_/, '');
+      const def = DEFAULT_ETMS_FEATURE_FLAGS[key].default === 'true';
+      flags[key] = def;
+      flags[clean] = def;
     });
 
     // 2. Apply seed DB values
     seedParams.forEach((sp) => {
-      flags[sp.key] = sp.value === 'true' || sp.value === '1';
+      const clean = sp.key.replace(/^feature_/, '');
+      const val = sp.value === 'true' || sp.value === '1';
+      flags[sp.key] = val;
+      flags[clean] = val;
     });
 
     // 3. Apply company specific overrides
     companyParams.forEach((cp) => {
-      flags[cp.key] = cp.value === 'true' || cp.value === '1';
+      const clean = cp.key.replace(/^feature_/, '');
+      const val = cp.value === 'true' || cp.value === '1';
+      flags[cp.key] = val;
+      flags[clean] = val;
     });
 
     res.json({
@@ -496,12 +517,18 @@ router.post('/:companyId/feature-flags/:flagKey/toggle', async (req, res) => {
       },
     });
 
-    // Sync to ETMS
+    // Sync to ETMS (both feature_flags and parameters)
     dispatchOpsSync('feature_flags', {
       company_id: companyId,
       flagKey: cleanKey,
       enabled: targetValue === 'true',
-    }).catch((err) => console.error('Sync failed:', err));
+    }).catch((err) => console.error('Sync feature_flags failed:', err));
+
+    dispatchOpsSync('parameters', {
+      company_id: companyId,
+      settings: { [cleanKey]: targetValue },
+      parameters: { [cleanKey]: targetValue },
+    }).catch((err) => console.error('Sync parameters failed:', err));
 
     res.json({
       success: true,

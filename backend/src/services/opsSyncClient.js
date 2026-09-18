@@ -3,7 +3,7 @@ const SyncDLQ = require('../models/SyncDLQ');
 const { getIsConnected } = require('../config/mongo');
 
 const OPS_SYNC_SECRET = process.env.JWT_SECRET || 'surat_embroidery_super_secret_jwt_key_2026';
-const ETMS_BACKEND_URL = process.env.ETMS_BACKEND_URL || 'http://etms-backend:4000';
+const ETMS_BACKEND_URL = process.env.ETMS_BACKEND_URL || 'http://localhost:4000';
 
 function generateSignature(payload) {
   const bodyString = JSON.stringify(payload);
@@ -86,8 +86,9 @@ async function sendToEtms(endpointPath, payload) {
 
   const candidateUrls = [
     process.env.ETMS_BACKEND_URL,
-    'http://etms-backend:4000',
     'http://localhost:4000',
+    'http://127.0.0.1:4000',
+    'http://etms-backend:4000',
     'http://host.docker.internal:4000',
   ].filter(Boolean);
 
